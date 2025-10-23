@@ -9,7 +9,6 @@ on:
 jobs:
   flutter_test_and_build:
     runs-on: ubuntu-latest
-    # 수정된 조건: PR이거나, push 이벤트면서 커밋 메시지에 [CI]가 포함된 경우
     if: github.event_name == 'pull_request' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[CI]'))
     steps:
       - uses: actions/checkout@v3

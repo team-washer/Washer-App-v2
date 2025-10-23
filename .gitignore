@@ -46,3 +46,6 @@ app.*.map.json
 
 # Mac OS
 .DS_store
+
+# FVM Version Cache
+.fvm/

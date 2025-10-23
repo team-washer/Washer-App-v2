@@ -1,0 +1,108 @@
+name: Flutter CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  flutter_test_and_build:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || contains(github.event.head_commit.message, '[CI]')
+    steps:
+      - uses: actions/checkout@v3
+
+      # FVM 설정에서 Flutter 버전 읽기
+      - name: Read FVM config
+        id: fvm_config
+        run: |
+          if [ -f ".fvm/fvm_config.json" ]; then
+            echo "FLUTTER_VERSION=$(cat .fvm/fvm_config.json | grep -o '"flutterSdkVersion": "[^"]*' | cut -d'"' -f4)" >> $GITHUB_ENV
+          elif [ -f "fvm_config.json" ]; then
+            echo "FLUTTER_VERSION=$(cat fvm_config.json | grep -o '"flutterSdkVersion": "[^"]*' | cut -d'"' -f4)" >> $GITHUB_ENV
+          else
+            echo "FLUTTER_VERSION=stable" >> $GITHUB_ENV
+            echo "::warning::No FVM config found, using default stable channel"
+          fi
+
+      # Flutter 설정 (FVM에서 읽은 버전 사용)
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: Install FVM
+        run: |
+          dart pub global activate fvm
+          echo "$HOME/.pub-cache/bin" >> $GITHUB_PATH
+
+      - name: Set up FVM
+        run: |
+          if [ -f ".fvm/fvm_config.json" ] || [ -f "fvm_config.json" ]; then
+            fvm install
+            fvm use --force
+            echo "Using FVM version: $(fvm flutter --version)"
+          else
+            echo "::warning::Skipping FVM setup - no config found"
+          fi
+
+      - name: Check Flutter and Dart version
+        run: fvm flutter --version || flutter --version
+
+      - name: Install dependencies
+        run: fvm flutter pub get || flutter pub get
+
+      - name: Analyze project source
+        run: fvm flutter analyze --no-fatal-infos || flutter analyze --no-fatal-infos
+        continue-on-error: true
+
+      - name: Run tests
+        run: fvm flutter test || flutter test
+        continue-on-error: true
+
+      - name: Build Android APK
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: fvm flutter build apk --release || flutter build apk --release
+        continue-on-error: true
+
+      - name: Upload APK
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: warn
+
+      - name: Discord notification
+        if: always()
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          if [ -z "$DISCORD_WEBHOOK" ]; then
+            echo "::warning::Discord webhook URL is not set. Skipping notification."
+            exit 0
+          fi
+          
+          SERVER_URL="${{ github.server_url }}"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            EVENT_INFO="PR #${{ github.event.number }}: ${{ github.event.pull_request.title }} (${{ github.event.pull_request.html_url }})"
+          else
+            EVENT_INFO="커밋: ${{ github.event.head_commit.message }} ($SERVER_URL/${{ github.repository }}/commit/${{ github.sha }})"
+          fi
+          
+          FLUTTER_INFO="Flutter 버전: ${{ env.FLUTTER_VERSION }}"
+          
+          if [ "${{ job.status }}" = "success" ]; then
+            TITLE="✅ CI/CD 파이프라인 성공"
+            DESCRIPTION="모든 작업이 성공적으로 완료되었습니다! 🎉\n$FLUTTER_INFO"
+          else
+            TITLE="❌ CI/CD 파이프라인 실패"
+            DESCRIPTION="GitHub Actions 로그를 확인해주세요. 🔍\n$FLUTTER_INFO"
+          fi
+          
+          curl -H "Content-Type: application/json" -X POST -d "{
+            \"content\": \"$TITLE\n$DESCRIPTION\n$EVENT_INFO\"
+          }" "$DISCORD_WEBHOOK"

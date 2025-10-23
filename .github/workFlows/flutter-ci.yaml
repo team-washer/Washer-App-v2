@@ -13,7 +13,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      # FVM 설정에서 Flutter 버전 읽기
       - name: Read FVM config
         id: fvm_config
         run: |
@@ -26,7 +25,6 @@ jobs:
             echo "::warning::No FVM config found, using default stable channel"
           fi
 
-      # Flutter 설정 (FVM에서 읽은 버전 사용)
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:

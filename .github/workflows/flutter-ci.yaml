@@ -13,59 +13,60 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Read FVM config
-        id: fvm_config
-        run: |
-          if [ -f ".fvm/fvm_config.json" ]; then
-            echo "FLUTTER_VERSION=$(cat .fvm/fvm_config.json | grep -o '"flutterSdkVersion": "[^"]*' | cut -d'"' -f4)" >> $GITHUB_ENV
-          elif [ -f "fvm_config.json" ]; then
-            echo "FLUTTER_VERSION=$(cat fvm_config.json | grep -o '"flutterSdkVersion": "[^"]*' | cut -d'"' -f4)" >> $GITHUB_ENV
-          else
-            echo "FLUTTER_VERSION=stable" >> $GITHUB_ENV
-            echo "::warning::No FVM config found, using default stable channel"
-          fi
+      # Dart 설치 (FVM 사용을 위해 필요)
+      - name: Set up Dart
+        uses: dart-lang/setup-dart@v1
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: 'stable'
-          cache: true
-
+      # FVM 설치
       - name: Install FVM
         run: |
           dart pub global activate fvm
           echo "$HOME/.pub-cache/bin" >> $GITHUB_PATH
 
-      - name: Set up FVM
+      # FVM을 통해 Flutter 설치
+      - name: Install Flutter via FVM
         run: |
-          if [ -f ".fvm/fvm_config.json" ] || [ -f "fvm_config.json" ]; then
-            fvm install
-            fvm use --force
-            echo "Using FVM version: $(fvm flutter --version)"
+          fvm install
+          fvm use --force
+
+      # FVM config에서 Flutter 버전 읽어서 환경변수에 저장 (알림용)
+      - name: Read Flutter version from FVM
+        run: |
+          if [ -f ".fvm/fvm_config.json" ]; then
+            FLUTTER_VER=$(cat .fvm/fvm_config.json | grep -o '"flutterSdkVersion": "[^"]*' | cut -d'"' -f4)
+            echo "FLUTTER_VERSION=$FLUTTER_VER" >> $GITHUB_ENV
+          elif [ -f "fvm_config.json" ]; then
+            FLUTTER_VER=$(cat fvm_config.json | grep -o '"flutterSdkVersion": "[^"]*' | cut -d'"' -f4)
+            echo "FLUTTER_VERSION=$FLUTTER_VER" >> $GITHUB_ENV
           else
-            echo "::warning::Skipping FVM setup - no config found"
+            echo "FLUTTER_VERSION=unknown" >> $GITHUB_ENV
           fi
 
-      - name: Check Flutter and Dart version
-        run: fvm flutter --version || flutter --version
+      # Flutter 버전 확인
+      - name: Check Flutter version
+        run: fvm flutter --version
 
+      # 의존성 설치
       - name: Install dependencies
-        run: fvm flutter pub get || flutter pub get
+        run: fvm flutter pub get
 
+      # 코드 분석
       - name: Analyze project source
-        run: fvm flutter analyze --no-fatal-infos || flutter analyze --no-fatal-infos
+        run: fvm flutter analyze --no-fatal-infos
         continue-on-error: true
 
+      # 테스트 실행
       - name: Run tests
-        run: fvm flutter test || flutter test
+        run: fvm flutter test
         continue-on-error: true
 
+      # Android APK 빌드 (main 브랜치에 push 시에만)
       - name: Build Android APK
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: fvm flutter build apk --release || flutter build apk --release
+        run: fvm flutter build apk --release
         continue-on-error: true
 
+      # APK 업로드 (main 브랜치에 push 시에만)
       - name: Upload APK
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
@@ -74,6 +75,7 @@ jobs:
           path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: warn
 
+      # Discord 알림
       - name: Discord notification
         if: always()
         env:

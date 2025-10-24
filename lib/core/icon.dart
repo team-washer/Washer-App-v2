@@ -20,36 +20,23 @@ enum WasherIconType {
 
 extension WasherIconTypeExtension on WasherIconType {
   String get assetName {
-    switch (this) {
-      case WasherIconType.back:
-        return 'back.svg';
-      case WasherIconType.cancel:
-        return 'cancel.svg';
-      case WasherIconType.down:
-        return 'down.svg';
-      case WasherIconType.dry:
-        return 'dry.svg';
-      case WasherIconType.eye:
-        return 'eye.svg';
-      case WasherIconType.eyeOff:
-        return 'eye_off.svg';
-      case WasherIconType.history:
-        return 'history.svg';
-      case WasherIconType.home:
-        return 'home.svg';
-      case WasherIconType.logo:
-        return 'logo.svg';
-      case WasherIconType.logoWithTitle:
-        return 'logo_with_title.svg';
-      case WasherIconType.map:
-        return 'map.svg';
-      case WasherIconType.triangleWarning:
-        return 'triangle_warning.svg';
-      case WasherIconType.user:
-        return 'user.svg';
-      case WasherIconType.water:
-        return 'water.svg';
-    }
+    const assetMap = {
+      WasherIconType.back: 'back.svg',
+      WasherIconType.cancel: 'cancel.svg',
+      WasherIconType.down: 'down.svg',
+      WasherIconType.dry: 'dry.svg',
+      WasherIconType.eye: 'eye.svg',
+      WasherIconType.eyeOff: 'eye_off.svg',
+      WasherIconType.history: 'history.svg',
+      WasherIconType.home: 'home.svg',
+      WasherIconType.logo: 'logo.svg',
+      WasherIconType.logoWithTitle: 'logo_with_title.svg',
+      WasherIconType.map: 'map.svg',
+      WasherIconType.triangleWarning: 'triangle_warning.svg',
+      WasherIconType.user: 'user.svg',
+      WasherIconType.water: 'water.svg',
+    };
+    return assetMap[this] ?? 'default_icon.svg';
   }
 }
 

@@ -59,8 +59,8 @@ flutter:
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
+  assets:
+    - assets/icons/
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
@@ -77,23 +77,23 @@ flutter:
   fonts:
     - family: SUIT
       fonts:
-        - asset: assets/fonts/SUIT-Thin.ttf
+        - asset: assets/fonts/suit/SUIT-Thin.ttf
           weight: 100
-        - asset: assets/fonts/SUIT-ExtraLight.ttf
+        - asset: assets/fonts/suit/SUIT-ExtraLight.ttf
           weight: 200
-        - asset: assets/fonts/SUIT-Light.ttf
+        - asset: assets/fonts/suit/SUIT-Light.ttf
           weight: 300
-        - asset: assets/fonts/SUIT-Regular.ttf
+        - asset: assets/fonts/suit/SUIT-Regular.ttf
           weight: 400
-        - asset: assets/fonts/SUIT-Medium.ttf
+        - asset: assets/fonts/suit/SUIT-Medium.ttf
           weight: 500
-        - asset: assets/fonts/SUIT-SemiBold.ttf
+        - asset: assets/fonts/suit/SUIT-SemiBold.ttf
           weight: 600
-        - asset: assets/fonts/SUIT-Bold.ttf
+        - asset: assets/fonts/suit/SUIT-Bold.ttf
           weight: 700
-        - asset: assets/fonts/SUIT-ExtraBold.ttf
+        - asset: assets/fonts/suit/SUIT-ExtraBold.ttf
           weight: 800
-        - asset: assets/fonts/SUIT-Heavy.ttf
+        - asset: assets/fonts/suit/SUIT-Heavy.ttf
           weight: 900
   #   - family: Trajan Pro
   #     fonts:

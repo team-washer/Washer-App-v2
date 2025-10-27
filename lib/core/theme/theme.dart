@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:project_setting/core/theme/color.dart';
 
 class WasherTheme {
+  WasherTheme._();
+
   static ThemeData themeData = ThemeData(
     scaffoldBackgroundColor: WasherColor.backgroundColor,
     appBarTheme: const AppBarTheme(

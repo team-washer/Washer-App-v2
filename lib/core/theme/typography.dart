@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:project_setting/core/color.dart';
+import 'package:project_setting/core/theme/color.dart';
 
 class WasherTypography {
   WasherTypography._();

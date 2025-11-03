@@ -115,13 +115,11 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
-<<<<<<< HEAD
   flutter_web_plugins:
     dependency: transitive
     description: flutter
     source: sdk
     version: "0.0.0"
-=======
   http:
     dependency: transitive
     description:
@@ -138,7 +136,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.1.2"
->>>>>>> 9bce3a27fc54b3ab74de013fd9805ef966f9d42e
   leak_tracker:
     dependency: transitive
     description:
@@ -203,16 +200,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.9.1"
-<<<<<<< HEAD
-  plugin_platform_interface:
-    dependency: transitive
-    description:
-      name: plugin_platform_interface
-      sha256: "4820fbfdb9478b1ebae27888254d445073732dae3d6ea81f0b7e06d5dedc3f02"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.1.8"
-=======
   path_parsing:
     dependency: transitive
     description:
@@ -229,7 +216,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.0.1"
->>>>>>> 9bce3a27fc54b3ab74de013fd9805ef966f9d42e
+  plugin_platform_interface:
+    dependency: transitive
+    description:
+      name: plugin_platform_interface
+      sha256: "4820fbfdb9478b1ebae27888254d445073732dae3d6ea81f0b7e06d5dedc3f02"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.1.8"
   sky_engine:
     dependency: transitive
     description: flutter
@@ -339,11 +333,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.1"
-<<<<<<< HEAD
-sdks:
-  dart: ">=3.9.2 <4.0.0"
-  flutter: ">=3.22.0"
-=======
   xml:
     dependency: transitive
     description:
@@ -355,4 +344,3 @@ sdks:
 sdks:
   dart: ">=3.9.2 <4.0.0"
   flutter: ">=3.29.0"
->>>>>>> 9bce3a27fc54b3ab74de013fd9805ef966f9d42e

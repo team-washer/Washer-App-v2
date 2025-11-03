@@ -53,3 +53,4 @@ app.*.map.json
 #Firebase files
 google-services.json
 GoogleService-Info.plisty
+firebase_options.dart

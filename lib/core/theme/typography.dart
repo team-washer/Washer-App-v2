@@ -4,7 +4,8 @@ import 'package:project_setting/core/theme/color.dart';
 class WasherTypography {
   WasherTypography._();
 
-  static const String _suitFontFamily = 'SUIT'; // Define the font family constant
+  static const String _suitFontFamily =
+      'SUIT'; // Define the font family constant
 
   static TextStyle _suitBase({
     required double fontSize,
@@ -21,8 +22,14 @@ class WasherTypography {
     );
   }
 
-  // ---- headline ----
   static TextStyle h1([Color? color]) => _suitBase(
+    fontSize: 24,
+    fontWeight: FontWeight.w600,
+    color: color ?? WasherColor.baseGray,
+  );
+
+  // ---- headline ----
+  static TextStyle h2([Color? color]) => _suitBase(
     fontSize: 20,
     fontWeight: FontWeight.w600,
     color: color ?? WasherColor.baseGray,

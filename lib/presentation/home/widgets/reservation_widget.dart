@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:project_setting/core/enums/washer_dryer_status.dart';
 import 'package:project_setting/core/theme/color.dart';
 import 'package:project_setting/core/theme/icon.dart';
 import 'package:project_setting/core/theme/typography.dart';
-import 'package:project_setting/presentation/common/custom_button.dart';
+import 'package:project_setting/presentation/common/custom_small_button.dart';
 import 'package:project_setting/presentation/home/widgets/state_widget.dart';
 
 void main() {
@@ -51,21 +52,44 @@ class ReservationWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            children: [
-              WasherIcon(
-                type: WasherIconType.dryCircle,
-                color: WasherColor.mainColor400,
-              ),
-              SizedBox(width: 8),
-              Text('Dryer-3F-L1', style: WasherTypography.subTitle3()),
-              StateWidget(text: "대기중", color: WasherColor.mainColor200,),
-            ],
-          ),
+          _buildWidgetHeader(),
+          SizedBox(height: 12),
+          Text("예약 시간: 25.8.18. 00:45:03", style: WasherTypography.body2(WasherColor.baseGray500)),
+          SizedBox(height: 4),
+          Text("예약 만료까지: 00:02:32", style: WasherTypography.body2(WasherColor.errorColor)),
+          SizedBox(height: 12),
+          _buildWidgetBottom(),
         ],
       ),
     );
   }
+
+  Widget _buildWidgetHeader() {
+    return Row(
+      children: [
+        WasherIcon(
+          type: WasherIconType.dryCircle,
+          color: WasherColor.mainColor400,
+        ),
+        SizedBox(width: 8),
+        Text('Dryer-3F-L1', style: WasherTypography.subTitle3()),
+        Spacer(),
+        StateWidget(status: WasherDryerStatus.inUse),
+      ],
+    );
+  }
+
+  Widget _buildWidgetBottom() {
+    return Row(
+      children: [
+        Expanded(child: CustomSmallButton(text: '예약 취소', onPressed: (){}, color: WasherColor.baseGray200)),
+        SizedBox(width: 4),
+        Expanded(child: CustomSmallButton(text: '세탁 시작', onPressed: (){}, color: WasherColor.mainColor500)),
+      ],
+    );
+  }
+
 }

@@ -145,14 +145,9 @@ class _AuthTextFieldState extends State<AuthTextField> {
     if (_isEmail) {
       return Padding(
         padding: const EdgeInsets.only(right: 16),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '@ gsm.hs.kr',
-              style: WasherTypography.body2(WasherColor.baseGray600),
-            ),
-          ],
+        child: Text(
+          '@ gsm.hs.kr',
+          style: WasherTypography.body2(WasherColor.baseGray600),
         ),
       );
     }

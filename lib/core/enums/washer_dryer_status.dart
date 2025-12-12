@@ -3,11 +3,11 @@ import 'dart:ui';
 import '../theme/color.dart';
 
 enum WasherDryerStatus {
-  waiting,        // 대기
-  reserved,       // 예약완료
-  needConfirm,    // 확인필요
-  inUse,          // 사용중
-  completed,      // 완료
+  waiting, // 대기
+  reserved, // 예약완료
+  needConfirm, // 확인필요
+  inUse, // 사용중
+  completed, // 완료
 }
 
 extension WasherDryerStatusExt on WasherDryerStatus {
@@ -39,5 +39,11 @@ extension WasherDryerStatusExt on WasherDryerStatus {
       case WasherDryerStatus.completed:
         return WasherColor.mainColor500;
     }
+  }
+
+  bool get needsSpacing {
+    return !(this == WasherDryerStatus.inUse ||
+        this == WasherDryerStatus.needConfirm ||
+        this == WasherDryerStatus.completed);
   }
 }

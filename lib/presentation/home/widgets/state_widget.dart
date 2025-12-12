@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:project_setting/core/enums/washer_dryer_status.dart';
-import 'package:project_setting/core/theme/color.dart';
 import 'package:project_setting/core/theme/typography.dart';
 
 class StateWidget extends StatelessWidget {

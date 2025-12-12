@@ -1,45 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:project_setting/core/enums/laundry_machine_type.dart';
 import 'package:project_setting/core/enums/washer_dryer_status.dart';
 import 'package:project_setting/core/theme/color.dart';
-import 'package:project_setting/core/theme/icon.dart';
 import 'package:project_setting/core/theme/typography.dart';
 import 'package:project_setting/presentation/common/custom_small_button.dart';
 import 'package:project_setting/presentation/home/widgets/state_widget.dart';
 
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: const TestScreen(),
-    );
-  }
-}
-
-// ⭐ 테스트용 스크린
-class TestScreen extends StatelessWidget {
-  const TestScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("ReservationWidget 테스트")),
-      body: const Center(
-        child: ReservationWidget(), // ← 여기에서 테스트됨
-      ),
-      backgroundColor: Colors.grey.shade200,
-    );
-  }
-}
-
 class ReservationWidget extends StatelessWidget {
-  const ReservationWidget({super.key});
+  final LaundryMachineType laundryMachineType;
+  final WasherDryerStatus washerDryerStatus;
+  final String machine;
+  final String firstText;
+  final String secondText;
+
+  const ReservationWidget({
+    super.key,
+    required this.laundryMachineType,
+    required this.washerDryerStatus,
+    required this.machine,
+    required this.firstText,
+    required this.secondText,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -57,10 +38,7 @@ class ReservationWidget extends StatelessWidget {
         children: [
           _buildWidgetHeader(),
           SizedBox(height: 12),
-          Text("예약 시간: 25.8.18. 00:45:03", style: WasherTypography.body2(WasherColor.baseGray500)),
-          SizedBox(height: 4),
-          Text("예약 만료까지: 00:02:32", style: WasherTypography.body2(WasherColor.errorColor)),
-          SizedBox(height: 12),
+          _buildTexts(),
           _buildWidgetBottom(),
         ],
       ),
@@ -70,26 +48,66 @@ class ReservationWidget extends StatelessWidget {
   Widget _buildWidgetHeader() {
     return Row(
       children: [
-        WasherIcon(
-          type: WasherIconType.dryCircle,
-          color: WasherColor.mainColor400,
-        ),
+        laundryMachineType.widget,
         SizedBox(width: 8),
-        Text('Dryer-3F-L1', style: WasherTypography.subTitle3()),
+        Text(machine, style: WasherTypography.subTitle3()),
         Spacer(),
-        StateWidget(status: WasherDryerStatus.inUse),
+        StateWidget(status: washerDryerStatus),
+      ],
+    );
+  }
+
+  Widget _buildTexts() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          firstText,
+          style: WasherTypography.body2(WasherColor.baseGray500),
+        ),
+        SizedBox(height: 4),
+        Text(
+          secondText,
+          style: WasherTypography.body2(WasherColor.errorColor),
+        ),
       ],
     );
   }
 
   Widget _buildWidgetBottom() {
-    return Row(
+    return Column(
       children: [
-        Expanded(child: CustomSmallButton(text: '예약 취소', onPressed: (){}, color: WasherColor.baseGray200)),
-        SizedBox(width: 4),
-        Expanded(child: CustomSmallButton(text: '세탁 시작', onPressed: (){}, color: WasherColor.mainColor500)),
+        washerDryerStatus.needsSpacing
+            ? Column(
+                children: [
+                  const SizedBox(height: 12),
+                  _buildButtons(),
+                ],
+              )
+            : const SizedBox(),
       ],
     );
   }
 
+  Widget _buildButtons() {
+    return Row(
+      children: [
+        Expanded(
+          child: CustomSmallButton(
+            text: '예약 취소',
+            onPressed: () {},
+            color: WasherColor.baseGray200,
+          ),
+        ),
+        SizedBox(width: 4),
+        Expanded(
+          child: CustomSmallButton(
+            text: '${laundryMachineType.text} 시작',
+            onPressed: () {},
+            color: WasherColor.mainColor500,
+          ),
+        ),
+      ],
+    );
+  }
 }

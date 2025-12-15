@@ -4,7 +4,7 @@ import 'package:project_setting/core/enums/washer_dryer_status.dart';
 import 'package:project_setting/core/theme/color.dart';
 import 'package:project_setting/core/theme/typography.dart';
 import 'package:project_setting/presentation/common/custom_small_button.dart';
-import 'package:project_setting/presentation/home/widgets/state_widget.dart';
+import 'package:project_setting/presentation/home/widgets/reservation_state_widget.dart';
 
 class ReservationWidget extends StatelessWidget {
   final LaundryMachineType laundryMachineType;
@@ -52,7 +52,7 @@ class ReservationWidget extends StatelessWidget {
         SizedBox(width: 8),
         Text(machine, style: WasherTypography.subTitle3()),
         Spacer(),
-        StateWidget(status: washerDryerStatus),
+        ReservationStateWidget(status: washerDryerStatus),
       ],
     );
   }

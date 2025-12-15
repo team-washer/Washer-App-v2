@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:project_setting/core/enums/washer_dryer_status.dart';
 import 'package:project_setting/core/theme/typography.dart';
 
-class StateWidget extends StatelessWidget {
+class ReservationStateWidget extends StatelessWidget {
   final WasherDryerStatus status;
 
-  const StateWidget({super.key, required this.status});
+  const ReservationStateWidget({super.key, required this.status});
 
   @override
   Widget build(BuildContext context) {

@@ -2,7 +2,7 @@ import 'dart:ui';
 
 import '../theme/color.dart';
 
-enum WasherDryerStatus {
+enum LaundryStatus {
   waiting, // 대기
   reserved, // 예약완료
   needConfirm, // 확인필요
@@ -10,40 +10,40 @@ enum WasherDryerStatus {
   completed, // 완료
 }
 
-extension WasherDryerStatusExt on WasherDryerStatus {
+extension LaundryStatusExt on LaundryStatus {
   String get label {
     switch (this) {
-      case WasherDryerStatus.waiting:
+      case LaundryStatus.waiting:
         return "대기";
-      case WasherDryerStatus.reserved:
+      case LaundryStatus.reserved:
         return "예약완료";
-      case WasherDryerStatus.needConfirm:
+      case LaundryStatus.needConfirm:
         return "확인필요";
-      case WasherDryerStatus.inUse:
+      case LaundryStatus.inUse:
         return "사용중";
-      case WasherDryerStatus.completed:
+      case LaundryStatus.completed:
         return "완료";
     }
   }
 
   Color get color {
     switch (this) {
-      case WasherDryerStatus.needConfirm:
+      case LaundryStatus.needConfirm:
         return WasherColor.errorColor;
-      case WasherDryerStatus.waiting:
+      case LaundryStatus.waiting:
         return WasherColor.mainColor200;
-      case WasherDryerStatus.inUse:
+      case LaundryStatus.inUse:
         return WasherColor.mainColor500;
-      case WasherDryerStatus.reserved:
+      case LaundryStatus.reserved:
         return WasherColor.mainColor500;
-      case WasherDryerStatus.completed:
+      case LaundryStatus.completed:
         return WasherColor.mainColor500;
     }
   }
 
   bool get needsSpacing {
-    return !(this == WasherDryerStatus.inUse ||
-        this == WasherDryerStatus.needConfirm ||
-        this == WasherDryerStatus.completed);
+    return !(this == LaundryStatus.inUse ||
+        this == LaundryStatus.needConfirm ||
+        this == LaundryStatus.completed);
   }
 }

@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:project_setting/core/enums/laundry_machine_type.dart';
-import 'package:project_setting/core/enums/washer_dryer_status.dart';
+import 'package:project_setting/core/enums/laundry_status.dart';
 import 'package:project_setting/core/theme/color.dart';
 import 'package:project_setting/core/theme/typography.dart';
-import 'package:project_setting/presentation/common/custom_small_button.dart';
+import 'package:project_setting/presentation/common/buttons/custom_small_button.dart';
 import 'package:project_setting/presentation/home/widgets/reservation_state_widget.dart';
 
 class ReservationWidget extends StatelessWidget {
   final LaundryMachineType laundryMachineType;
-  final WasherDryerStatus washerDryerStatus;
+  final LaundryStatus laundryStatus;
   final String machine;
   final String firstText;
   final String secondText;
@@ -16,7 +16,7 @@ class ReservationWidget extends StatelessWidget {
   const ReservationWidget({
     super.key,
     required this.laundryMachineType,
-    required this.washerDryerStatus,
+    required this.laundryStatus,
     required this.machine,
     required this.firstText,
     required this.secondText,
@@ -52,7 +52,7 @@ class ReservationWidget extends StatelessWidget {
         SizedBox(width: 8),
         Text(machine, style: WasherTypography.subTitle3()),
         Spacer(),
-        ReservationStateWidget(status: washerDryerStatus),
+        ReservationStateWidget(status: laundryStatus),
       ],
     );
   }
@@ -77,7 +77,7 @@ class ReservationWidget extends StatelessWidget {
   Widget _buildWidgetBottom() {
     return Column(
       children: [
-        washerDryerStatus.needsSpacing
+        laundryStatus.needsSpacing
             ? Column(
                 children: [
                   const SizedBox(height: 12),

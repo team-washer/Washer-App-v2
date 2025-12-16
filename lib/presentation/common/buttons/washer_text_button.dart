@@ -1,23 +1,26 @@
 import 'package:flutter/material.dart';
-import 'package:project_setting/core/theme/typography.dart';
-class CustomSmallButton extends StatelessWidget {
+
+class WasherTextButton extends StatelessWidget {
   final String text;
+  final TextStyle typography;
   final Color color;
   final VoidCallback onPressed;
 
-  const CustomSmallButton({
+  const WasherTextButton({
     super.key,
     required this.text,
-    required this.onPressed,
+    required this.typography,
     required this.color,
+    required this.onPressed,
   });
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton(
+    return Expanded(
+      child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          padding: EdgeInsets.symmetric(vertical: 8, horizontal: 33.5),
           backgroundColor: color,
           minimumSize: Size.zero,
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -28,9 +31,9 @@ class CustomSmallButton extends StatelessWidget {
         ),
         child: Text(
           text,
-          style: WasherTypography.body2(Colors.white),
+          style: typography,
         ),
-      );
+      ),
+    );
   }
 }
-

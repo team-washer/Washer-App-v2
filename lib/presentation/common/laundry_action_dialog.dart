@@ -5,15 +5,49 @@ import 'package:project_setting/core/theme/typography.dart';
 import 'package:project_setting/presentation/common/buttons/custom_big_button.dart';
 import 'package:project_setting/presentation/common/circle_widget.dart';
 
-class LaundryActionDialog extends StatelessWidget {
+class LaundryActionDialog extends StatefulWidget {
   final LaundryActionType actionType;
   final String deviceId;
+  final TextEditingController? textController;
+  final FocusNode? focusNode;
 
   const LaundryActionDialog({
     super.key,
     required this.actionType,
     required this.deviceId,
+    this.textController,
+    this.focusNode,
   });
+
+  @override
+  State<LaundryActionDialog> createState() => _LaundryActionDialogState();
+}
+
+class _LaundryActionDialogState extends State<LaundryActionDialog> {
+  late final TextEditingController _textController;
+  late final FocusNode _focusNode;
+  late final bool _shouldDisposeController;
+  late final bool _shouldDisposeFocusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _shouldDisposeController = widget.textController == null;
+    _shouldDisposeFocusNode = widget.focusNode == null;
+    _textController = widget.textController ?? TextEditingController();
+    _focusNode = widget.focusNode ?? FocusNode();
+  }
+
+  @override
+  void dispose() {
+    if (_shouldDisposeController) {
+      _textController.dispose();
+    }
+    if (_shouldDisposeFocusNode) {
+      _focusNode.dispose();
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,13 +64,13 @@ class LaundryActionDialog extends StatelessWidget {
         children: [
           _buildTopText(),
           const SizedBox(height: 16),
-          if (actionType == LaundryActionType.reportBroken) ...[
+          if (widget.actionType == LaundryActionType.reportBroken) ...[
             _buildReportTextField(),
             const SizedBox(height: 16),
           ],
           _buildBottomButtons(
             context,
-            actionType == LaundryActionType.reserve ? "예약하기" : "신고하기",
+            widget.actionType == LaundryActionType.reserve ? "예약하기" : "신고하기",
           ),
         ],
       ),
@@ -48,13 +82,13 @@ class LaundryActionDialog extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "기기 ${actionType.text}",
+          "기기 ${widget.actionType.text}",
           style: WasherTypography.subTitle3(),
         ),
         const SizedBox(height: 16),
-        actionType == LaundryActionType.reserve
+        widget.actionType == LaundryActionType.reserve
             ? Text(
-                "$deviceId를 예약하시겠습니까?",
+                "${widget.deviceId}를 예약하시겠습니까?",
                 style: WasherTypography.subTitle4(),
               )
             : RichText(
@@ -63,7 +97,7 @@ class LaundryActionDialog extends StatelessWidget {
                   style: WasherTypography.subTitle4(),
                   children: [
                     TextSpan(
-                      text: deviceId,
+                      text: widget.deviceId,
                       style: WasherTypography.body1(
                         WasherColor.baseGray500,
                       ),
@@ -93,6 +127,8 @@ class LaundryActionDialog extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         TextField(
+          controller: _textController,
+          focusNode: _focusNode,
           maxLines: 5,
           decoration: InputDecoration(
             hintText: '고장 증상을 자세히 설명해주세요',

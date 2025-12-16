@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:project_setting/core/enums/laundry_status.dart';
+import 'package:project_setting/core/enums/laundry_alarm_status.dart';
 import 'package:project_setting/core/theme/color.dart';
 import 'package:project_setting/core/theme/typography.dart';
 
 class MachineStateWidget extends StatelessWidget {
-  final LaundryStatus laundryStatus;
+  final LaundryAlarmStatus laundryStatus;
   final String date;
   final String descriptionText;
   final String reason;
@@ -43,7 +43,7 @@ class MachineStateWidget extends StatelessWidget {
 }
 
 class _HeaderRow extends StatelessWidget {
-  final LaundryStatus laundryStatus;
+  final LaundryAlarmStatus laundryStatus;
   final String date;
 
   const _HeaderRow({required this.laundryStatus, required this.date});
@@ -61,7 +61,7 @@ class _HeaderRow extends StatelessWidget {
 }
 
 class _TitleWithStatus extends StatelessWidget {
-  final LaundryStatus laundryStatus;
+  final LaundryAlarmStatus laundryStatus;
 
   const _TitleWithStatus({required this.laundryStatus});
 
@@ -100,7 +100,7 @@ class _DateText extends StatelessWidget {
 }
 
 class _DescriptionText extends StatelessWidget {
-  final LaundryStatus laundryStatus;
+  final LaundryAlarmStatus laundryStatus;
   final String descriptionText;
   final String reason;
 
@@ -122,7 +122,7 @@ class _DescriptionText extends StatelessWidget {
           ),
         ),
         SizedBox(height: 8),
-        laundryStatus == LaundryStatus.usageWarning
+        laundryStatus == LaundryAlarmStatus.usageWarning
             ? Text(
                 '신고 사유: $reason',
                 style: WasherTypography.body1(

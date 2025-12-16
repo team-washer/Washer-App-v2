@@ -1,49 +1,42 @@
-import 'dart:ui';
-
-import '../theme/color.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:project_setting/presentation/common/circle_widget.dart';
 
 enum LaundryStatus {
-  waiting, // 대기
-  reserved, // 예약완료
-  needConfirm, // 확인필요
-  inUse, // 사용중
-  completed, // 완료
+  washComplete, // 세탁 완료
+  dryComplete, // 건조 완료
+  washerError, // 세탁기 이상
+  dryerError, // 건조기 이상
+  usageWarning, // 사용 경고
 }
 
 extension LaundryStatusExt on LaundryStatus {
-  String get label {
+  String get text {
     switch (this) {
-      case LaundryStatus.waiting:
-        return "대기";
-      case LaundryStatus.reserved:
-        return "예약완료";
-      case LaundryStatus.needConfirm:
-        return "확인필요";
-      case LaundryStatus.inUse:
-        return "사용중";
-      case LaundryStatus.completed:
-        return "완료";
+      case LaundryStatus.washComplete:
+        return '세탁 완료';
+      case LaundryStatus.dryComplete:
+        return '건조 완료';
+      case LaundryStatus.washerError:
+        return '세탁기 이상';
+      case LaundryStatus.dryerError:
+        return '건조기 이상';
+      case LaundryStatus.usageWarning:
+        return '사용 경고';
     }
   }
 
-  Color get color {
+  Widget get circle {
     switch (this) {
-      case LaundryStatus.needConfirm:
-        return WasherColor.errorColor;
-      case LaundryStatus.waiting:
-        return WasherColor.mainColor200;
-      case LaundryStatus.inUse:
-        return WasherColor.mainColor500;
-      case LaundryStatus.reserved:
-        return WasherColor.mainColor500;
-      case LaundryStatus.completed:
-        return WasherColor.mainColor500;
+      case LaundryStatus.washComplete:
+        return CircleWidget(color: CircleColor.blue);
+      case LaundryStatus.dryComplete:
+        return CircleWidget(color: CircleColor.blue);
+      case LaundryStatus.washerError:
+        return CircleWidget(color: CircleColor.red);
+      case LaundryStatus.dryerError:
+        return CircleWidget(color: CircleColor.red);
+      case LaundryStatus.usageWarning:
+        return CircleWidget(color: CircleColor.red);
     }
-  }
-
-  bool get needsSpacing {
-    return !(this == LaundryStatus.inUse ||
-        this == LaundryStatus.needConfirm ||
-        this == LaundryStatus.completed);
   }
 }

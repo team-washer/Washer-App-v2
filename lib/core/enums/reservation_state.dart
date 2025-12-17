@@ -29,11 +29,8 @@ extension ReservationStateText on ReservationState {
   Color get color {
     switch (this) {
       case ReservationState.inUse:
-        return WasherColor.mainColor500;
       case ReservationState.available:
-        return WasherColor.mainColor500;
       case ReservationState.reservedByMe:
-        return WasherColor.mainColor500;
       case ReservationState.reservedByOther:
         return WasherColor.mainColor500;
       case ReservationState.unavailable:

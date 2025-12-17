@@ -7,20 +7,6 @@ import 'package:project_setting/presentation/common/reservation_state_widget.dar
 import '../../../core/enums/laundry_machine_type.dart';
 import '../../../core/enums/reservation_state.dart';
 
-class ReservationMeta {
-  final String? room;
-  final DateTime? reservedAt;
-  final DateTime? finishedAt;
-  final Duration? remainDuration;
-
-  const ReservationMeta({
-    this.room,
-    this.reservedAt,
-    this.finishedAt,
-    this.remainDuration,
-  });
-}
-
 class ReservationWidget extends StatelessWidget {
   final LaundryMachineType laundryMachineType;
   final ReservationState reservationState;

@@ -5,8 +5,14 @@ import 'package:project_setting/core/theme/typography.dart';
 class ReservationStateWidget extends StatelessWidget {
   final String label;
   final Color color;
+  final TextStyle? textStyle;
 
-  const ReservationStateWidget({super.key, required this.label, required this.color});
+  const ReservationStateWidget({
+    super.key,
+    required this.label,
+    required this.color,
+    this.textStyle,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +24,9 @@ class ReservationStateWidget extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: WasherTypography.body4(Colors.white),
+        style: textStyle == null
+            ? textStyle
+            : WasherTypography.body4(Colors.white),
       ),
     );
   }

@@ -327,7 +327,6 @@ class _ReservedBottom extends StatelessWidget {
     this.reservedAt,
     this.remainDuration,
     this.room,
-    super.key,
   });
 
   @override

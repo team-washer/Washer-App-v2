@@ -207,18 +207,16 @@ class _InUseBottom extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final type = laundryMachineType == LaundryMachineType.dryer ? '건조' : '세탁';
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '$type 중…',
+          '${laundryMachineType.text} 중…',
           style: WasherTypography.body4(WasherColor.baseGray500),
         ),
         SizedBox(height: 4),
         Text(
-          '$type 완료 예정시간: ${finishedAt ?? ''}',
+          '${laundryMachineType.text} 완료 예정시간: ${finishedAt ?? ''}',
           style: WasherTypography.body4(WasherColor.baseGray500),
         ),
         SizedBox(height: 4),
@@ -360,9 +358,9 @@ class _UnavailableBottom extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Text(
-      '건조기 고장으로 인해 당분간 사용이 정지됩니다.',
-      style: TextStyle(color: Colors.red),
+    return Text(
+      '${laundryMachineType.text} 고장으로 인해 당분간 사용이 정지됩니다.',
+      style: WasherTypography.body4(WasherColor.errorColor),
     );
   }
 }

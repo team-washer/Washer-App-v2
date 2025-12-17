@@ -5,19 +5,25 @@ import 'package:project_setting/core/theme/icon.dart';
 enum LaundryMachineType { washer, dryer }
 
 extension LaundryMachineTypeExt on LaundryMachineType {
-  Widget get widget {
+  Widget icon({
+    Color? color,
+    double size = 28,
+  }) {
+    final iconColor = color ?? WasherColor.mainColor400;
+
     switch (this) {
       case LaundryMachineType.washer:
         return WasherIcon(
           type: WasherIconType.waterCircle,
-          color: WasherColor.mainColor400,
-          size: 28,
+          color: iconColor,
+          size: size,
         );
+
       case LaundryMachineType.dryer:
         return WasherIcon(
           type: WasherIconType.dryCircle,
-          color: WasherColor.mainColor400,
-          size: 28,
+          color: iconColor,
+          size: size,
         );
     }
   }

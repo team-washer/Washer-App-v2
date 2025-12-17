@@ -3,20 +3,21 @@ import 'package:project_setting/core/enums/laundry_status.dart';
 import 'package:project_setting/core/theme/typography.dart';
 
 class ReservationStateWidget extends StatelessWidget {
-  final LaundryStatus status;
+  final String label;
+  final Color color;
 
-  const ReservationStateWidget({super.key, required this.status});
+  const ReservationStateWidget({super.key, required this.label, required this.color});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12.5, vertical: 4),
       decoration: BoxDecoration(
-        color: status.color,
+        color: color,
         borderRadius: BorderRadius.circular(1000),
       ),
       child: Text(
-        status.label,
+        label,
         style: WasherTypography.body4(Colors.white),
       ),
     );

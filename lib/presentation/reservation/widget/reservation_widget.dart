@@ -139,6 +139,7 @@ class _ReservationStatus extends StatelessWidget {
     return ReservationStateWidget(
       label: state.label,
       color: state.color,
+      textStyle: WasherTypography.caption(Colors.white),
     );
   }
 }

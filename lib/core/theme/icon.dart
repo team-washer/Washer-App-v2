@@ -18,6 +18,8 @@ enum WasherIconType {
   water,
   dryCircle,
   waterCircle,
+  warningCircle,
+  historyCircle,
 }
 
 extension WasherIconTypeExtension on WasherIconType {
@@ -39,6 +41,8 @@ extension WasherIconTypeExtension on WasherIconType {
       WasherIconType.water: 'water.svg',
       WasherIconType.dryCircle: 'dry_circle.svg',
       WasherIconType.waterCircle: 'water_circle.svg',
+      WasherIconType.warningCircle: 'warning_circle.svg',
+      WasherIconType.historyCircle: 'history_circle.svg',
     };
     return assetMap[this] ?? 'default_icon.svg';
   }

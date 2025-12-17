@@ -4,16 +4,16 @@ import 'package:project_setting/core/enums/laundry_status.dart';
 import 'package:project_setting/core/theme/color.dart';
 import 'package:project_setting/core/theme/typography.dart';
 import 'package:project_setting/presentation/common/buttons/custom_small_button.dart';
-import 'package:project_setting/presentation/home/widgets/reservation_state_widget.dart';
+import 'package:project_setting/presentation/common/reservation_state_widget.dart';
 
-class ReservationWidget extends StatelessWidget {
+class MyReservationWidget extends StatelessWidget {
   final LaundryMachineType laundryMachineType;
   final LaundryStatus laundryStatus;
   final String machine;
   final String firstText;
   final String secondText;
 
-  const ReservationWidget({
+  const MyReservationWidget({
     super.key,
     required this.laundryMachineType,
     required this.laundryStatus,
@@ -48,11 +48,14 @@ class ReservationWidget extends StatelessWidget {
   Widget _buildWidgetHeader() {
     return Row(
       children: [
-        laundryMachineType.widget,
+        laundryMachineType.icon(),
         SizedBox(width: 8),
         Text(machine, style: WasherTypography.subTitle3()),
         Spacer(),
-        ReservationStateWidget(status: laundryStatus),
+        ReservationStateWidget(
+          label: laundryStatus.label,
+          color: laundryStatus.color,
+        ),
       ],
     );
   }

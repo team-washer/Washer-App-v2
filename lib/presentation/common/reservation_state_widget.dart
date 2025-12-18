@@ -23,9 +23,7 @@ class ReservationStateWidget extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: textStyle == null
-            ? textStyle
-            : WasherTypography.body4(Colors.white),
+        style: textStyle ?? WasherTypography.body4(Colors.white),
       ),
     );
   }

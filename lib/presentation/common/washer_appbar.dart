@@ -23,16 +23,18 @@ class WasherAppbar extends StatelessWidget implements PreferredSizeWidget {
               type: WasherIconType.logo,
               size: 40,
             ),
-            _buildNotificationIcon(() {
-              // TODO: 알림 화면 이동 로직 추가
-            }),
+            _buildNotificationIcon(
+              onTap: () {
+                // 알림 아이콘 클릭 시 동작할 코드 작성
+              },
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildNotificationIcon(Function()? onTap) {
+  Widget _buildNotificationIcon({required Function()? onTap}) {
     return Row(
       children: [
         Stack(

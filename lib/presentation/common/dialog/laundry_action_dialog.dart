@@ -120,6 +120,13 @@ class _LaundryActionDialogState extends State<LaundryActionDialog> {
   }
 
   Widget _buildReportTextField() {
+    final baseBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(
+        color: WasherColor.baseGray300,
+      ),
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -145,32 +152,19 @@ class _LaundryActionDialogState extends State<LaundryActionDialog> {
             hintStyle: WasherTypography.body4(
               WasherColor.baseGray300,
             ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(
-                color: WasherColor.baseGray300,
-              ),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(
-                color: WasherColor.baseGray300,
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
+            border: baseBorder,
+            enabledBorder: baseBorder,
+            focusedBorder: baseBorder.copyWith(
               borderSide: BorderSide(
                 color: WasherColor.baseGray700,
               ),
             ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
+            errorBorder: baseBorder.copyWith(
               borderSide: BorderSide(
                 color: WasherColor.errorColor,
               ),
             ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
+            focusedErrorBorder: baseBorder.copyWith(
               borderSide: BorderSide(
                 color: WasherColor.errorColor,
               ),

@@ -23,28 +23,35 @@ class WasherAppbar extends StatelessWidget implements PreferredSizeWidget {
               type: WasherIconType.logo,
               size: 40,
             ),
-            Row(
-              children: [
-                Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    WasherIcon(
-                      type: WasherIconType.notification,
-                      size: 24,
-                    ),
-                    if (hasNotification)
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        child: CircleWidget(color: CircleColor.blue),
-                      ),
-                  ],
-                ),
-              ],
-            ),
+            _buildNotificationIcon(() {
+              // TODO: 알림 화면 이동 로직 추가
+            }),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildNotificationIcon(Function()? onTap) {
+    return Row(
+      children: [
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            WasherIcon(
+              type: WasherIconType.notification,
+              size: 24,
+              onTap: onTap,
+            ),
+            if (hasNotification)
+              Positioned(
+                right: 0,
+                top: 0,
+                child: CircleWidget(color: CircleColor.blue),
+              ),
+          ],
+        ),
+      ],
     );
   }
 

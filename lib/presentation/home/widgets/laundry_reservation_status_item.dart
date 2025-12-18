@@ -3,14 +3,14 @@ import 'package:project_setting/core/enums/laundry_machine_type.dart';
 import 'package:project_setting/core/theme/color.dart';
 import 'package:project_setting/core/theme/typography.dart';
 
-class LandryReservationStatusItem extends StatelessWidget {
+class LaundryReservationStatusItem extends StatelessWidget {
   final LaundryMachineType machineType;
   final int floor;
   final int number;
   final String side;
   final bool isUsed;
 
-  const LandryReservationStatusItem({
+  const LaundryReservationStatusItem({
     super.key,
     required this.machineType,
     required this.floor,

@@ -1,6 +1,7 @@
 enum LaundryActionType {
   reserve,
   reportBroken,
+  cancelReservation,
 }
 
 extension LaundryActionTypeExtension on LaundryActionType {
@@ -10,6 +11,8 @@ extension LaundryActionTypeExtension on LaundryActionType {
         return '예약';
       case LaundryActionType.reportBroken:
         return '고장 신고';
+      case LaundryActionType.cancelReservation:
+        return '예약 취소';
     }
   }
 }

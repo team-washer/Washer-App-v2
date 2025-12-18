@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:project_setting/core/enums/laundry_status.dart';
 import 'package:project_setting/core/theme/typography.dart';
 
 class ReservationStateWidget extends StatelessWidget {

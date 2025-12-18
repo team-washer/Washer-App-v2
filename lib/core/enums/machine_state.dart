@@ -99,73 +99,53 @@ extension MachineStateExt on MachineState {
     }
   }
 
+  /// API 문자열을 MachineState로 매핑하는 Map
+  static const Map<String, MachineState> _stringToStateMap = {
+    // 공통
+    'none': MachineState.none,
+    'pause': MachineState.pause,
+    'run': MachineState.run,
+    'stop': MachineState.stop,
+    
+    // 세탁 관련
+    'wash': MachineState.wash,
+    'aiwash': MachineState.aIWash,
+    'prewash': MachineState.preWash,
+    'rinse': MachineState.rinse,
+    'airinse': MachineState.aIRinse,
+    'spin': MachineState.spin,
+    'aispin': MachineState.aISpin,
+    'delaywash': MachineState.delayWash,
+    
+    // 건조 관련
+    'drying': MachineState.drying,
+    'aidrying': MachineState.aIDrying,
+    
+    // 완료/후처리
+    'finished': MachineState.finished,
+    'finish': MachineState.finished,
+    'cooling': MachineState.cooling,
+    'wrinkleprevent': MachineState.wrinklePrevent,
+    
+    // 특수 기능
+    'weightsensing': MachineState.weightSensing,
+    'refreshing': MachineState.refreshing,
+    'airwash': MachineState.airWash,
+    'sanitizing': MachineState.sanitizing,
+    
+    // 제습 관련
+    'dehumidifying': MachineState.dehumidifying,
+    'continuousdehumidifying': MachineState.continuousDehumidifying,
+    
+    // 유지보수
+    'internalcare': MachineState.internalCare,
+    'freezeprotection': MachineState.freezeProtection,
+    'thawingfrozeninside': MachineState.thawingFrozenInside,
+  };
+
   /// API에서 받은 문자열을 MachineState로 변환
   static MachineState? fromString(String? value) {
     if (value == null) return null;
-
-    switch (value.toLowerCase()) {
-      case 'none':
-        return MachineState.none;
-      case 'pause':
-        return MachineState.pause;
-      case 'run':
-        return MachineState.run;
-      case 'stop':
-        return MachineState.stop;
-
-      case 'wash':
-        return MachineState.wash;
-      case 'aiwash':
-        return MachineState.aIWash;
-      case 'prewash':
-        return MachineState.preWash;
-      case 'rinse':
-        return MachineState.rinse;
-      case 'airinse':
-        return MachineState.aIRinse;
-      case 'spin':
-        return MachineState.spin;
-      case 'aispin':
-        return MachineState.aISpin;
-      case 'delaywash':
-        return MachineState.delayWash;
-
-      case 'drying':
-        return MachineState.drying;
-      case 'aidrying':
-        return MachineState.aIDrying;
-
-      case 'finished':
-      case 'finish':
-        return MachineState.finished;
-      case 'cooling':
-        return MachineState.cooling;
-      case 'wrinkleprevent':
-        return MachineState.wrinklePrevent;
-
-      case 'weightsensing':
-        return MachineState.weightSensing;
-      case 'refreshing':
-        return MachineState.refreshing;
-      case 'airwash':
-        return MachineState.airWash;
-      case 'sanitizing':
-        return MachineState.sanitizing;
-
-      case 'dehumidifying':
-        return MachineState.dehumidifying;
-      case 'continuousdehumidifying':
-        return MachineState.continuousDehumidifying;
-
-      case 'internalcare':
-        return MachineState.internalCare;
-      case 'freezeprotection':
-        return MachineState.freezeProtection;
-      case 'thawingfrozeninside':
-        return MachineState.thawingFrozenInside;
-
-      default:
-        return null;
-    }
+    return _stringToStateMap[value.toLowerCase()];
   }
 }

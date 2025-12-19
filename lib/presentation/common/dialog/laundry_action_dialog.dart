@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:project_setting/core/enums/laundry_action_type.dart';
 import 'package:project_setting/core/theme/color.dart';
+import 'package:project_setting/core/theme/spacing.dart';
 import 'package:project_setting/core/theme/typography.dart';
 import 'package:project_setting/presentation/common/circle_widget.dart';
 import 'package:project_setting/presentation/common/dialog/washer_dialog.dart';
@@ -78,12 +79,12 @@ class _LaundryActionDialogState extends State<LaundryActionDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          const SizedBox(height: 16),
+          SizedBox(height: AppSpacing.v16),
           _buildContentText(),
-          const SizedBox(height: 16),
+          SizedBox(height: AppSpacing.v16),
           if (widget.actionType == LaundryActionType.reportBroken) ...[
             _buildReportTextField(),
-            const SizedBox(height: 16),
+            SizedBox(height: AppSpacing.v16),
           ],
         ],
       ),
@@ -142,7 +143,7 @@ class _LaundryActionDialogState extends State<LaundryActionDialog> {
             ),
           ],
         ),
-        const SizedBox(height: 4),
+        SizedBox(height: AppSpacing.v4),
         TextField(
           controller: _textController,
           focusNode: _focusNode,
@@ -169,7 +170,7 @@ class _LaundryActionDialogState extends State<LaundryActionDialog> {
                 color: WasherColor.errorColor,
               ),
             ),
-            contentPadding: const EdgeInsets.all(12),
+            contentPadding: AppPadding.content,
           ),
         ),
       ],

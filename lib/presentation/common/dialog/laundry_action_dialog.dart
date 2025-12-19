@@ -79,12 +79,12 @@ class _LaundryActionDialogState extends State<LaundryActionDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(height: AppSpacing.v16),
+          const SizedBox(height: AppSpacing.v16),
           _buildContentText(),
-          SizedBox(height: AppSpacing.v16),
+          const SizedBox(height: AppSpacing.v16),
           if (widget.actionType == LaundryActionType.reportBroken) ...[
             _buildReportTextField(),
-            SizedBox(height: AppSpacing.v16),
+            const SizedBox(height: AppSpacing.v16),
           ],
         ],
       ),
@@ -143,7 +143,7 @@ class _LaundryActionDialogState extends State<LaundryActionDialog> {
             ),
           ],
         ),
-        SizedBox(height: AppSpacing.v4),
+       const SizedBox(height: AppSpacing.v4),
         TextField(
           controller: _textController,
           focusNode: _focusNode,

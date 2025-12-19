@@ -104,7 +104,7 @@ class _NavTabItem extends StatelessWidget {
             type: tab.iconType,
             color: color,
           ),
-          SizedBox(height: AppSpacing.v2),
+          const SizedBox(height: AppSpacing.v2),
           Text(
             tab.label,
             style: WasherTypography.body2(color),

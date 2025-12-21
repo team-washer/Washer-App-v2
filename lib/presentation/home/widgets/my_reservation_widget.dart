@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:project_setting/core/enums/laundry_machine_type.dart';
 import 'package:project_setting/core/enums/laundry_status.dart';
 import 'package:project_setting/core/theme/color.dart';
+import 'package:project_setting/core/theme/spacing.dart';
 import 'package:project_setting/core/theme/typography.dart';
 import 'package:project_setting/presentation/common/buttons/custom_small_button.dart';
 import 'package:project_setting/presentation/common/reservation_state_widget.dart';
@@ -10,48 +11,90 @@ class MyReservationWidget extends StatelessWidget {
   final LaundryMachineType laundryMachineType;
   final LaundryStatus laundryStatus;
   final String machine;
-  final String firstText;
-  final String secondText;
+  final String? reservedAt;
+  final String? remainDuration;
+  final String? finishedAt;
+  final String? message;
 
   const MyReservationWidget({
     super.key,
     required this.laundryMachineType,
     required this.laundryStatus,
     required this.machine,
-    required this.firstText,
-    required this.secondText,
+    this.reservedAt,
+    this.remainDuration,
+    this.finishedAt,
+    this.message,
   });
+
+  @override
+  Widget build(BuildContext context) {
+    return _ReservationCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _Header(
+            laundryMachineType: laundryMachineType,
+            laundryStatus: laundryStatus,
+            machine: machine,
+          ),
+          const SizedBox(height: AppSpacing.v12),
+          _Body(
+            laundryMachineType: laundryMachineType,
+            laundryStatus: laundryStatus,
+            reservedAt: reservedAt,
+            remainDuration: remainDuration,
+            finishedAt: finishedAt,
+            message: message,
+          ),
+          _BottomSection(
+            laundryMachineType: laundryMachineType,
+            laundryStatus: laundryStatus,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReservationCard extends StatelessWidget {
+  final Widget child;
+
+  const _ReservationCard({required this.child});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-      padding: const EdgeInsets.all(16),
+      padding: AppPadding.card,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildWidgetHeader(),
-          SizedBox(height: 12),
-          _buildTexts(),
-          _buildWidgetBottom(),
-        ],
-      ),
+      child: child,
     );
   }
+}
 
-  Widget _buildWidgetHeader() {
+class _Header extends StatelessWidget {
+  final LaundryMachineType laundryMachineType;
+  final LaundryStatus laundryStatus;
+  final String machine;
+
+  const _Header({
+    required this.laundryMachineType,
+    required this.laundryStatus,
+    required this.machine,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
       children: [
         laundryMachineType.icon(),
-        SizedBox(width: 8),
+        const SizedBox(width: AppSpacing.h8),
         Text(machine, style: WasherTypography.subTitle3()),
-        Spacer(),
+        const Spacer(),
         ReservationStateWidget(
           label: laundryStatus.label,
           color: laundryStatus.color,
@@ -59,40 +102,227 @@ class MyReservationWidget extends StatelessWidget {
       ],
     );
   }
+}
 
-  Widget _buildTexts() {
+class _Body extends StatelessWidget {
+  final LaundryMachineType laundryMachineType;
+  final LaundryStatus laundryStatus;
+  final String? reservedAt;
+  final String? remainDuration;
+  final String? finishedAt;
+  final String? message;
+
+  const _Body({
+    required this.laundryMachineType,
+    required this.laundryStatus,
+    required this.reservedAt,
+    required this.remainDuration,
+    required this.finishedAt,
+    required this.message,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    switch (laundryStatus) {
+      case LaundryStatus.waiting:
+        return _WaitingBody(
+          reservedAt: reservedAt,
+          remainDuration: remainDuration,
+        );
+      case LaundryStatus.reserved:
+        return _ReservedBody();
+      case LaundryStatus.needConfirm:
+        return _NeedConfirmBody();
+      case LaundryStatus.inUse:
+        return _InUseBody(
+          laundryMachineType: laundryMachineType,
+          finishedAt: finishedAt,
+        );
+      case LaundryStatus.completed:
+        return _CompletedBody(
+          laundryMachineType: laundryMachineType,
+          finishedAt: finishedAt,
+        );
+    }
+  }
+}
+
+class _WaitingBody extends StatelessWidget {
+  final String? reservedAt;
+  final String? remainDuration;
+
+  const _WaitingBody({
+    required this.reservedAt,
+    required this.remainDuration,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          firstText,
+          '예약 시간: ${reservedAt ?? ''}',
           style: WasherTypography.body2(WasherColor.baseGray500),
         ),
-        SizedBox(height: 4),
+        const SizedBox(height: AppSpacing.v4),
         Text(
-          secondText,
+          '예약 만료까지: ${remainDuration ?? ''}',
           style: WasherTypography.body2(WasherColor.errorColor),
+        ),
+        const SizedBox(height: AppSpacing.v12),
+      ],
+    );
+  }
+}
+
+class _ReservedBody extends StatelessWidget {
+  const _ReservedBody({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '기기에 연결 중입니다. 잠시만 기다려주세요.',
+          style: WasherTypography.body2(WasherColor.baseGray500),
+        ),
+        const SizedBox(height: AppSpacing.v24),
+      ],
+    );
+  }
+}
+
+class _NeedConfirmBody extends StatelessWidget {
+  const _NeedConfirmBody({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      '기기에 이상이 감지되었습니다.\n확인해주세요.',
+      style: WasherTypography.body2(WasherColor.errorColor),
+    );
+  }
+}
+
+class _InUseBody extends StatelessWidget {
+  final LaundryMachineType laundryMachineType;
+  final String? finishedAt;
+
+  const _InUseBody({
+    super.key,
+    required this.laundryMachineType,
+    required this.finishedAt,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final String type = laundryMachineType == LaundryMachineType.washer
+        ? '헹굼'
+        : '건조';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '$type 중...',
+          style: WasherTypography.body2(WasherColor.baseGray500),
+        ),
+        const SizedBox(height: AppSpacing.v4),
+        Text(
+          '세탁 완료 예정시간: ${finishedAt ?? ''}',
+          style: WasherTypography.body2(WasherColor.baseGray500),
         ),
       ],
     );
   }
+}
 
-  Widget _buildWidgetBottom() {
+class _CompletedBody extends StatelessWidget {
+  final LaundryMachineType laundryMachineType;
+  final String? finishedAt;
+
+  const _CompletedBody({
+    super.key,
+    required this.laundryMachineType,
+    required this.finishedAt,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        laundryStatus.needsSpacing
-            ? Column(
-                children: [
-                  const SizedBox(height: 12),
-                  _buildButtons(),
-                ],
-              )
-            : const SizedBox(),
+        Text(
+          '${laundryMachineType.text} 완료',
+          style: WasherTypography.body2(WasherColor.baseGray500),
+        ),
+        const SizedBox(height: AppSpacing.v4),
+        Text(
+          '세탁 완료 시간: ${finishedAt ?? ''}',
+          style: WasherTypography.body2(WasherColor.baseGray500),
+        ),
       ],
     );
   }
+}
 
-  Widget _buildButtons() {
+class _BottomSection extends StatelessWidget {
+  final LaundryMachineType laundryMachineType;
+  final LaundryStatus laundryStatus;
+
+  const _BottomSection({
+    required this.laundryMachineType,
+    required this.laundryStatus,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (!laundryStatus.needsSpacing) return const SizedBox();
+
+    return Column(
+      children: [
+        _Buttons(
+          laundryMachineType: laundryMachineType,
+          laundryStatus: laundryStatus,
+        ),
+      ],
+    );
+  }
+}
+
+class _Buttons extends StatelessWidget {
+  final LaundryMachineType laundryMachineType;
+  final LaundryStatus laundryStatus;
+
+  const _Buttons({
+    required this.laundryMachineType,
+    required this.laundryStatus,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    switch (laundryStatus) {
+      case LaundryStatus.waiting:
+        return _WaitingButton(laundryMachineType: laundryMachineType);
+      case LaundryStatus.reserved:
+        return _ReservedButton(laundryMachineType: laundryMachineType);
+      case LaundryStatus.needConfirm:
+      case LaundryStatus.inUse:
+      case LaundryStatus.completed:
+        return const SizedBox();
+    }
+  }
+}
+
+class _WaitingButton extends StatelessWidget {
+  final LaundryMachineType laundryMachineType;
+
+  const _WaitingButton({super.key, required this.laundryMachineType});
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
       children: [
         Expanded(
@@ -102,12 +332,41 @@ class MyReservationWidget extends StatelessWidget {
             color: WasherColor.baseGray200,
           ),
         ),
-        SizedBox(width: 4),
+        const SizedBox(width: AppSpacing.h4),
         Expanded(
           child: CustomSmallButton(
             text: '${laundryMachineType.text} 시작',
             onPressed: () {},
             color: WasherColor.mainColor500,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ReservedButton extends StatelessWidget {
+  final LaundryMachineType laundryMachineType;
+
+  const _ReservedButton({super.key, required this.laundryMachineType});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: CustomSmallButton(
+            text: '예약 취소',
+            onPressed: () {},
+            color: WasherColor.baseGray200,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.h4),
+        Expanded(
+          child: CustomSmallButton(
+            text: '${laundryMachineType.text} 시작',
+            onPressed: () {},
+            color: WasherColor.mainColor200,
           ),
         ),
       ],

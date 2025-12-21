@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:project_setting/core/theme/color.dart';
 import 'package:project_setting/core/theme/icon.dart';
+import 'package:project_setting/core/theme/spacing.dart';
 import 'package:project_setting/core/theme/typography.dart';
 
 /// 네비게이션 탭 아이템 정의
@@ -103,7 +104,7 @@ class _NavTabItem extends StatelessWidget {
             type: tab.iconType,
             color: color,
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: AppSpacing.v2),
           Text(
             tab.label,
             style: WasherTypography.body2(color),

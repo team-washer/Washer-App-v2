@@ -6,6 +6,7 @@ import 'package:project_setting/presentation/common/buttons/custom_big_button.da
 import 'package:project_setting/presentation/common/reservation_state_widget.dart';
 import '../../../core/enums/laundry_machine_type.dart';
 import '../../../core/enums/reservation_state.dart';
+import '../../../core/theme/spacing.dart';
 
 class ReservationWidget extends StatelessWidget {
   final LaundryMachineType laundryMachineType;
@@ -39,7 +40,7 @@ class ReservationWidget extends StatelessWidget {
             reservationState: reservationState,
             machineName: machineName,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.v12),
           ReservationBottomSection(
             laundryMachineType: laundryMachineType,
             reservationState: reservationState,
@@ -63,9 +64,9 @@ class _ReservationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: AppPadding.card,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
         color: Colors.white,
       ),
       child: child,
@@ -117,7 +118,7 @@ class _MachineInfo extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         type.icon(color: state.color),
-        const SizedBox(width: 8),
+        const SizedBox(width: AppSpacing.h8),
         Text(
           name,
           style: WasherTypography.subTitle3(
@@ -215,12 +216,12 @@ class _InUseBottom extends StatelessWidget {
           '${laundryMachineType.text} 중…',
           style: WasherTypography.body4(WasherColor.baseGray500),
         ),
-        SizedBox(height: 4),
+        const SizedBox(height: AppSpacing.v4),
         Text(
           '${laundryMachineType.text} 완료 예정시간: ${finishedAt ?? ''}',
           style: WasherTypography.body4(WasherColor.baseGray500),
         ),
-        SizedBox(height: 4),
+        const SizedBox(height: AppSpacing.v4),
         if (room != null)
           Text(
             '사용 호실: ${room ?? ''}',
@@ -245,7 +246,7 @@ class _AvailableBottom extends StatelessWidget {
           '미사용 중',
           style: WasherTypography.body4(WasherColor.baseGray500),
         ),
-        SizedBox(height: 24),
+        const SizedBox(height: AppSpacing.v24),
         Row(
           children: [
             CustomBigButton(
@@ -253,13 +254,13 @@ class _AvailableBottom extends StatelessWidget {
               onPressed: () {},
               color: WasherColor.mainColor500,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppSpacing.h8),
             WasherIcon(
               type: WasherIconType.warningCircle,
               color: WasherColor.errorColor,
               size: 33,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppSpacing.h8),
             WasherIcon(
               type: WasherIconType.historyCircle,
               color: WasherColor.baseGray200,
@@ -290,13 +291,13 @@ class _ReservedByMeBottom extends StatelessWidget {
           '예약 시간: ${reservedAt ?? ''}',
           style: WasherTypography.body4(WasherColor.baseGray500),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: AppSpacing.v4),
         Text(
           '예약 만료까지: ${remainDuration ?? ''}',
           style: WasherTypography.body4(WasherColor.errorColor),
         ),
 
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.v12),
         Row(
           children: [
             CustomBigButton(
@@ -304,7 +305,7 @@ class _ReservedByMeBottom extends StatelessWidget {
               onPressed: () {},
               color: WasherColor.baseGray200,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppSpacing.h8),
             CustomBigButton(
               text: '세탁 시작',
               onPressed: () {},
@@ -337,12 +338,12 @@ class _ReservedBottom extends StatelessWidget {
           '예약 시간: ${reservedAt ?? ''}',
           style: WasherTypography.body4(WasherColor.baseGray500),
         ),
-        SizedBox(height: 4),
+        const SizedBox(height: AppSpacing.v4),
         Text(
           '예약 만료까지: ${remainDuration ?? ''}',
           style: WasherTypography.body4(WasherColor.errorColor),
         ),
-        SizedBox(height: 4),
+        const SizedBox(height: AppSpacing.v4),
         Text(
           '사용 호실: ${room ?? ''}',
           style: WasherTypography.body4(WasherColor.baseGray500),

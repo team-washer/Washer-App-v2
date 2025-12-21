@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:project_setting/core/enums/laundry_machine_type.dart';
 import 'package:project_setting/core/theme/color.dart';
+import 'package:project_setting/core/theme/spacing.dart';
 import 'package:project_setting/core/theme/typography.dart';
 
 class LaundryReservationStatusItem extends StatelessWidget {
@@ -48,7 +49,7 @@ class LaundryReservationStatusItem extends StatelessWidget {
           machineType.icon(
             color: isUsed ? WasherColor.baseGray200 : null,
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.h12),
           Text(
             '$machine-${floor}F-$side$number',
             style: WasherTypography.body3(

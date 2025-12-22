@@ -117,7 +117,11 @@ class _MachineInfo extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        type.icon(color: state.color),
+        type.icon(
+          color: state == ReservationState.unavailable
+              ? WasherColor.errorColor
+              : WasherColor.mainColor400,
+        ),
         const SizedBox(width: AppSpacing.h8),
         Text(
           name,
@@ -214,18 +218,18 @@ class _InUseBottom extends StatelessWidget {
       children: [
         Text(
           '${laundryMachineType.text} 중…',
-          style: WasherTypography.body4(WasherColor.baseGray500),
+          style: WasherTypography.body2(WasherColor.baseGray400),
         ),
         const SizedBox(height: AppSpacing.v4),
         Text(
           '${laundryMachineType.text} 완료 예정시간: ${finishedAt ?? ''}',
-          style: WasherTypography.body4(WasherColor.baseGray500),
+          style: WasherTypography.body2(WasherColor.baseGray400),
         ),
         const SizedBox(height: AppSpacing.v4),
         if (room != null)
           Text(
             '사용 호실: ${room ?? ''}',
-            style: WasherTypography.body4(WasherColor.baseGray500),
+            style: WasherTypography.body2(WasherColor.baseGray400),
           ),
       ],
     );
@@ -244,7 +248,7 @@ class _AvailableBottom extends StatelessWidget {
       children: [
         Text(
           '미사용 중',
-          style: WasherTypography.body4(WasherColor.baseGray500),
+          style: WasherTypography.body2(WasherColor.baseGray500),
         ),
         const SizedBox(height: AppSpacing.v24),
         Row(
@@ -289,12 +293,12 @@ class _ReservedByMeBottom extends StatelessWidget {
       children: [
         Text(
           '예약 시간: ${reservedAt ?? ''}',
-          style: WasherTypography.body4(WasherColor.baseGray500),
+          style: WasherTypography.body2(WasherColor.baseGray500),
         ),
         const SizedBox(height: AppSpacing.v4),
         Text(
           '예약 만료까지: ${remainDuration ?? ''}',
-          style: WasherTypography.body4(WasherColor.errorColor),
+          style: WasherTypography.body2(WasherColor.errorColor),
         ),
 
         const SizedBox(height: AppSpacing.v12),
@@ -336,7 +340,7 @@ class _ReservedBottom extends StatelessWidget {
       children: [
         Text(
           '예약 시간: ${reservedAt ?? ''}',
-          style: WasherTypography.body4(WasherColor.baseGray500),
+          style: WasherTypography.body2(WasherColor.baseGray500),
         ),
         const SizedBox(height: AppSpacing.v4),
         Text(
@@ -346,7 +350,7 @@ class _ReservedBottom extends StatelessWidget {
         const SizedBox(height: AppSpacing.v4),
         Text(
           '사용 호실: ${room ?? ''}',
-          style: WasherTypography.body4(WasherColor.baseGray500),
+          style: WasherTypography.body2(WasherColor.baseGray500),
         ),
       ],
     );
@@ -362,7 +366,7 @@ class _UnavailableBottom extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       '${laundryMachineType.text} 고장으로 인해 당분간 사용이 정지됩니다.',
-      style: WasherTypography.body4(WasherColor.errorColor),
+      style: WasherTypography.body2(WasherColor.errorColor),
     );
   }
 }

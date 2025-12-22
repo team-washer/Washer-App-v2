@@ -111,7 +111,7 @@ class _LaundryActionDialogState extends State<LaundryActionDialog> {
             TextSpan(
               text: widget.deviceId,
               style: WasherTypography.body1(
-                WasherColor.baseGray500,
+                WasherColor.baseGray400,
               ),
             ),
           ],
@@ -138,12 +138,11 @@ class _LaundryActionDialogState extends State<LaundryActionDialog> {
               style: WasherTypography.subTitle4(),
             ),
             CircleWidget(
-              color:
-                  CircleColor.red, // Use the appropriate CircleColor enum value
+              color: CircleColor.red,
             ),
           ],
         ),
-       const SizedBox(height: AppSpacing.v4),
+        const SizedBox(height: AppSpacing.v4),
         TextField(
           controller: _textController,
           focusNode: _focusNode,

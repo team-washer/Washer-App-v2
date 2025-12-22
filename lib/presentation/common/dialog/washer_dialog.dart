@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:project_setting/core/theme/color.dart';
+import 'package:project_setting/core/theme/spacing.dart';
 import 'package:project_setting/core/theme/typography.dart';
 import 'package:project_setting/presentation/common/buttons/custom_big_button.dart';
 
@@ -29,9 +30,9 @@ class WasherDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(AppSpacing.cardPadding),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12.0),
+        borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
         color: Colors.white,
       ),
       child: Column(
@@ -50,7 +51,7 @@ class WasherDialog extends StatelessWidget {
                 onPressed: onBackPressed ?? () => Navigator.of(context).pop(),
                 color: backColor ?? WasherColor.baseGray200,
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: AppSpacing.h4),
               CustomBigButton(
                 text: confirmText ?? "확인",
                 onPressed:

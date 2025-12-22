@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:project_setting/core/enums/laundry_machine_type.dart';
 import 'package:project_setting/core/enums/machine_state.dart';
 import 'package:project_setting/core/theme/color.dart';
+import 'package:project_setting/core/theme/spacing.dart';
 import 'package:project_setting/core/theme/typography.dart';
 import 'package:project_setting/presentation/common/dialog/washer_dialog.dart';
 
@@ -66,15 +67,15 @@ class LaundryStatusDialog extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.v10),
           _buildInfoRow("기기명", _machineId),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.v8),
           _buildInfoRow("상태", _statusText),
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.v10),
           _buildInfoRow("사용호실", roomNumber ?? "없음"),
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.v10),
           _buildInfoRow("특이사항", _specialNotes),
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.v10),
         ],
       ),
     );
@@ -88,11 +89,11 @@ class LaundryStatusDialog extends StatelessWidget {
           label,
           style: WasherTypography.subTitle4(),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: AppSpacing.h8),
         Expanded(
           child: Text(
             value,
-            style: WasherTypography.body1(WasherColor.baseGray500),
+            style: WasherTypography.body1(WasherColor.baseGray400),
           ),
         ),
       ],

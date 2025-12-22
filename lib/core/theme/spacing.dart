@@ -12,6 +12,7 @@ class AppSpacing {
   static const double v2 = 2;
   static const double v4 = 4;
   static const double v8 = 8;
+  static const double v10 = 10;
   static const double v12 = 12;
   static const double v16 = 16;
   static const double v24 = 24;
@@ -28,5 +29,4 @@ class AppSpacing {
 class AppPadding {
   static const EdgeInsets card = EdgeInsets.all(AppSpacing.cardPadding);
   static const EdgeInsets content = EdgeInsets.all(AppSpacing.contentPadding);
-
 }

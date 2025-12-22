@@ -345,7 +345,7 @@ class _ReservedBottom extends StatelessWidget {
         const SizedBox(height: AppSpacing.v4),
         Text(
           '예약 만료까지: ${remainDuration ?? ''}',
-          style: WasherTypography.body4(WasherColor.errorColor),
+          style: WasherTypography.body2(WasherColor.errorColor),
         ),
         const SizedBox(height: AppSpacing.v4),
         Text(

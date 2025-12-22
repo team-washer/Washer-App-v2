@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:project_setting/core/theme/color.dart';
 import 'package:project_setting/core/theme/icon.dart';
+import 'package:project_setting/core/theme/spacing.dart';
 import 'package:project_setting/core/theme/typography.dart';
 
 enum AuthTextFieldType {
@@ -56,8 +57,7 @@ class _AuthTextFieldState extends State<AuthTextField> {
     });
   }
 
-  bool get _hasError =>
-      widget.errorText != null && widget.errorText!.isNotEmpty;
+  bool get _hasError => widget.errorText?.isNotEmpty ?? false;
 
   Color get _borderColor {
     if (_hasError) return WasherColor.errorColor;
@@ -69,8 +69,7 @@ class _AuthTextFieldState extends State<AuthTextField> {
   bool get _isEmail => widget.type == AuthTextFieldType.email;
 
   TextInputType get _keyboardType {
-    if (_isEmail) return TextInputType.emailAddress;
-    return TextInputType.text;
+    return _isEmail ? TextInputType.emailAddress : TextInputType.text;
   }
 
   @override
@@ -78,80 +77,98 @@ class _AuthTextFieldState extends State<AuthTextField> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          widget.label,
-          style: WasherTypography.body1(WasherColor.baseGray700),
-        ),
-        const SizedBox(height: 4),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: _borderColor,
-              width: 1,
-            ),
-          ),
-          child: TextField(
-            controller: widget.controller,
-            focusNode: _focusNode,
-            obscureText: _isPassword && _obscureText,
-            keyboardType: _keyboardType,
-            onChanged: widget.onChanged,
-            textAlignVertical: TextAlignVertical.center,
-            style: WasherTypography.body2(WasherColor.baseGray700),
-            decoration: InputDecoration(
-              hintText: widget.hintText,
-              hintStyle: WasherTypography.body2(WasherColor.baseGray200),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
-              ),
-              border: InputBorder.none,
-              suffixIcon: _buildSuffixIcon(),
-              isDense: true,
-            ),
-          ),
-        ),
-        if (_hasError) ...[
-          const SizedBox(height: 4),
-          Text(
-            widget.errorText!,
-            style: WasherTypography.caption(WasherColor.errorColor),
-          ),
-        ],
+        _buildLabel(),
+        const SizedBox(height: AppSpacing.v8),
+        _buildTextField(),
+        if (_hasError) _buildErrorText(),
       ],
     );
   }
 
+  Widget _buildLabel() {
+    return Text(
+      widget.label,
+      style: WasherTypography.body1(WasherColor.baseGray700),
+    );
+  }
+
+  Widget _buildErrorText() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: AppSpacing.v4),
+        Text(
+          widget.errorText!,
+          style: WasherTypography.caption(WasherColor.errorColor),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTextField() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: _borderColor,
+        ),
+      ),
+      child: TextField(
+        maxLines: 1,
+        controller: widget.controller,
+        focusNode: _focusNode,
+        obscureText: _isPassword && _obscureText,
+        keyboardType: _keyboardType,
+        onChanged: widget.onChanged,
+        textAlignVertical: TextAlignVertical.center,
+        style: WasherTypography.body1(WasherColor.baseGray700),
+        decoration: InputDecoration(
+          hintText: widget.hintText,
+          hintStyle: WasherTypography.body2(WasherColor.baseGray200),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
+          border: InputBorder.none,
+          suffixIcon: _buildSuffixIcon(),
+          isDense: true,
+        ),
+      ),
+    );
+  }
+
   Widget? _buildSuffixIcon() {
-    // 비밀번호 필드: 눈 아이콘으로 보이기/숨기기
     if (_isPassword) {
       return IconButton(
         icon: WasherIcon(
           type: _obscureText ? WasherIconType.eyeOff : WasherIconType.eye,
           size: 20,
-          color: WasherColor.baseGray500,
+          color: WasherColor.baseGray200,
         ),
-        onPressed: () {
-          setState(() {
-            _obscureText = !_obscureText;
-          });
-        },
+        onPressed: _togglePasswordVisibility,
       );
     }
 
-    // 이메일 필드: @gsm.hs.kr 자동 표시
     if (_isEmail) {
       return Padding(
         padding: const EdgeInsets.only(right: 16),
-        child: Text(
-          '@ gsm.hs.kr',
-          style: WasherTypography.body2(WasherColor.baseGray600),
+        child: Align(
+          alignment: Alignment.centerRight,
+          child: Text(
+            '@ gsm.hs.kr',
+            style: WasherTypography.body2(WasherColor.baseGray400),
+          ),
         ),
       );
     }
 
     return null;
+  }
+
+  void _togglePasswordVisibility() {
+    setState(() {
+      _obscureText = !_obscureText;
+    });
   }
 }

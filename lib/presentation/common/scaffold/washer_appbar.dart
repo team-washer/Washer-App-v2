@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:project_setting/core/theme/color.dart';
 import 'package:project_setting/core/theme/icon.dart';
 import 'package:project_setting/presentation/common/circle_widget.dart';
 
@@ -13,6 +15,7 @@ class WasherAppbar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
+      backgroundColor: WasherColor.backgroundColor,
       automaticallyImplyLeading: false,
       title: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 32),
@@ -25,7 +28,7 @@ class WasherAppbar extends StatelessWidget implements PreferredSizeWidget {
             ),
             _buildNotificationIcon(
               onTap: () {
-                // 알림 아이콘 클릭 시 동작할 코드 작성
+                context.push('/alarm');
               },
             ),
           ],

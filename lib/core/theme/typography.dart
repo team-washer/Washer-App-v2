@@ -25,70 +25,70 @@ class WasherTypography {
   static TextStyle h1([Color? color]) => _suitBase(
     fontSize: 24,
     fontWeight: FontWeight.w600,
-    color: color ?? WasherColor.baseGray,
+    color: color ?? WasherColor.baseGray700,
   );
 
   // ---- headline ----
   static TextStyle h2([Color? color]) => _suitBase(
     fontSize: 20,
     fontWeight: FontWeight.w600,
-    color: color ?? WasherColor.baseGray,
+    color: color ?? WasherColor.baseGray700,
   );
 
   // ---- subTitle ----
   static TextStyle subTitle1([Color? color]) => _suitBase(
     fontSize: 20,
     fontWeight: FontWeight.normal,
-    color: color ?? WasherColor.baseGray,
+    color: color ?? WasherColor.baseGray700,
   );
 
   static TextStyle subTitle2([Color? color]) => _suitBase(
     fontSize: 18,
     fontWeight: FontWeight.bold,
-    color: color ?? WasherColor.baseGray,
+    color: color ?? WasherColor.baseGray700,
   );
 
   static TextStyle subTitle3([Color? color]) => _suitBase(
     fontSize: 18,
     fontWeight: FontWeight.normal,
-    color: color ?? WasherColor.baseGray,
+    color: color ?? WasherColor.baseGray700,
   );
 
   static TextStyle subTitle4([Color? color]) => _suitBase(
     fontSize: 16,
     fontWeight: FontWeight.w600,
-    color: color ?? WasherColor.baseGray,
+    color: color ?? WasherColor.baseGray700,
   );
 
   // ---- body ----
   static TextStyle body1([Color? color]) => _suitBase(
     fontSize: 16,
     fontWeight: FontWeight.normal,
-    color: color ?? WasherColor.baseGray,
+    color: color ?? WasherColor.baseGray700,
   );
 
   static TextStyle body2([Color? color]) => _suitBase(
     fontSize: 15,
     fontWeight: FontWeight.normal,
-    color: color ?? WasherColor.baseGray,
+    color: color ?? WasherColor.baseGray700,
   );
 
   static TextStyle body3([Color? color]) => _suitBase(
     fontSize: 14,
     fontWeight: FontWeight.w600,
-    color: color ?? WasherColor.baseGray,
+    color: color ?? WasherColor.baseGray700,
   );
 
   static TextStyle body4([Color? color]) => _suitBase(
     fontSize: 14,
     fontWeight: FontWeight.normal,
-    color: color ?? WasherColor.baseGray,
+    color: color ?? WasherColor.baseGray700,
   );
 
   // ---- caption ----
   static TextStyle caption([Color? color]) => _suitBase(
     fontSize: 12,
     fontWeight: FontWeight.normal,
-    color: color ?? WasherColor.baseGray,
+    color: color ?? WasherColor.baseGray700,
   );
 }

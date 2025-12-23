@@ -11,7 +11,7 @@ class BaseScaffold extends StatelessWidget {
   const BaseScaffold({
     super.key,
     required this.body,
-    this.showAppBar = true,
+    this.showAppBar = false,
     this.hasNotification = false,
     this.bottomNavigationBar,
   });

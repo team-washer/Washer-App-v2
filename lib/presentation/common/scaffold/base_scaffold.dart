@@ -18,22 +18,22 @@ class BaseScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        backgroundColor: WasherColor.backgroundColor,
-        appBar: showAppBar
-            ? WasherAppbar(hasNotification: hasNotification)
-            : null,
-        body: _buildBody(),
-        bottomNavigationBar: bottomNavigationBar,
-      ),
+    return Scaffold(
+      backgroundColor: WasherColor.backgroundColor,
+      appBar: showAppBar
+          ? WasherAppbar(hasNotification: hasNotification)
+          : null,
+      body: _buildBody(),
+      bottomNavigationBar: bottomNavigationBar,
     );
   }
 
   Widget _buildBody() {
-    return Padding(
-      padding: const EdgeInsets.all(32),
-      child: body,
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: body,
+      ),
     );
   }
 }

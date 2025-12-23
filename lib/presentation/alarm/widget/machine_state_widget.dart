@@ -76,8 +76,11 @@ class _TitleWithStatus extends StatelessWidget {
             WasherColor.baseGray700,
           ),
         ),
-        const SizedBox(width: 4),
-        laundryStatus.circle,
+        if (laundryStatus == LaundryAlarmStatus.washComplete ||
+            laundryStatus == LaundryAlarmStatus.dryComplete) ...[
+          const SizedBox(width: 4),
+          laundryStatus.circle,
+        ],
       ],
     );
   }

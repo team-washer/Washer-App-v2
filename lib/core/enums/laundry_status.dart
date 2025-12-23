@@ -14,7 +14,7 @@ extension LaundryStatusExt on LaundryStatus {
   String get label {
     switch (this) {
       case LaundryStatus.waiting:
-        return "대기";
+        return "대기중";
       case LaundryStatus.reserved:
         return "예약완료";
       case LaundryStatus.needConfirm:

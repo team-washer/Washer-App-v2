@@ -28,7 +28,7 @@ class HomeScreen extends StatelessWidget {
               : Padding(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   child: MyReservationWidget(
-                    laundryMachineType: LaundryMachineType.washer,
+                    laundryMachineType: LaundryMachineType.dryer,
                     laundryStatus: LaundryStatus.waiting,
                     machine: 'Dryer-3F-L1',
                     reservedAt: '25.8.18. 00:45:03',
@@ -56,7 +56,7 @@ class HomeScreen extends StatelessWidget {
               return LaundryReservationStatusItem(
                 machineType: LaundryMachineType.washer,
                 floor: 3,
-                number: index,
+                number: index + 1,
                 side: '',
                 isUsed: false,
               );
@@ -82,9 +82,9 @@ class HomeScreen extends StatelessWidget {
             itemCount: 6,
             itemBuilder: (context, index) {
               return LaundryReservationStatusItem(
-                machineType: LaundryMachineType.washer,
+                machineType: LaundryMachineType.dryer,
                 floor: 3,
-                number: index,
+                number: index + 1,
                 side: '',
                 isUsed: false,
               );

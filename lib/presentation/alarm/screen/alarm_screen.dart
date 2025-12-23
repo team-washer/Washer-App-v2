@@ -103,7 +103,6 @@ class AlarmScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BaseScaffold(
-      showAppBar: true,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

@@ -16,6 +16,8 @@ class WasherAppbar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     return AppBar(
       backgroundColor: WasherColor.backgroundColor,
+      surfaceTintColor: Colors.transparent,
+      scrolledUnderElevation: 0,
       automaticallyImplyLeading: false,
       title: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 32),

@@ -325,20 +325,16 @@ class _WaitingButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(
-          child: CustomSmallButton(
-            text: '예약 취소',
-            onPressed: () {},
-            color: WasherColor.baseGray200,
-          ),
+        CustomSmallButton(
+          text: '예약 취소',
+          onPressed: () {},
+          color: WasherColor.baseGray200,
         ),
         const SizedBox(width: AppSpacing.h4),
-        Expanded(
-          child: CustomSmallButton(
-            text: '${laundryMachineType.text} 시작',
-            onPressed: () {},
-            color: WasherColor.mainColor500,
-          ),
+        CustomSmallButton(
+          text: '${laundryMachineType.text} 시작',
+          onPressed: () {},
+          color: WasherColor.mainColor500,
         ),
       ],
     );
@@ -354,20 +350,16 @@ class _ReservedButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(
-          child: CustomSmallButton(
-            text: '예약 취소',
-            onPressed: () {},
-            color: WasherColor.baseGray200,
-          ),
+        CustomSmallButton(
+          text: '예약 취소',
+          onPressed: () {},
+          color: WasherColor.baseGray200,
         ),
         const SizedBox(width: AppSpacing.h4),
-        Expanded(
-          child: CustomSmallButton(
-            text: '${laundryMachineType.text} 시작',
-            onPressed: () {},
-            color: WasherColor.mainColor200,
-          ),
+        CustomSmallButton(
+          text: '${laundryMachineType.text} 시작',
+          onPressed: () {},
+          color: WasherColor.mainColor200,
         ),
       ],
     );

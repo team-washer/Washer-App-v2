@@ -11,7 +11,7 @@ class BaseScaffold extends StatelessWidget {
   const BaseScaffold({
     super.key,
     required this.body,
-    this.showAppBar = true,
+    this.showAppBar = false,
     this.hasNotification = false,
     this.bottomNavigationBar,
   });
@@ -31,7 +31,7 @@ class BaseScaffold extends StatelessWidget {
   Widget _buildBody() {
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.symmetric(horizontal: 32),
         child: body,
       ),
     );

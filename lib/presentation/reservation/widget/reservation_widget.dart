@@ -118,9 +118,7 @@ class _MachineInfo extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         type.icon(
-          color: state == ReservationState.unavailable
-              ? WasherColor.errorColor
-              : WasherColor.mainColor400,
+          color: state.color,
         ),
         const SizedBox(width: AppSpacing.h8),
         Text(

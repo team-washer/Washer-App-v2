@@ -118,9 +118,7 @@ class _MachineInfo extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         type.icon(
-          color: state == ReservationState.unavailable
-              ? WasherColor.errorColor
-              : WasherColor.mainColor400,
+          color: state.color,
         ),
         const SizedBox(width: AppSpacing.h8),
         Text(
@@ -183,6 +181,7 @@ class ReservationBottomSection extends StatelessWidget {
 
       case ReservationState.reservedByMe:
         return _ReservedByMeBottom(
+          laundryMachineType: laundryMachineType,
           reservedAt: reservedAt,
           remainDuration: remainDuration,
         );
@@ -248,7 +247,7 @@ class _AvailableBottom extends StatelessWidget {
       children: [
         Text(
           '미사용 중',
-          style: WasherTypography.body2(WasherColor.baseGray500),
+          style: WasherTypography.body2(WasherColor.baseGray400),
         ),
         const SizedBox(height: AppSpacing.v24),
         Row(
@@ -278,10 +277,12 @@ class _AvailableBottom extends StatelessWidget {
 }
 
 class _ReservedByMeBottom extends StatelessWidget {
+  final LaundryMachineType laundryMachineType;
   final String? reservedAt;
   final String? remainDuration;
 
   const _ReservedByMeBottom({
+    required this.laundryMachineType,
     this.reservedAt,
     this.remainDuration,
   });
@@ -311,7 +312,7 @@ class _ReservedByMeBottom extends StatelessWidget {
             ),
             const SizedBox(width: AppSpacing.h8),
             CustomBigButton(
-              text: '세탁 시작',
+              text: '${laundryMachineType.text} 시작',
               onPressed: () {},
               color: WasherColor.mainColor500,
             ),

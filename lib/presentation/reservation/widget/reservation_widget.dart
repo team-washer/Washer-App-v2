@@ -248,7 +248,7 @@ class _AvailableBottom extends StatelessWidget {
       children: [
         Text(
           '미사용 중',
-          style: WasherTypography.body2(WasherColor.baseGray500),
+          style: WasherTypography.body2(WasherColor.baseGray400),
         ),
         const SizedBox(height: AppSpacing.v24),
         Row(

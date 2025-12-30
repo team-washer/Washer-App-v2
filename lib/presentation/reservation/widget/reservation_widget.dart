@@ -181,6 +181,7 @@ class ReservationBottomSection extends StatelessWidget {
 
       case ReservationState.reservedByMe:
         return _ReservedByMeBottom(
+          laundryMachineType: laundryMachineType,
           reservedAt: reservedAt,
           remainDuration: remainDuration,
         );
@@ -276,10 +277,12 @@ class _AvailableBottom extends StatelessWidget {
 }
 
 class _ReservedByMeBottom extends StatelessWidget {
+  final LaundryMachineType laundryMachineType;
   final String? reservedAt;
   final String? remainDuration;
 
   const _ReservedByMeBottom({
+    required this.laundryMachineType,
     this.reservedAt,
     this.remainDuration,
   });
@@ -309,7 +312,7 @@ class _ReservedByMeBottom extends StatelessWidget {
             ),
             const SizedBox(width: AppSpacing.h8),
             CustomBigButton(
-              text: '세탁 시작',
+              text: '${laundryMachineType.text} 시작',
               onPressed: () {},
               color: WasherColor.mainColor500,
             ),

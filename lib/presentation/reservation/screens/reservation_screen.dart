@@ -123,7 +123,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
             child: ListView.separated(
               padding: EdgeInsets.zero,
               itemCount: _currentWashers.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              separatorBuilder: (_, __) => const SizedBox(height: 24),
               itemBuilder: (_, index) =>
                   _buildWasherItem(_currentWashers[index]),
             ),
@@ -174,7 +174,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
-          '${floor}층',
+          '$floor층',
           style: WasherTypography.body4(
             isSelected ? Colors.white : WasherColor.baseGray600,
           ),

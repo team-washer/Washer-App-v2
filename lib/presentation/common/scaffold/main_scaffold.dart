@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:project_setting/core/enums/laundry_machine_type.dart';
 import 'package:project_setting/presentation/common/scaffold/base_scaffold.dart';
 import 'package:project_setting/presentation/common/scaffold/bottom_navigation_bar.dart';
+import 'package:project_setting/presentation/home/screen/home_screen.dart';
+import 'package:project_setting/presentation/reservation/screens/reservation_screen.dart';
 
 final currentTabProvider = StateProvider<NavTabType>((ref) => NavTabType.home);
 
@@ -28,12 +31,13 @@ class MainScaffold extends ConsumerWidget {
     return IndexedStack(
       index: NavTabType.values.indexOf(currentTab),
       children: const [
-        // TODO: DryerScreen으로 교체
-        Placeholder(),
-        // TODO: HomeScreen으로 교체
-        Placeholder(),
-        // TODO: WasherScreen으로 교체
-        Placeholder(),
+        ReservationScreen(
+          laundryMachineType: LaundryMachineType.dryer,
+        ),
+        HomeScreen(),
+        ReservationScreen(
+          laundryMachineType: LaundryMachineType.washer,
+        ),
       ],
     );
   }

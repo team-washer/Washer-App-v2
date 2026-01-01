@@ -106,30 +106,25 @@ class _ReservationScreenState extends State<ReservationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return BaseScaffold(
-      showAppBar: true,
-      hasNotification: true,
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '${widget.laundryMachineType.text}기 예약 현황',
-            style: WasherTypography.h2(),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '${widget.laundryMachineType.text}기 예약 현황',
+          style: WasherTypography.h2(),
+        ),
+        const SizedBox(height: AppSpacing.h16),
+        _buildFloorSelector(),
+        const SizedBox(height: AppSpacing.h16),
+        Expanded(
+          child: ListView.separated(
+            padding: EdgeInsets.zero,
+            itemCount: _currentWashers.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 24),
+            itemBuilder: (_, index) => _buildWasherItem(_currentWashers[index]),
           ),
-          const SizedBox(height: AppSpacing.h16),
-          _buildFloorSelector(),
-          const SizedBox(height: AppSpacing.h16),
-          Expanded(
-            child: ListView.separated(
-              padding: EdgeInsets.zero,
-              itemCount: _currentWashers.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 24),
-              itemBuilder: (_, index) =>
-                  _buildWasherItem(_currentWashers[index]),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

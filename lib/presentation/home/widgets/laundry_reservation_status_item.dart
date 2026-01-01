@@ -47,13 +47,13 @@ class LaundryReservationStatusItem extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           machineType.icon(
-            color: isUsed ? WasherColor.baseGray200 : null,
+            color: isUsed ? WasherColor.baseGray200 : WasherColor.mainColor400,
           ),
           const SizedBox(width: AppSpacing.h12),
           Text(
             '$machine-${floor}F-$side$number',
             style: WasherTypography.body3(
-              isUsed ? WasherColor.baseGray200 : WasherColor.baseGray600,
+              isUsed ? WasherColor.baseGray200 : WasherColor.baseGray700,
             ),
           ),
         ],

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:project_setting/core/enums/laundry_machine_type.dart';
+import 'package:project_setting/presentation/reservation/screens/reservation_screen.dart';
 import '../../presentation/common/scaffold/main_shell.dart';
 import '../../presentation/home/screen/home_screen.dart';
 import 'route_paths.dart';
@@ -17,7 +19,9 @@ final appRouter = GoRouter(
           routes: [
             GoRoute(
               path: RoutePaths.dryer,
-              builder: (context, state) => const Placeholder(), // DryerScreen()
+              builder: (context, state) => const ReservationScreen(
+                laundryMachineType: LaundryMachineType.dryer,
+              ), // DryerScreen()
             ),
           ],
         ),
@@ -33,8 +37,9 @@ final appRouter = GoRouter(
           routes: [
             GoRoute(
               path: RoutePaths.washer,
-              builder: (context, state) =>
-                  const Placeholder(), // WasherScreen()
+              builder: (context, state) => const ReservationScreen(
+                laundryMachineType: LaundryMachineType.washer,
+              ),   // WasherScreen()
             ),
           ],
         ),
@@ -48,4 +53,3 @@ final appRouter = GoRouter(
     ),
   ],
 );
-

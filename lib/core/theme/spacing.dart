@@ -93,6 +93,12 @@ class AppPadding {
     vertical: 8,
     horizontal: 33.5,
   );
+  static const EdgeInsets appBarPadding = EdgeInsets.symmetric(
+    vertical: 12,
+    horizontal: 32,
+  );
+
+  static const EdgeInsets screenHPadding = EdgeInsets.symmetric(horizontal: 32);
 }
 
 class AppGap {

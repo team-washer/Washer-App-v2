@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:project_setting/core/theme/spacing.dart';
 import 'package:project_setting/core/theme/typography.dart';
 
 class ReservationStateWidget extends StatelessWidget {
@@ -19,7 +20,7 @@ class ReservationStateWidget extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12.5, vertical: 4),
       decoration: BoxDecoration(
         color: color,
-        borderRadius: BorderRadius.circular(1000),
+        borderRadius: AppRadius.circular,
       ),
       child: Text(
         label,

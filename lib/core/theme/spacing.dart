@@ -88,6 +88,11 @@ class AppPadding {
 
   /// 콘텐츠 영역용 패딩 (12px all)
   static const EdgeInsets content = EdgeInsets.all(AppSpacing.contentPadding);
+
+  static const EdgeInsets button = EdgeInsets.symmetric(
+    vertical: 8,
+    horizontal: 33.5,
+  );
 }
 
 class AppGap {

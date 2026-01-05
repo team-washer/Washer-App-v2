@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:project_setting/core/theme/color.dart';
+import 'package:project_setting/core/theme/spacing.dart';
 import 'package:project_setting/presentation/common/scaffold/washer_appbar.dart';
 
 class BaseScaffold extends StatelessWidget {
@@ -23,17 +24,13 @@ class BaseScaffold extends StatelessWidget {
       appBar: showAppBar
           ? WasherAppbar(hasNotification: hasNotification)
           : null,
-      body: _buildBody(),
-      bottomNavigationBar: bottomNavigationBar,
-    );
-  }
-
-  Widget _buildBody() {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
-        child: body,
+      body: SafeArea(
+        child: Padding(
+          padding: AppPadding.screenHPadding,
+          child: body,
+        ),
       ),
+      bottomNavigationBar: bottomNavigationBar,
     );
   }
 }

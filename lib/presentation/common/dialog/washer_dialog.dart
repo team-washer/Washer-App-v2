@@ -26,6 +26,8 @@ class WasherDialog extends StatelessWidget {
     this.onConfirmPressed,
   });
 
+  void _pop(BuildContext context) => Navigator.of(context).pop();
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -39,29 +41,69 @@ class WasherDialog extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: WasherTypography.subTitle3(),
-          ),
+          _WasherDialogHeader(title: title),
           content,
-          Row(
-            children: [
-              CustomBigButton(
-                text: backText ?? "뒤로가기",
-                onPressed: onBackPressed ?? () => Navigator.of(context).pop(),
-                color: backColor ?? WasherColor.baseGray200,
-              ),
-              const SizedBox(width: AppSpacing.h4),
-              CustomBigButton(
-                text: confirmText ?? "확인",
-                onPressed:
-                    onConfirmPressed ?? () => Navigator.of(context).pop(),
-                color: confirmColor ?? WasherColor.mainColor500,
-              ),
-            ],
+          _WasherDialogActions(
+            backText: backText ?? "뒤로가기",
+            confirmText: confirmText ?? "확인",
+            backColor: backColor ?? WasherColor.baseGray200,
+            confirmColor: confirmColor ?? WasherColor.mainColor500,
+            onBackPressed: onBackPressed ?? () => _pop(context),
+            onConfirmPressed: onConfirmPressed ?? () => _pop(context),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _WasherDialogHeader extends StatelessWidget {
+  final String title;
+
+  const _WasherDialogHeader({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      style: WasherTypography.subTitle3(),
+    );
+  }
+}
+
+class _WasherDialogActions extends StatelessWidget {
+  final String backText;
+  final String confirmText;
+  final Color backColor;
+  final Color confirmColor;
+  final VoidCallback onBackPressed;
+  final VoidCallback onConfirmPressed;
+
+  const _WasherDialogActions({
+    required this.backText,
+    required this.confirmText,
+    required this.backColor,
+    required this.confirmColor,
+    required this.onBackPressed,
+    required this.onConfirmPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        CustomBigButton(
+          text: backText,
+          onPressed: onBackPressed,
+          color: backColor,
+        ),
+        AppGap.h4,
+        CustomBigButton(
+          text: confirmText,
+          onPressed: onConfirmPressed,
+          color: confirmColor,
+        ),
+      ],
     );
   }
 }

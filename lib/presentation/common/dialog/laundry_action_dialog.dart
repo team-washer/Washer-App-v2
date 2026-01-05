@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:project_setting/core/enums/laundry_action_type.dart';
 import 'package:project_setting/core/theme/color.dart';
 import 'package:project_setting/core/theme/spacing.dart';
@@ -6,173 +7,190 @@ import 'package:project_setting/core/theme/typography.dart';
 import 'package:project_setting/presentation/common/circle_widget.dart';
 import 'package:project_setting/presentation/common/dialog/washer_dialog.dart';
 
-class LaundryActionDialog extends StatefulWidget {
+class LaundryActionDialog extends HookWidget {
   final LaundryActionType actionType;
   final String deviceId;
-  final TextEditingController? textController;
-  final FocusNode? focusNode;
 
   const LaundryActionDialog({
     super.key,
     required this.actionType,
     required this.deviceId,
-    this.textController,
-    this.focusNode,
   });
 
   @override
-  State<LaundryActionDialog> createState() => _LaundryActionDialogState();
-}
-
-class _LaundryActionDialogState extends State<LaundryActionDialog> {
-  late final TextEditingController _textController;
-  late final FocusNode _focusNode;
-  late final bool _shouldDisposeController;
-  late final bool _shouldDisposeFocusNode;
-
-  @override
-  void initState() {
-    super.initState();
-    _shouldDisposeController = widget.textController == null;
-    _shouldDisposeFocusNode = widget.focusNode == null;
-    _textController = widget.textController ?? TextEditingController();
-    _focusNode = widget.focusNode ?? FocusNode();
-  }
-
-  @override
-  void dispose() {
-    if (_shouldDisposeController) {
-      _textController.dispose();
-    }
-    if (_shouldDisposeFocusNode) {
-      _focusNode.dispose();
-    }
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    String actionText;
-    Color? confirmColor;
-
-    switch (widget.actionType) {
-      case LaundryActionType.reserve:
-        actionText = "예약하기";
-        break;
-      case LaundryActionType.cancelReservation:
-        actionText = "취소하기";
-        confirmColor = WasherColor.errorColor;
-        break;
-      case LaundryActionType.reportBroken:
-        actionText = "신고하기";
-        break;
-    }
+    final textController = useTextEditingController();
+    final focusNode = useFocusNode();
+    final config = _ActionConfig.fromType(actionType);
 
     return WasherDialog(
-      title: "기기 ${widget.actionType.text}",
-      confirmText: actionText,
-      confirmColor: confirmColor,
+      title: "기기 ${actionType.text}",
+      confirmText: config.confirmText,
+      confirmColor: config.confirmColor,
       onConfirmPressed: () {
-        // TODO: Action 수행
+        // TODO: API 호출 with textController.text
       },
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          const SizedBox(height: AppSpacing.v16),
-          _buildContentText(),
-          const SizedBox(height: AppSpacing.v16),
-          if (widget.actionType == LaundryActionType.reportBroken) ...[
-            _buildReportTextField(),
-            const SizedBox(height: AppSpacing.v16),
+          AppGap.v16,
+          _ActionContentText(
+            actionType: actionType,
+            deviceId: deviceId,
+          ),
+          AppGap.v16,
+          if (actionType == LaundryActionType.reportBroken) ...[
+            _ReportTextField(
+              controller: textController,
+              focusNode: focusNode,
+            ),
+            AppGap.v16,
           ],
         ],
       ),
     );
   }
+}
 
-  Widget _buildContentText() {
-    if (widget.actionType == LaundryActionType.reserve) {
-      return Text(
-        "${widget.deviceId}를 예약하시겠습니까?",
-        style: WasherTypography.subTitle4(),
-      );
-    } else if (widget.actionType == LaundryActionType.cancelReservation) {
-      return Text(
-        "${widget.deviceId}의 예약을 취소하시겠습니까?",
-        style: WasherTypography.subTitle4(),
-      );
-    } else {
-      return RichText(
-        text: TextSpan(
-          text: '기기명 ',
-          style: WasherTypography.subTitle4(),
-          children: [
-            TextSpan(
-              text: widget.deviceId,
-              style: WasherTypography.body1(
-                WasherColor.baseGray400,
-              ),
-            ),
-          ],
-        ),
-      );
+class _ActionConfig {
+  final String confirmText;
+  final Color? confirmColor;
+
+  const _ActionConfig({
+    required this.confirmText,
+    this.confirmColor,
+  });
+
+  factory _ActionConfig.fromType(LaundryActionType type) {
+    switch (type) {
+      case LaundryActionType.reserve:
+        return const _ActionConfig(confirmText: "예약하기");
+      case LaundryActionType.cancelReservation:
+        return const _ActionConfig(
+          confirmText: "취소하기",
+          confirmColor: WasherColor.errorColor,
+        );
+      case LaundryActionType.reportBroken:
+        return const _ActionConfig(confirmText: "신고하기");
     }
   }
+}
 
-  Widget _buildReportTextField() {
-    final baseBorder = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
-      borderSide: BorderSide(
-        color: WasherColor.baseGray300,
-      ),
-    );
+class _ActionContentText extends StatelessWidget {
+  final LaundryActionType actionType;
+  final String deviceId;
 
+  const _ActionContentText({
+    required this.actionType,
+    required this.deviceId,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    switch (actionType) {
+      case LaundryActionType.reserve:
+        return Text(
+          "${deviceId}를 예약하시겠습니까?",
+          style: WasherTypography.subTitle4(),
+        );
+      case LaundryActionType.cancelReservation:
+        return Text(
+          "${deviceId}의 예약을 취소하시겠습니까?",
+          style: WasherTypography.subTitle4(),
+        );
+      case LaundryActionType.reportBroken:
+        return RichText(
+          text: TextSpan(
+            text: '기기명 ',
+            style: WasherTypography.subTitle4(),
+            children: [
+              TextSpan(
+                text: deviceId,
+                style: WasherTypography.body1(WasherColor.baseGray400),
+              ),
+            ],
+          ),
+        );
+    }
+  }
+}
+
+class _ReportTextField extends StatelessWidget {
+  final TextEditingController controller;
+  final FocusNode focusNode;
+
+  const _ReportTextField({
+    required this.controller,
+    required this.focusNode,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Text(
-              "고장 내용",
-              style: WasherTypography.subTitle4(),
-            ),
-            CircleWidget(
-              color: CircleColor.red,
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.v4),
-        TextField(
-          controller: _textController,
-          focusNode: _focusNode,
-          maxLines: 5,
-          decoration: InputDecoration(
-            hintText: '고장 증상을 자세히 설명해주세요',
-            hintStyle: WasherTypography.body4(
-              WasherColor.baseGray300,
-            ),
-            border: baseBorder,
-            enabledBorder: baseBorder,
-            focusedBorder: baseBorder.copyWith(
-              borderSide: BorderSide(
-                color: WasherColor.baseGray700,
-              ),
-            ),
-            errorBorder: baseBorder.copyWith(
-              borderSide: BorderSide(
-                color: WasherColor.errorColor,
-              ),
-            ),
-            focusedErrorBorder: baseBorder.copyWith(
-              borderSide: BorderSide(
-                color: WasherColor.errorColor,
-              ),
-            ),
-            contentPadding: AppPadding.content,
-          ),
+        const _FieldLabel(),
+        AppGap.v4,
+        _ReportInputField(
+          controller: controller,
+          focusNode: focusNode,
         ),
       ],
+    );
+  }
+}
+
+class _FieldLabel extends StatelessWidget {
+  const _FieldLabel();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Text("고장 내용", style: WasherTypography.subTitle4()),
+        const CircleWidget(color: CircleColor.red),
+      ],
+    );
+  }
+}
+
+class _ReportInputField extends StatelessWidget {
+  final TextEditingController controller;
+  final FocusNode focusNode;
+
+  const _ReportInputField({
+    required this.controller,
+    required this.focusNode,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final baseBorder = OutlineInputBorder(
+      borderRadius: AppRadius.small,
+      borderSide: const BorderSide(color: WasherColor.baseGray300),
+    );
+
+    return TextField(
+      controller: controller,
+      focusNode: focusNode,
+      maxLines: 5,
+      decoration: InputDecoration(
+        hintText: '고장 증상을 자세히 설명해주세요',
+        hintStyle: WasherTypography.body4(WasherColor.baseGray300),
+        border: baseBorder,
+        enabledBorder: baseBorder,
+        focusedBorder: baseBorder.copyWith(
+          borderSide: const BorderSide(color: WasherColor.baseGray700),
+        ),
+        errorBorder: baseBorder.copyWith(
+          borderSide: const BorderSide(color: WasherColor.errorColor),
+        ),
+        focusedErrorBorder: baseBorder.copyWith(
+          borderSide: const BorderSide(color: WasherColor.errorColor),
+        ),
+        contentPadding: AppPadding.content,
+      ),
     );
   }
 }

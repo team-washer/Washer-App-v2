@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 class WasherColor {
   WasherColor._();
 
-  // main color
+  // ============================================
+  // Main Colors - 메인 브랜드 컬러 (파란색 계열)
+  // ============================================
+
   static const mainColor100 = Color(0xFFDBE7FF);
   static const mainColor200 = Color(0xFFB6D0FF);
   static const mainColor400 = Color(0xFF85B0FF);
@@ -14,7 +17,10 @@ class WasherColor {
   static const mainColor900 = Color(0xFF0E62FF);
   static const mainColor1000 = Color(0xFF0059FF);
 
-  // base gray
+  // ============================================
+  // Base Gray Colors - 기본 회색 팔레트
+  // ============================================
+
   static const baseGray = Color(0xFF141414);
   static const baseGray100 = Color(0xFFFBFBFB);
   static const baseGray200 = Color(0xFFE6E6E6);
@@ -27,7 +33,11 @@ class WasherColor {
   static const baseGray900 = Color(0xFF343434);
   static const baseGray1000 = Color(0xFF141414);
 
-  // error
+  // ============================================
+  // Semantic Colors - 의미론적 컬러
+  // ============================================
+
+  /// 에러 및 경고 컬러 (빨간색)
   static const errorColor = Color(0xFFEA3B42);
 
   // background color

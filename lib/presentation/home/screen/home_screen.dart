@@ -156,7 +156,7 @@ class ViewAllButton extends StatelessWidget {
               WasherColor.baseGray300,
             ),
           ),
-          const SizedBox(width: 4),
+          AppGap.h4,
           WasherIcon(
             type: WasherIconType.back,
             size: 16,

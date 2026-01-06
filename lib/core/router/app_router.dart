@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:project_setting/core/enums/laundry_machine_type.dart';
+import 'package:project_setting/presentation/alarm/screen/alarm_screen.dart';
 import 'package:project_setting/presentation/reservation/screens/reservation_screen.dart';
 import '../../presentation/common/scaffold/main_shell.dart';
 import '../../presentation/home/screen/home_screen.dart';
@@ -66,7 +67,7 @@ final appRouter = GoRouter(
     // 알림 화면
     GoRoute(
       path: RoutePaths.alarm,
-      builder: (context, state) => const Placeholder(), // TODO: AlarmScreen 구현
+      builder: (context, state) => AlarmScreen(),
     ),
   ],
 );

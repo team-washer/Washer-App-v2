@@ -120,7 +120,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
           child: ListView.separated(
             padding: EdgeInsets.zero,
             itemCount: _currentWashers.length,
-            separatorBuilder: (_, __) => AppGap.v16,
+            separatorBuilder: (_, __) => AppGap.v24,
             itemBuilder: (_, index) => _buildWasherItem(_currentWashers[index]),
           ),
         ),

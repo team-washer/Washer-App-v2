@@ -40,7 +40,7 @@ class ReservationWidget extends StatelessWidget {
             reservationState: reservationState,
             machineName: machineName,
           ),
-          const SizedBox(height: AppSpacing.v12),
+          AppGap.v12,
           ReservationBottomSection(
             laundryMachineType: laundryMachineType,
             reservationState: reservationState,
@@ -66,7 +66,7 @@ class _ReservationCard extends StatelessWidget {
       width: double.infinity,
       padding: AppPadding.card,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+        borderRadius: AppRadius.card,
         color: Colors.white,
       ),
       child: child,
@@ -120,7 +120,7 @@ class _MachineInfo extends StatelessWidget {
         type.icon(
           color: state.color,
         ),
-        const SizedBox(width: AppSpacing.h8),
+        AppGap.h8,
         Text(
           name,
           style: WasherTypography.subTitle3(
@@ -343,12 +343,12 @@ class _ReservedBottom extends StatelessWidget {
           '예약 시간: ${reservedAt ?? ''}',
           style: WasherTypography.body2(WasherColor.baseGray500),
         ),
-        const SizedBox(height: AppSpacing.v4),
+        AppGap.v4,
         Text(
           '예약 만료까지: ${remainDuration ?? ''}',
           style: WasherTypography.body2(WasherColor.errorColor),
         ),
-        const SizedBox(height: AppSpacing.v4),
+        AppGap.v4,
         Text(
           '사용 호실: ${room ?? ''}',
           style: WasherTypography.body2(WasherColor.baseGray500),

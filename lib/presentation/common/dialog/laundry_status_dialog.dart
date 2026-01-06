@@ -168,9 +168,7 @@ class _InfoRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          child: Text(label, style: WasherTypography.subTitle4()),
-        ),
+        Text(label, style: WasherTypography.subTitle4()),
         AppGap.h8,
         Expanded(
           child: Text(

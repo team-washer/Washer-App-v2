@@ -38,7 +38,7 @@ class MyReservationWidget extends StatelessWidget {
             laundryStatus: laundryStatus,
             machine: machine,
           ),
-          const SizedBox(height: AppSpacing.v12),
+          AppGap.v12,
           _Body(
             laundryMachineType: laundryMachineType,
             laundryStatus: laundryStatus,
@@ -92,7 +92,7 @@ class _Header extends StatelessWidget {
     return Row(
       children: [
         laundryMachineType.icon(),
-        const SizedBox(width: AppSpacing.h8),
+        AppGap.h8,
         Text(machine, style: WasherTypography.subTitle3()),
         const Spacer(),
         ReservationStateWidget(
@@ -165,12 +165,12 @@ class _WaitingBody extends StatelessWidget {
           '예약 시간: ${reservedAt ?? ''}',
           style: WasherTypography.body2(WasherColor.baseGray500),
         ),
-        const SizedBox(height: AppSpacing.v4),
+        AppGap.v4,
         Text(
           '예약 만료까지: ${remainDuration ?? ''}',
           style: WasherTypography.body2(WasherColor.errorColor),
         ),
-        const SizedBox(height: AppSpacing.v12),
+        AppGap.v12,
       ],
     );
   }
@@ -188,7 +188,7 @@ class _ReservedBody extends StatelessWidget {
           '기기에 연결 중입니다. 잠시만 기다려주세요.',
           style: WasherTypography.body2(WasherColor.baseGray500),
         ),
-        const SizedBox(height: AppSpacing.v24),
+        AppGap.v24,
       ],
     );
   }
@@ -229,7 +229,7 @@ class _InUseBody extends StatelessWidget {
           '$type 중...',
           style: WasherTypography.body2(WasherColor.baseGray500),
         ),
-        const SizedBox(height: AppSpacing.v4),
+        AppGap.v4,
         Text(
           '세탁 완료 예정시간: ${finishedAt ?? ''}',
           style: WasherTypography.body2(WasherColor.baseGray500),
@@ -258,7 +258,7 @@ class _CompletedBody extends StatelessWidget {
           '${laundryMachineType.text} 완료',
           style: WasherTypography.body2(WasherColor.baseGray500),
         ),
-        const SizedBox(height: AppSpacing.v4),
+        AppGap.v4,
         Text(
           '세탁 완료 시간: ${finishedAt ?? ''}',
           style: WasherTypography.body2(WasherColor.baseGray500),
@@ -330,7 +330,7 @@ class _WaitingButton extends StatelessWidget {
           onPressed: () {},
           color: WasherColor.baseGray200,
         ),
-        const SizedBox(width: AppSpacing.h4),
+        AppGap.h4,
         CustomSmallButton(
           text: '${laundryMachineType.text} 시작',
           onPressed: () {},
@@ -355,7 +355,7 @@ class _ReservedButton extends StatelessWidget {
           onPressed: () {},
           color: WasherColor.baseGray200,
         ),
-        const SizedBox(width: AppSpacing.h4),
+        AppGap.h4,
         CustomSmallButton(
           text: '${laundryMachineType.text} 시작',
           onPressed: () {},

@@ -113,14 +113,14 @@ class _ReservationScreenState extends State<ReservationScreen> {
           '${widget.laundryMachineType.text}기 예약 현황',
           style: WasherTypography.h2(),
         ),
-        const SizedBox(height: AppSpacing.h16),
+        AppGap.v16,
         _buildFloorSelector(),
-        const SizedBox(height: AppSpacing.h16),
+        AppGap.v16,
         Expanded(
           child: ListView.separated(
             padding: EdgeInsets.zero,
             itemCount: _currentWashers.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 24),
+            separatorBuilder: (_, __) => AppGap.v16,
             itemBuilder: (_, index) => _buildWasherItem(_currentWashers[index]),
           ),
         ),
@@ -135,7 +135,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
         Row(
           children: [
             _buildFloorChip(3),
-            const SizedBox(width: 8),
+            AppGap.h8,
             _buildFloorChip(4),
           ],
         ),
@@ -145,7 +145,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
               '배치도 보기',
               style: WasherTypography.body4(WasherColor.baseGray300),
             ),
-            const SizedBox(width: AppSpacing.v4),
+            AppGap.h4,
             WasherIcon(
               type: WasherIconType.map,
               color: WasherColor.baseGray300,

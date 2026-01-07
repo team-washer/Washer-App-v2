@@ -65,15 +65,11 @@ class WasherIcon extends StatelessWidget {
   /// 아이콘 색상 (null일 경우 원본 색상 사용)
   final Color? color;
 
-  /// 탭 이벤트 핸들러
-  final VoidCallback? onTap;
-
   const WasherIcon({
     super.key,
     required this.type,
     this.size = 24.0,
     this.color,
-    this.onTap,
   });
 
   @override
@@ -84,15 +80,6 @@ class WasherIcon extends StatelessWidget {
       height: size,
       colorFilter: _buildColorFilter(),
     );
-
-    // 탭 이벤트가 있으면 GestureDetector로 감싸기
-    if (onTap != null) {
-      return GestureDetector(
-        onTap: onTap,
-        child: iconWidget,
-      );
-    }
-
     return iconWidget;
   }
 

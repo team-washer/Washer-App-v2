@@ -58,7 +58,7 @@ class _NotificationIcon extends StatelessWidget {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        WasherIcon(
+        WasherIconButton(
           type: WasherIconType.notification,
           size: 24,
           onTap: onTap,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:project_setting/core/enums/laundry_alarm_status.dart';
 import 'package:project_setting/core/theme/color.dart';
+import 'package:project_setting/core/theme/spacing.dart';
 import 'package:project_setting/core/theme/typography.dart';
 
 class MachineStateWidget extends StatelessWidget {
@@ -21,16 +22,16 @@ class MachineStateWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: AppPadding.card,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.medium,
         color: Colors.white,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           _HeaderRow(laundryStatus: laundryStatus, date: date),
-          const SizedBox(height: 8),
+          AppGap.v8,
           _DescriptionText(
             laundryStatus: laundryStatus,
             descriptionText: descriptionText,
@@ -53,7 +54,7 @@ class _HeaderRow extends StatelessWidget {
     return Row(
       children: [
         _TitleWithStatus(laundryStatus: laundryStatus),
-        const SizedBox(width: 4),
+        AppGap.h4,
         _DateText(date: date),
       ],
     );
@@ -78,7 +79,7 @@ class _TitleWithStatus extends StatelessWidget {
         ),
         if (laundryStatus == LaundryAlarmStatus.washComplete ||
             laundryStatus == LaundryAlarmStatus.dryComplete) ...[
-          const SizedBox(width: 4),
+          AppGap.h4,
           laundryStatus.circle,
         ],
       ],
@@ -124,7 +125,7 @@ class _DescriptionText extends StatelessWidget {
             WasherColor.baseGray400,
           ),
         ),
-        SizedBox(height: 8),
+        AppGap.v8,
         laundryStatus == LaundryAlarmStatus.usageWarning
             ? Text(
                 '신고 사유: $reason',

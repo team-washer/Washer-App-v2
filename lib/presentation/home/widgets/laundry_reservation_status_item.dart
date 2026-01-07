@@ -41,7 +41,7 @@ class LaundryReservationStatusItem extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(100),
+        borderRadius: AppRadius.circular,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,

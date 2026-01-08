@@ -3,7 +3,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'auth_interceptor.dart';
 
 class DioClient {
-  static const String _baseUrl = 'https://your-api-base-url.com'; // TODO: API base URL 변경 필요
+  static const String _baseUrl =
+      'https://your-api-base-url.com'; // TODO: API base URL 변경 필요
   static const Duration _connectTimeout = Duration(seconds: 30);
   static const Duration _receiveTimeout = Duration(seconds: 30);
 

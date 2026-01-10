@@ -1,10 +1,10 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'auth_interceptor.dart';
 
 class DioClient {
-  static const String _baseUrl =
-      'https://your-api-base-url.com'; // TODO: API base URL 변경 필요
   static const Duration _connectTimeout = Duration(seconds: 30);
   static const Duration _receiveTimeout = Duration(seconds: 30);
 
@@ -12,8 +12,10 @@ class DioClient {
   final FlutterSecureStorage _storage;
 
   DioClient(this._storage) : _dio = Dio() {
+    final baseUrl = dotenv.env['API_BASE_URL'] ?? 'https://your-api-base-url.com';
+    
     _dio
-      ..options.baseUrl = _baseUrl
+      ..options.baseUrl = baseUrl
       ..options.connectTimeout = _connectTimeout
       ..options.receiveTimeout = _receiveTimeout
       ..options.headers = {
@@ -24,16 +26,18 @@ class DioClient {
     // 인터셉터 추가
     _dio.interceptors.add(AuthInterceptor(_dio, _storage));
 
-    // 로깅 인터셉터 (개발 모드에서만)
-    _dio.interceptors.add(
-      LogInterceptor(
-        requestBody: true,
-        responseBody: true,
-        requestHeader: true,
-        responseHeader: true,
-        error: true,
-      ),
-    );
+    // 로깅 인터셉터 (디버그 모드에서만)
+    if (kDebugMode) {
+      _dio.interceptors.add(
+        LogInterceptor(
+          requestBody: true,
+          responseBody: true,
+          requestHeader: true,
+          responseHeader: true,
+          error: true,
+        ),
+      );
+    }
   }
 
   Dio get dio => _dio;

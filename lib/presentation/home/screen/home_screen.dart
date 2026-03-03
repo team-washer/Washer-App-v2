@@ -14,7 +14,6 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    bool reservationEmpty = false;
     final itemRatio = 170 / 52;
 
     return SingleChildScrollView(
@@ -22,19 +21,17 @@ class HomeScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ReservationSectionTitle(title: '301호 예약 현황'),
-          // 임시..
-          reservationEmpty
-              ? EmptyReservationMessage()
-              : Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: MyReservationWidget(
-                    laundryMachineType: LaundryMachineType.dryer,
-                    laundryStatus: LaundryStatus.waiting,
-                    machine: 'Dryer-3F-L1',
-                    reservedAt: '25.8.18. 00:45:03',
-                    remainDuration: '00:02:32',
-                  ),
+          // TODO: 예약 없을 때 EmptyReservationMessage() 표시로 교체
+          Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: MyReservationWidget(
+                  laundryMachineType: LaundryMachineType.dryer,
+                  laundryStatus: LaundryStatus.waiting,
+                  machine: 'Dryer-3F-L1',
+                  reservedAt: '25.8.18. 00:45:03',
+                  remainDuration: '00:02:32',
                 ),
+              ),
           ReservationSectionHeader(
             title: '세탁기 예약 현황',
             onViewAll: () {

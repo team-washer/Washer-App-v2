@@ -12,8 +12,8 @@ class DioClient {
   final FlutterSecureStorage _storage;
 
   DioClient(this._storage) : _dio = Dio() {
-    final baseUrl = dotenv.env['API_BASE_URL'] ?? 'https://your-api-base-url.com';
-    
+    final baseUrl = dotenv.env['BASE_URL'] ?? 'https://your-api-base-url.com';
+
     _dio
       ..options.baseUrl = baseUrl
       ..options.connectTimeout = _connectTimeout

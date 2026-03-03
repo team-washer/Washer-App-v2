@@ -5,7 +5,6 @@ import 'package:project_setting/core/theme/color.dart';
 import 'package:project_setting/core/theme/icon.dart';
 import 'package:project_setting/core/theme/spacing.dart';
 import 'package:project_setting/core/theme/typography.dart';
-import 'package:project_setting/presentation/common/scaffold/base_scaffold.dart';
 import 'package:project_setting/presentation/reservation/widget/reservation_widget.dart';
 
 class ReservationScreen extends StatefulWidget {

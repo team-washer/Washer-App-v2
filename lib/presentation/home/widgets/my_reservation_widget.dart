@@ -177,7 +177,7 @@ class _WaitingBody extends StatelessWidget {
 }
 
 class _ReservedBody extends StatelessWidget {
-  const _ReservedBody({super.key});
+  const _ReservedBody();
 
   @override
   Widget build(BuildContext context) {
@@ -195,7 +195,7 @@ class _ReservedBody extends StatelessWidget {
 }
 
 class _NeedConfirmBody extends StatelessWidget {
-  const _NeedConfirmBody({super.key});
+  const _NeedConfirmBody();
 
   @override
   Widget build(BuildContext context) {
@@ -211,7 +211,6 @@ class _InUseBody extends StatelessWidget {
   final String? finishedAt;
 
   const _InUseBody({
-    super.key,
     required this.laundryMachineType,
     required this.finishedAt,
   });
@@ -244,7 +243,6 @@ class _CompletedBody extends StatelessWidget {
   final String? finishedAt;
 
   const _CompletedBody({
-    super.key,
     required this.laundryMachineType,
     required this.finishedAt,
   });
@@ -319,7 +317,7 @@ class _Buttons extends StatelessWidget {
 class _WaitingButton extends StatelessWidget {
   final LaundryMachineType laundryMachineType;
 
-  const _WaitingButton({super.key, required this.laundryMachineType});
+  const _WaitingButton({required this.laundryMachineType});
 
   @override
   Widget build(BuildContext context) {
@@ -344,7 +342,7 @@ class _WaitingButton extends StatelessWidget {
 class _ReservedButton extends StatelessWidget {
   final LaundryMachineType laundryMachineType;
 
-  const _ReservedButton({super.key, required this.laundryMachineType});
+  const _ReservedButton({required this.laundryMachineType});
 
   @override
   Widget build(BuildContext context) {

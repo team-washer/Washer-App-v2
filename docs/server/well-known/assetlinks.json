@@ -3,7 +3,7 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "com.example.project_setting",
+      "package_name": "com.washer",
       "sha256_cert_fingerprints": [
         "TODO: replace with actual SHA256 fingerprint"
       ]

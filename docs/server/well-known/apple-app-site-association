@@ -3,7 +3,7 @@
     "apps": [],
     "details": [
       {
-        "appID": "TEAMID.com.example.projectSetting",
+        "appID": "TEAMID.com.washer",
         "paths": ["*"]
       }
     ]

@@ -34,6 +34,16 @@
                     android:scheme="https"
                     android:host="washer.com" />
             </intent-filter>
+
+            <!-- Custom Scheme (OAuth 콜백: com.washer://auth/callback) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="com.washer"
+                    android:host="auth" />
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

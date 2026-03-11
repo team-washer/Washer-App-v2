@@ -166,10 +166,10 @@ class DioClient {
   }
 }
 
-final _secureStorageProvider = Provider<FlutterSecureStorage>(
+final secureStorageProvider = Provider<FlutterSecureStorage>(
   (_) => const FlutterSecureStorage(),
 );
 
 final dioClientProvider = Provider<DioClient>(
-  (ref) => DioClient(ref.watch(_secureStorageProvider)),
+  (ref) => DioClient(ref.watch(secureStorageProvider)),
 );

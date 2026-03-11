@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:washer/core/network/dio_client.dart';
 import 'package:washer/data/data_sources/remote/auth_remote_data_source.dart';
 import 'package:washer/data/models/auth/request/login_request.dart';
 import 'package:washer/data/models/auth/request/refresh_request.dart';
@@ -50,6 +51,6 @@ class AuthRepositoryImpl implements AuthRepository {
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepositoryImpl(
     ref.watch(authRemoteDataSourceProvider),
-    const FlutterSecureStorage(),
+    ref.watch(secureStorageProvider),
   );
 });

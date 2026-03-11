@@ -1,15 +1,12 @@
-import 'package:flutter/material.dart';
-import 'package:washer/core/theme/color.dart';
-import 'package:washer/core/theme/icon.dart';
-import 'package:washer/core/theme/spacing.dart';
-import 'package:washer/core/theme/typography.dart';
+part of '../home_machine_section_widget.dart';
 
-class HomeSectionHeaderWidget extends StatelessWidget {
+// status_item
+
+class _SectionHeader extends StatelessWidget {
   final String title;
   final VoidCallback? onViewAll;
 
-  const HomeSectionHeaderWidget({
-    super.key,
+  const _SectionHeader({
     required this.title,
     this.onViewAll,
   });
@@ -20,17 +17,17 @@ class HomeSectionHeaderWidget extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        HomeSectionTitleWidget(title: title),
+        _SectionTitle(title: title),
         _ViewAllButton(onTap: onViewAll),
       ],
     );
   }
 }
 
-class HomeSectionTitleWidget extends StatelessWidget {
+class _SectionTitle extends StatelessWidget {
   final String title;
 
-  const HomeSectionTitleWidget({super.key, required this.title});
+  const _SectionTitle({required this.title});
 
   @override
   Widget build(BuildContext context) {

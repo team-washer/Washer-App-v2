@@ -37,4 +37,13 @@ extension LaundryMachineTypeExt on LaundryMachineType {
         return "건조";
     }
   }
+
+  String get apiValue {
+    switch (this) {
+      case LaundryMachineType.washer:
+        return 'WASHER';
+      case LaundryMachineType.dryer:
+        return 'DRYER';
+    }
+  }
 }

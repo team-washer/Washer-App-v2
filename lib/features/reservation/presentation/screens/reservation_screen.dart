@@ -1,103 +1,22 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
-import 'package:washer/core/enums/reservation_state.dart';
-import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
-import 'package:washer/features/reservation/presentation/widgets/reservation_floor_selector_widget.dart';
-import 'package:washer/features/reservation/presentation/widgets/reservation_widget.dart';
+import 'package:washer/features/reservation/presentation/widgets/reservation_base_scaffold.dart';
+import 'package:washer/features/reservation/presentation/widgets/reservation_list_widget.dart';
 
-class ReservationScreen extends StatefulWidget {
+class ReservationScreen extends StatelessWidget {
   final LaundryMachineType laundryMachineType;
 
-  const ReservationScreen({
-    super.key,
-    required this.laundryMachineType,
-  });
-
-  @override
-  State<ReservationScreen> createState() => _ReservationScreenState();
-}
-
-class _ReservationScreenState extends State<ReservationScreen> {
-  int _selectedFloor = 3;
-
-  static const _floors = [3, 4];
-
-  Map<int, List<_WasherData>> _washersByFloor(String prefix) => {
-        3: [
-          _WasherData('$prefix-3F-L1', ReservationState.inUse, finishedAt: '25.08.18. 01:24', room: '301호'),
-          _WasherData('$prefix-3F-L2', ReservationState.reservedByMe, reservedAt: '25.8.18. 00:45:03', remainDuration: '00:02:32', room: '301호'),
-          _WasherData('$prefix-3F-L3', ReservationState.unavailable),
-          _WasherData('$prefix-3F-L4', ReservationState.reservedByOther, reservedAt: '25.8.18. 00:30:15', remainDuration: '00:05:45', room: '305호'),
-          _WasherData('$prefix-3F-L5', ReservationState.available),
-          _WasherData('$prefix-3F-L6', ReservationState.inUse, finishedAt: '25.08.18. 01:24', room: '301호'),
-        ],
-        4: [
-          _WasherData('$prefix-4F-L1', ReservationState.inUse, finishedAt: '25.08.18. 01:24', room: '401호'),
-          _WasherData('$prefix-4F-L2', ReservationState.available),
-          _WasherData('$prefix-4F-L3', ReservationState.reservedByOther, reservedAt: '25.8.18. 00:35:20', remainDuration: '00:08:15', room: '402호'),
-          _WasherData('$prefix-4F-L4', ReservationState.reservedByOther, reservedAt: '25.8.18. 00:40:10', remainDuration: '00:12:05', room: '403호'),
-          _WasherData('$prefix-4F-L5', ReservationState.reservedByOther, reservedAt: '25.8.18. 00:42:30', remainDuration: '00:14:25', room: '404호'),
-          _WasherData('$prefix-4F-L6', ReservationState.inUse, finishedAt: '25.08.18. 01:24', room: '401호'),
-        ],
-      };
-
-  List<_WasherData> get _currentWashers {
-    final prefix = widget.laundryMachineType == LaundryMachineType.washer ? 'Washer' : 'Dryer';
-    return _washersByFloor(prefix)[_selectedFloor] ?? [];
-  }
+  const ReservationScreen({super.key, required this.laundryMachineType});
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('${widget.laundryMachineType.text}기 예약 현황', style: WasherTypography.h2()),
-        AppGap.v16,
-        ReservationFloorSelectorWidget(
-          selectedFloor: _selectedFloor,
-          floors: _floors,
-          onFloorChanged: (floor) => setState(() => _selectedFloor = floor),
-        ),
-        AppGap.v16,
-        Expanded(
-          child: ListView.separated(
-            padding: EdgeInsets.zero,
-            itemCount: _currentWashers.length,
-            separatorBuilder: (_, __) => AppGap.v24,
-            itemBuilder: (_, index) {
-              final data = _currentWashers[index];
-              return ReservationWidget(
-                laundryMachineType: widget.laundryMachineType,
-                reservationState: data.state,
-                machineName: data.name,
-                finishedAt: data.finishedAt,
-                room: data.room,
-                reservedAt: data.reservedAt,
-                remainDuration: data.remainDuration,
-              );
-            },
-          ),
-        ),
-      ],
+    return ReservationBaseScaffold(
+      sectionTitle: Text(
+        '${laundryMachineType.text}기 예약 현황',
+        style: WasherTypography.h2(),
+      ),
+      reservationList: ReservationListWidget(laundryMachineType: laundryMachineType),
     );
   }
-}
-
-class _WasherData {
-  final String name;
-  final ReservationState state;
-  final String? finishedAt;
-  final String? room;
-  final String? reservedAt;
-  final String? remainDuration;
-
-  _WasherData(
-    this.name,
-    this.state, {
-    this.finishedAt,
-    this.room,
-    this.reservedAt,
-    this.remainDuration,
-  });
 }

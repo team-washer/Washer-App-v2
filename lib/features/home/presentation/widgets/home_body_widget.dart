@@ -22,7 +22,7 @@ class HomeBodyWidget extends ConsumerWidget {
         onRetry: () => ref.read(machineStatusProvider.notifier).refresh(),
       ),
       data: (data) => HomeBaseScaffold(
-        myReservation: HomeMyReservationWidget(machines: data.machines),
+        myReservation: const HomeMyReservationWidget(),
         washerSection: HomeMachineSectionWidget(
           machines: data.machines,
           machineType: LaundryMachineType.washer,

@@ -1,35 +1,18 @@
 part of '../home_my_reservation_widget.dart';
 
 class _MyMachineCard extends StatelessWidget {
-  final MachineModel machine;
+  final ActiveReservationModel reservation;
 
-  const _MyMachineCard({required this.machine});
-
-  LaundryMachineType get _machineType =>
-      machine.type == 'WASHER' ? LaundryMachineType.washer : LaundryMachineType.dryer;
-
-  LaundryStatus get _laundryStatus {
-    switch (machine.jobState) {
-      case 'waiting':
-        return LaundryStatus.waiting;
-      case 'reserved':
-        return LaundryStatus.reserved;
-      case 'need_confirm':
-        return LaundryStatus.needConfirm;
-      case 'completed':
-        return LaundryStatus.completed;
-      default:
-        return LaundryStatus.inUse;
-    }
-  }
+  const _MyMachineCard({required this.reservation});
 
   @override
   Widget build(BuildContext context) {
     return _MyReservationCard(
-      laundryMachineType: _machineType,
-      laundryStatus: _laundryStatus,
-      machine: machine.name,
-      finishedAt: machine.expectedCompletionTime,
+      laundryMachineType: reservation.machineType,
+      laundryStatus: reservation.laundryStatus,
+      machine: reservation.machineName,
+      reservedAt: reservation.reservedAt,
+      finishedAt: reservation.expectedCompletionTime,
     );
   }
 }

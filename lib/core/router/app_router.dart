@@ -1,12 +1,12 @@
 ﻿import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
-import 'package:washer/presentation/alarm/screen/alarm_screen.dart';
-import 'package:washer/presentation/auth/callback/auth_webview_screen.dart';
-import 'package:washer/presentation/auth/login/screens/login_screen.dart';
-import 'package:washer/presentation/reservation/screens/reservation_screen.dart';
-import '../../presentation/common/scaffold/main_shell.dart';
-import '../../presentation/home/screen/home_screen.dart';
+import 'package:washer/features/alarm/presentation/screens/alarm_screen.dart';
+import 'package:washer/features/auth/presentation/screens/auth_webview_screen.dart';
+import 'package:washer/features/auth/presentation/screens/login_screen.dart';
+import 'package:washer/features/reservation/presentation/screens/reservation_screen.dart';
+import 'package:washer/core/ui/main_shell.dart';
+import 'package:washer/features/home/presentation/screens/home_screen.dart';
 import 'route_paths.dart';
 
 const _storage = FlutterSecureStorage();

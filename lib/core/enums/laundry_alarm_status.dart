@@ -1,5 +1,5 @@
 ﻿import 'package:flutter/cupertino.dart';
-import 'package:washer/presentation/common/circle_widget.dart';
+import 'package:washer/core/ui/circle_widget.dart';
 
 enum LaundryAlarmStatus {
   washComplete, // 세탁 완료

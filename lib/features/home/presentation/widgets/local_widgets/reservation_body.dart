@@ -113,8 +113,9 @@ class _InUseBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String type =
-        laundryMachineType == LaundryMachineType.washer ? '헹굼' : '건조';
+    final String type = laundryMachineType == LaundryMachineType.washer
+        ? '헹굼'
+        : '건조';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

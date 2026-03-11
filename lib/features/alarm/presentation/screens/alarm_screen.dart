@@ -12,5 +12,3 @@ class AlarmScreen extends StatelessWidget {
     );
   }
 }
-
-

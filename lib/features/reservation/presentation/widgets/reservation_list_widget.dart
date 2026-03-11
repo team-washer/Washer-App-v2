@@ -22,26 +22,78 @@ class _ReservationListWidgetState extends State<ReservationListWidget> {
   static const _floors = [3, 4];
 
   Map<int, List<_MachineData>> _machinesByFloor(String prefix) => {
-        3: [
-          _MachineData('$prefix-3F-L1', ReservationState.inUse, finishedAt: '25.08.18. 01:24', room: '301호'),
-          _MachineData('$prefix-3F-L2', ReservationState.reservedByMe, reservedAt: '25.8.18. 00:45:03', remainDuration: '00:02:32', room: '301호'),
-          _MachineData('$prefix-3F-L3', ReservationState.unavailable),
-          _MachineData('$prefix-3F-L4', ReservationState.reservedByOther, reservedAt: '25.8.18. 00:30:15', remainDuration: '00:05:45', room: '305호'),
-          _MachineData('$prefix-3F-L5', ReservationState.available),
-          _MachineData('$prefix-3F-L6', ReservationState.inUse, finishedAt: '25.08.18. 01:24', room: '301호'),
-        ],
-        4: [
-          _MachineData('$prefix-4F-L1', ReservationState.inUse, finishedAt: '25.08.18. 01:24', room: '401호'),
-          _MachineData('$prefix-4F-L2', ReservationState.available),
-          _MachineData('$prefix-4F-L3', ReservationState.reservedByOther, reservedAt: '25.8.18. 00:35:20', remainDuration: '00:08:15', room: '402호'),
-          _MachineData('$prefix-4F-L4', ReservationState.reservedByOther, reservedAt: '25.8.18. 00:40:10', remainDuration: '00:12:05', room: '403호'),
-          _MachineData('$prefix-4F-L5', ReservationState.reservedByOther, reservedAt: '25.8.18. 00:42:30', remainDuration: '00:14:25', room: '404호'),
-          _MachineData('$prefix-4F-L6', ReservationState.inUse, finishedAt: '25.08.18. 01:24', room: '401호'),
-        ],
-      };
+    3: [
+      _MachineData(
+        '$prefix-3F-L1',
+        ReservationState.inUse,
+        finishedAt: '25.08.18. 01:24',
+        room: '301호',
+      ),
+      _MachineData(
+        '$prefix-3F-L2',
+        ReservationState.reservedByMe,
+        reservedAt: '25.8.18. 00:45:03',
+        remainDuration: '00:02:32',
+        room: '301호',
+      ),
+      _MachineData('$prefix-3F-L3', ReservationState.unavailable),
+      _MachineData(
+        '$prefix-3F-L4',
+        ReservationState.reservedByOther,
+        reservedAt: '25.8.18. 00:30:15',
+        remainDuration: '00:05:45',
+        room: '305호',
+      ),
+      _MachineData('$prefix-3F-L5', ReservationState.available),
+      _MachineData(
+        '$prefix-3F-L6',
+        ReservationState.inUse,
+        finishedAt: '25.08.18. 01:24',
+        room: '301호',
+      ),
+    ],
+    4: [
+      _MachineData(
+        '$prefix-4F-L1',
+        ReservationState.inUse,
+        finishedAt: '25.08.18. 01:24',
+        room: '401호',
+      ),
+      _MachineData('$prefix-4F-L2', ReservationState.available),
+      _MachineData(
+        '$prefix-4F-L3',
+        ReservationState.reservedByOther,
+        reservedAt: '25.8.18. 00:35:20',
+        remainDuration: '00:08:15',
+        room: '402호',
+      ),
+      _MachineData(
+        '$prefix-4F-L4',
+        ReservationState.reservedByOther,
+        reservedAt: '25.8.18. 00:40:10',
+        remainDuration: '00:12:05',
+        room: '403호',
+      ),
+      _MachineData(
+        '$prefix-4F-L5',
+        ReservationState.reservedByOther,
+        reservedAt: '25.8.18. 00:42:30',
+        remainDuration: '00:14:25',
+        room: '404호',
+      ),
+      _MachineData(
+        '$prefix-4F-L6',
+        ReservationState.inUse,
+        finishedAt: '25.08.18. 01:24',
+        room: '401호',
+      ),
+    ],
+  };
 
   List<_MachineData> get _currentMachines {
-    final prefix = widget.laundryMachineType == LaundryMachineType.washer ? 'Washer' : 'Dryer';
+    final prefix = widget.laundryMachineType == LaundryMachineType.washer
+        ? 'Washer'
+        : 'Dryer';
     return _machinesByFloor(prefix)[_selectedFloor] ?? [];
   }
 
@@ -79,5 +131,3 @@ class _ReservationListWidgetState extends State<ReservationListWidget> {
     );
   }
 }
-
-

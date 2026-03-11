@@ -26,7 +26,9 @@ class _StatusItem extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           machineType.icon(
-            color: isAvailable ? WasherColor.mainColor400 : WasherColor.baseGray200,
+            color: isAvailable
+                ? WasherColor.mainColor400
+                : WasherColor.baseGray200,
           ),
           const SizedBox(width: AppSpacing.h12),
           Text(

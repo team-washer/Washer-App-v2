@@ -24,9 +24,8 @@ class HomeMachineSectionWidget extends StatelessWidget {
   String get _title =>
       machineType == LaundryMachineType.washer ? '세탁기 예약 현황' : '건조기 예약 현황';
 
-  List<MachineModel> get _filtered => machines
-      .where((m) => m.type == machineType.apiValue)
-      .toList();
+  List<MachineModel> get _filtered =>
+      machines.where((m) => m.type == machineType.apiValue).toList();
 
   @override
   Widget build(BuildContext context) {

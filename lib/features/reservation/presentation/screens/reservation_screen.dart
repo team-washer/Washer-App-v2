@@ -16,7 +16,9 @@ class ReservationScreen extends StatelessWidget {
         '${laundryMachineType.text}기 예약 현황',
         style: WasherTypography.h2(),
       ),
-      reservationList: ReservationListWidget(laundryMachineType: laundryMachineType),
+      reservationList: ReservationListWidget(
+        laundryMachineType: laundryMachineType,
+      ),
     );
   }
 }

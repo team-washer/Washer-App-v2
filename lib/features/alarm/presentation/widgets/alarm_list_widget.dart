@@ -129,5 +129,3 @@ class AlarmListWidget extends StatelessWidget {
     );
   }
 }
-
-

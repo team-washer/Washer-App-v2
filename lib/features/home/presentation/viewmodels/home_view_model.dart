@@ -4,8 +4,8 @@ import 'package:washer/features/reservation/data/models/laundry_machine_model.da
 
 final machineStatusProvider =
     AsyncNotifierProvider<MachineStatusNotifier, MachineStatusResponse>(
-  MachineStatusNotifier.new,
-);
+      MachineStatusNotifier.new,
+    );
 
 class MachineStatusNotifier extends AsyncNotifier<MachineStatusResponse> {
   @override

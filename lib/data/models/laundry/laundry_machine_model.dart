@@ -4,7 +4,8 @@ class LaundrymachineModel {
   final int floor;
   final int number;
   final String side;
-  final String state; // "inUse" | "available" | "reservedByMe" | "reservedByOther" | "unavailable"
+  final String
+  state; // "inUse" | "available" | "reservedByMe" | "reservedByOther" | "unavailable"
   final String? room;
   final String? reservedAt;
   final String? remainDuration;

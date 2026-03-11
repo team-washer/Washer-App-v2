@@ -39,7 +39,7 @@ class CreateReservationRequest {
   });
 
   Map<String, dynamic> toJson() => {
-        'machineId': machineId,
-        'room': room,
-      };
+    'machineId': machineId,
+    'room': room,
+  };
 }

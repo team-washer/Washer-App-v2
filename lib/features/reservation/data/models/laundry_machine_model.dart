@@ -1,40 +1,47 @@
-class LaundrymachineModel {
-  final String id;
-  final String machineType; // "washer" | "dryer"
-  final int floor;
-  final int number;
-  final String side;
-  final String
-  state; // "inUse" | "available" | "reservedByMe" | "reservedByOther" | "unavailable"
-  final String? room;
-  final String? reservedAt;
-  final String? remainDuration;
-  final String? finishedAt;
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  const LaundrymachineModel({
-    required this.id,
-    required this.machineType,
-    required this.floor,
-    required this.number,
-    required this.side,
-    required this.state,
-    this.room,
-    this.reservedAt,
-    this.remainDuration,
-    this.finishedAt,
-  });
+part 'laundry_machine_model.freezed.dart';
+part 'laundry_machine_model.g.dart';
 
-  factory LaundrymachineModel.fromJson(Map<String, dynamic> json) =>
-      LaundrymachineModel(
-        id: json['id'] as String,
-        machineType: json['machineType'] as String,
-        floor: json['floor'] as int,
-        number: json['number'] as int,
-        side: json['side'] as String? ?? '',
-        state: json['state'] as String,
-        room: json['room'] as String?,
-        reservedAt: json['reservedAt'] as String?,
-        remainDuration: json['remainDuration'] as String?,
-        finishedAt: json['finishedAt'] as String?,
-      );
+@freezed
+abstract class MachineModel with _$MachineModel {
+  const MachineModel._();
+
+  const factory MachineModel({
+    required int machineId,
+    required String name,
+    required String type,
+    required String status,
+    required String availability,
+    String? operatingState,
+    String? jobState,
+    String? switchStatus,
+    String? expectedCompletionTime,
+    int? remainingMinutes,
+    int? reservationId,
+    int? userId,
+  }) = _MachineModel;
+
+  factory MachineModel.fromJson(Map<String, dynamic> json) =>
+      _$MachineModelFromJson(json);
+
+  /// "Washer-3F-L1" → 3
+  int? get floorNumber {
+    final match = RegExp(r'(\d+)F').firstMatch(name);
+    return match != null ? int.tryParse(match.group(1)!) : null;
+  }
+
+  bool get isAvailable => availability == 'AVAILABLE';
+  bool get isUnavailable => status != 'NORMAL';
+}
+
+@freezed
+abstract class MachineStatusResponse with _$MachineStatusResponse {
+  const factory MachineStatusResponse({
+    required List<MachineModel> machines,
+    required int totalCount,
+  }) = _MachineStatusResponse;
+
+  factory MachineStatusResponse.fromJson(Map<String, dynamic> json) =>
+      _$MachineStatusResponseFromJson(json);
 }

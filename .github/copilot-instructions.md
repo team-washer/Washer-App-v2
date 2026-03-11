@@ -99,6 +99,29 @@ Do not use Scaffold directly inside screens.
 
 Each feature must define its own BaseScaffold.
 
+BaseScaffold constructor parameters must use semantically meaningful names
+that describe the content, not generic layout positions.
+
+Do NOT use generic names like top, body, bottom.
+
+Use names that describe what the widget represents.
+
+Example:
+
+// BAD
+return HomeBaseScaffold(
+  top: HomeMyReservationWidget(),
+  body: HomeMachineSectionWidget(),
+  bottom: HomeMachineSectionWidget(),
+)
+
+// GOOD
+return HomeBaseScaffold(
+  myReservation: HomeMyReservationWidget(),
+  washerSection: HomeMachineSectionWidget(),
+  dryerSection: HomeMachineSectionWidget(),
+)
+
 Examples:
 
 MapBaseScaffold
@@ -285,3 +308,74 @@ class MapScreen extends StatelessWidget {
     );
   }
 }
+
+
+--------------------------------------------------
+Local Widgets Pattern (part + local_widgets/)
+--------------------------------------------------
+
+When a widget file contains multiple private sub-widget classes,
+extract them into a local_widgets/ subfolder using Dart's part directive.
+
+This keeps private widgets co-located and organized
+without breaking encapsulation.
+
+Rules:
+
+- Create a local_widgets/ folder inside the widgets/ folder
+- Each file in local_widgets/ must declare: part of '../parent_widget.dart';
+- The parent widget file must declare: part 'local_widgets/filename.dart';
+- Private classes (_ClassName) remain private to the parent library
+- No imports are needed in part files — they share the parent's imports
+
+When to use:
+
+Use this pattern when a widget file has 2 or more private sub-widgets
+that make the file long or hard to read.
+
+Folder structure example:
+
+widgets/
+  alarm_list_widget.dart          ← declares part directives
+  local_widgets/
+    alarm_date_section.dart       ← part of '../alarm_list_widget.dart'
+    alarm_date_divider.dart       ← part of '../alarm_list_widget.dart'
+
+Parent file example:
+
+import 'package:flutter/material.dart';
+
+part 'local_widgets/alarm_date_section.dart';
+part 'local_widgets/alarm_date_divider.dart';
+
+class AlarmListWidget extends StatelessWidget {
+  const AlarmListWidget({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        _DateSection(...),  // private class from local_widgets/
+      ],
+    );
+  }
+}
+
+Part file example:
+
+part of '../alarm_list_widget.dart';
+
+class _DateSection extends StatelessWidget {
+  // no imports needed — shares parent's imports
+}
+
+Naming rules for local_widgets/ files:
+
+Use descriptive names that represent the widget's role.
+
+Examples:
+
+alarm_date_section.dart
+alarm_date_divider.dart
+reservation_card.dart
+reservation_body.dart

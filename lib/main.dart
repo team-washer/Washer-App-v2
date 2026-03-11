@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:washer/firebase_options.dart';
 
 import 'core/router/app_router.dart';
@@ -12,11 +11,6 @@ void main() async {
 
   // 환경 변수 로드
   await dotenv.load(fileName: '.env');
-
-  // TODO: 로그인 UI 테스트용 토큰 초기화 (테스트 후 제거)
-  const storage = FlutterSecureStorage();
-  await storage.delete(key: 'access_token');
-  await storage.delete(key: 'refresh_token');
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,

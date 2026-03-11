@@ -2,9 +2,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/network/dio_client.dart';
 import 'package:washer/data/models/auth/login_request.dart';
 import 'package:washer/data/models/auth/login_response.dart';
+import 'package:washer/data/models/auth/refresh_request.dart';
 
 abstract class AuthRemoteDataSource {
   Future<LoginResponse> login(LoginRequest request);
+  Future<LoginResponse> refresh(RefreshRequest request);
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -16,6 +18,17 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<LoginResponse> login(LoginRequest request) async {
     final response = await _client.post(
       '/api/v2/auth/login',
+      data: request.toJson(),
+    );
+    return LoginResponse.fromJson(
+      response.data['data'] as Map<String, dynamic>,
+    );
+  }
+
+  @override
+  Future<LoginResponse> refresh(RefreshRequest request) async {
+    final response = await _client.post(
+      '/api/v2/auth/refresh',
       data: request.toJson(),
     );
     return LoginResponse.fromJson(

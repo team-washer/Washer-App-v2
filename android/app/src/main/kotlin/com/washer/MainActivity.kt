@@ -1,4 +1,4 @@
-package com.example.project_setting
+﻿package com.washer
 
 import io.flutter.embedding.android.FlutterActivity
 

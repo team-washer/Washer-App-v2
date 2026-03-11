@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
-import 'package:project_setting/core/theme/typography.dart';
-import 'package:project_setting/presentation/common/buttons/washer_text_button.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:washer/core/theme/typography.dart';
+import 'package:washer/presentation/common/buttons/washer_text_button.dart';
 
 class CustomBigButton extends StatelessWidget {
   final String text;

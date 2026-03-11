@@ -1,11 +1,11 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:project_setting/core/enums/laundry_action_type.dart';
-import 'package:project_setting/core/theme/color.dart';
-import 'package:project_setting/core/theme/spacing.dart';
-import 'package:project_setting/core/theme/typography.dart';
-import 'package:project_setting/presentation/common/circle_widget.dart';
-import 'package:project_setting/presentation/common/dialog/washer_dialog.dart';
+import 'package:washer/core/enums/laundry_action_type.dart';
+import 'package:washer/core/theme/color.dart';
+import 'package:washer/core/theme/spacing.dart';
+import 'package:washer/core/theme/typography.dart';
+import 'package:washer/presentation/common/circle_widget.dart';
+import 'package:washer/presentation/common/dialog/washer_dialog.dart';
 
 class LaundryActionDialog extends HookWidget {
   final LaundryActionType actionType;
@@ -91,12 +91,12 @@ class _ActionContentText extends StatelessWidget {
     switch (actionType) {
       case LaundryActionType.reserve:
         return Text(
-          "${deviceId}를 예약하시겠습니까?",
+          "$deviceId를 예약하시겠습니까?",
           style: WasherTypography.subTitle4(),
         );
       case LaundryActionType.cancelReservation:
         return Text(
-          "${deviceId}의 예약을 취소하시겠습니까?",
+          "$deviceId의 예약을 취소하시겠습니까?",
           style: WasherTypography.subTitle4(),
         );
       case LaundryActionType.reportBroken:

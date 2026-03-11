@@ -1,11 +1,11 @@
-import 'package:flutter/material.dart';
-import 'package:project_setting/core/enums/laundry_machine_type.dart';
-import 'package:project_setting/core/enums/reservation_state.dart';
-import 'package:project_setting/core/theme/color.dart';
-import 'package:project_setting/core/theme/icon.dart';
-import 'package:project_setting/core/theme/spacing.dart';
-import 'package:project_setting/core/theme/typography.dart';
-import 'package:project_setting/presentation/reservation/widget/reservation_widget.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:washer/core/enums/laundry_machine_type.dart';
+import 'package:washer/core/enums/reservation_state.dart';
+import 'package:washer/core/theme/color.dart';
+import 'package:washer/core/theme/icon.dart';
+import 'package:washer/core/theme/spacing.dart';
+import 'package:washer/core/theme/typography.dart';
+import 'package:washer/presentation/reservation/widget/reservation_widget.dart';
 
 class ReservationScreen extends StatefulWidget {
   final LaundryMachineType laundryMachineType;

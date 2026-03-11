@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
-import 'package:project_setting/core/theme/spacing.dart';
-import 'package:project_setting/core/theme/typography.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:washer/core/theme/spacing.dart';
+import 'package:washer/core/theme/typography.dart';
 
 class ReservationStateWidget extends StatelessWidget {
   final String label;

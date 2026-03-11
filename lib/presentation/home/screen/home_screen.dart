@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
-import 'package:project_setting/core/enums/laundry_machine_type.dart';
-import 'package:project_setting/core/enums/laundry_status.dart';
-import 'package:project_setting/core/theme/color.dart';
-import 'package:project_setting/core/theme/icon.dart';
-import 'package:project_setting/core/theme/spacing.dart';
-import 'package:project_setting/core/theme/typography.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:washer/core/enums/laundry_machine_type.dart';
+import 'package:washer/core/enums/laundry_status.dart';
+import 'package:washer/core/theme/color.dart';
+import 'package:washer/core/theme/icon.dart';
+import 'package:washer/core/theme/spacing.dart';
+import 'package:washer/core/theme/typography.dart';
 
 import '../widgets/laundry_reservation_status_item.dart';
 import '../widgets/my_reservation_widget.dart';

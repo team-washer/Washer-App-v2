@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:project_setting/core/theme/color.dart';
-import 'package:project_setting/core/theme/icon.dart';
-import 'package:project_setting/core/theme/spacing.dart';
-import 'package:project_setting/presentation/common/circle_widget.dart';
+import 'package:washer/core/theme/color.dart';
+import 'package:washer/core/theme/icon.dart';
+import 'package:washer/core/theme/spacing.dart';
+import 'package:washer/presentation/common/circle_widget.dart';
 
 class WasherAppbar extends StatelessWidget implements PreferredSizeWidget {
   final bool hasNotification;

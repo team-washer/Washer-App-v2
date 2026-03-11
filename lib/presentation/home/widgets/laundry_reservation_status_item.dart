@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
-import 'package:project_setting/core/enums/laundry_machine_type.dart';
-import 'package:project_setting/core/theme/color.dart';
-import 'package:project_setting/core/theme/spacing.dart';
-import 'package:project_setting/core/theme/typography.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:washer/core/enums/laundry_machine_type.dart';
+import 'package:washer/core/theme/color.dart';
+import 'package:washer/core/theme/spacing.dart';
+import 'package:washer/core/theme/typography.dart';
 
 class LaundryReservationStatusItem extends StatelessWidget {
   final LaundryMachineType machineType;

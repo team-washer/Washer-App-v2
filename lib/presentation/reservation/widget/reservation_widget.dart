@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
-import 'package:project_setting/core/theme/color.dart';
-import 'package:project_setting/core/theme/icon.dart';
-import 'package:project_setting/core/theme/typography.dart';
-import 'package:project_setting/presentation/common/buttons/custom_big_button.dart';
-import 'package:project_setting/presentation/common/reservation_state_widget.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:washer/core/theme/color.dart';
+import 'package:washer/core/theme/icon.dart';
+import 'package:washer/core/theme/typography.dart';
+import 'package:washer/presentation/common/buttons/custom_big_button.dart';
+import 'package:washer/presentation/common/reservation_state_widget.dart';
 import '../../../core/enums/laundry_machine_type.dart';
 import '../../../core/enums/reservation_state.dart';
 import '../../../core/theme/spacing.dart';

@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
-import 'package:project_setting/core/theme/color.dart';
-import 'package:project_setting/core/theme/spacing.dart';
-import 'package:project_setting/core/theme/typography.dart';
-import 'package:project_setting/presentation/common/buttons/custom_big_button.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:washer/core/theme/color.dart';
+import 'package:washer/core/theme/spacing.dart';
+import 'package:washer/core/theme/typography.dart';
+import 'package:washer/presentation/common/buttons/custom_big_button.dart';
 
 class WasherDialog extends StatelessWidget {
   final String title;

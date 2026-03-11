@@ -1,17 +1,16 @@
-﻿import 'dart:async';
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:math';
 
-import 'package:app_links/app_links.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_custom_tabs/flutter_custom_tabs.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:washer/core/router/route_paths.dart';
+import 'package:washer/core/theme/color.dart';
 import 'package:washer/features/auth/presentation/viewmodels/auth_callback_view_model.dart';
 import 'package:washer/features/auth/presentation/widgets/auth_base_scaffold.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
 const _redirectUri = 'com.washer://auth/callback';
 const _callbackScheme = 'com.washer';
@@ -29,11 +28,6 @@ String _generateCodeChallenge(String verifier) {
   return base64UrlEncode(digest.bytes).replaceAll('=', '');
 }
 
-/// OAuth 인증 화면.
-///
-/// WebView 대신 시스템 브라우저(Android: Chrome Custom Tabs,
-/// iOS: SFSafariViewController)를 사용하여 XSS 위험을 차단합니다.
-/// OAuth 콜백은 [app_links]를 통해 수신합니다.
 class AuthWebViewScreen extends ConsumerStatefulWidget {
   const AuthWebViewScreen({super.key});
 
@@ -42,30 +36,21 @@ class AuthWebViewScreen extends ConsumerStatefulWidget {
 }
 
 class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
-  late final String _codeVerifier;
-  StreamSubscription<Uri>? _linkSub;
+  WebViewController? _controller;
+  String _codeVerifier = '';
+  bool _isLoading = true;
+  bool _isDisposed = false;
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
+  }
 
   @override
   void initState() {
     super.initState();
-    _codeVerifier = _generateCodeVerifier();
 
-    // 콜백 URI 수신 구독 → 브라우저 실행보다 먼저 등록
-    _linkSub = AppLinks().uriLinkStream.listen(
-      _handleIncomingLink,
-      onError: (_) => _onError(),
-    );
-
-    WidgetsBinding.instance.addPostFrameCallback((_) => _launchBrowser());
-  }
-
-  @override
-  void dispose() {
-    _linkSub?.cancel();
-    super.dispose();
-  }
-
-  Future<void> _launchBrowser() async {
     final oauthBaseUrl = dotenv.env['OAUTH_BASE_URL'];
     final clientId = dotenv.env['OAUTH_CLIENT_ID'];
 
@@ -73,45 +58,71 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
         oauthBaseUrl.isEmpty ||
         clientId == null ||
         clientId.isEmpty) {
-      _onError();
+      WidgetsBinding.instance.addPostFrameCallback((_) => _onError());
       return;
     }
 
-    final codeChallenge = _generateCodeChallenge(_codeVerifier);
+    _codeVerifier = _generateCodeVerifier();
+
     final uri = Uri.parse(oauthBaseUrl).replace(
       queryParameters: {
         'redirect_uri': _redirectUri,
         'client_id': clientId,
-        'code_challenge': codeChallenge,
-        'code_challenge_method': 'S256',
+        // TODO: 백엔드가 PKCE를 지원하면 아래 두 줄 주석 해제
+        // 'code_challenge': _generateCodeChallenge(_codeVerifier),
+        // 'code_challenge_method': 'S256',
       },
     );
 
     try {
-      await launchUrl(
-        uri,
-        customTabsOptions: const CustomTabsOptions(showTitle: false),
-        safariVCOptions: const SafariViewControllerOptions(
-          entersReaderIfAvailable: false,
-        ),
-      );
+      _controller = WebViewController()
+        ..setJavaScriptMode(JavaScriptMode.unrestricted)
+        ..setBackgroundColor(WasherColor.backgroundColor)
+        ..setNavigationDelegate(
+          NavigationDelegate(
+            onPageStarted: (_) {
+              if (!_isDisposed) setState(() => _isLoading = true);
+            },
+            onPageFinished: (_) {
+              if (!_isDisposed) setState(() => _isLoading = false);
+            },
+            onWebResourceError: (error) {
+              // 메인 프레임 로드 실패일 때만 에러 처리
+              if (error.isForMainFrame ?? true) {
+                if (!_isDisposed) setState(() => _isLoading = false);
+                _onError();
+              }
+            },
+            onNavigationRequest: _handleNavigationRequest,
+          ),
+        )
+        ..loadRequest(uri);
     } catch (_) {
-      _onError();
+      // 네이티브 WebView 채널 연결 실패 (Hot Restart 후 등)
+      // → 앱을 완전히 재시작하면 해결됨
+      WidgetsBinding.instance.addPostFrameCallback((_) => _onError());
     }
   }
 
-  void _handleIncomingLink(Uri uri) {
-    if (uri.scheme != _callbackScheme) return;
+  NavigationDecision _handleNavigationRequest(NavigationRequest request) {
+    final uri = Uri.tryParse(request.url);
+    if (uri == null) return NavigationDecision.navigate;
 
-    final authCode = uri.queryParameters['code'];
-    if (authCode != null && authCode.isNotEmpty) {
-      _onAuthCode(authCode);
-    } else {
-      _onError();
+    if (uri.scheme == _callbackScheme) {
+      final authCode = uri.queryParameters['code'];
+      if (authCode != null && authCode.isNotEmpty) {
+        _onAuthCode(authCode);
+      } else {
+        _onError();
+      }
+      return NavigationDecision.prevent;
     }
+
+    return NavigationDecision.navigate;
   }
 
   Future<void> _onAuthCode(String authCode) async {
+    if (_isDisposed || !mounted) return;
     await ref
         .read(authCallbackViewModelProvider.notifier)
         .handleAuthCode(authCode, _codeVerifier);
@@ -136,13 +147,23 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final controller = _controller;
+    if (controller == null) {
+      return const AuthBaseScaffold(body: SizedBox.shrink());
+    }
+
     final isProcessing = ref.watch(authCallbackViewModelProvider).isLoading;
 
     return AuthBaseScaffold(
-      body: Center(
-        child: isProcessing
-            ? const CircularProgressIndicator()
-            : const SizedBox.shrink(),
+      body: Stack(
+        children: [
+          WebViewWidget(controller: controller),
+          if (_isLoading || isProcessing)
+            const ColoredBox(
+              color: Colors.white54,
+              child: Center(child: CircularProgressIndicator()),
+            ),
+        ],
       ),
     );
   }

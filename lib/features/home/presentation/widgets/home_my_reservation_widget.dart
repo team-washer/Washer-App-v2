@@ -23,7 +23,7 @@ class HomeMyReservationWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final myMachine = machines
         .where((m) => m.userId != null && m.operatingState == 'running')
-        .firstOrNull;
+        .firstOrNull; // TODO: 현재 사용중인 예약현황 api 연결시 수정 필요
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -35,7 +35,9 @@ class HomeMyReservationWidget extends StatelessWidget {
               ? _MyMachineCard(machine: myMachine)
               : Center(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.v24),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AppSpacing.v24,
+                    ),
                     child: Text(
                       '현재 예약하거나 사용중인 기기가 없습니다.',
                       style: WasherTypography.body1(WasherColor.baseGray300),

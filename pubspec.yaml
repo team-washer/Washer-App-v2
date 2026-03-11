@@ -1,4 +1,4 @@
-name: project_setting
+﻿name: washer
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -41,6 +41,7 @@ dependencies:
   go_router: 17.0.1
   flutter_riverpod: 3.0.3
   hooks_riverpod: 3.0.3
+  flutter_hooks: ^0.21.2
   dio: 5.9.0
   retrofit: 4.9.1
   get_it: 9.2.0

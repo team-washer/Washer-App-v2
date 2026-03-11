@@ -5,7 +5,7 @@ import 'package:washer/features/auth/data/models/request/refresh_request.dart';
 import 'package:washer/features/auth/data/models/response/login_response.dart';
 
 abstract class AuthRemoteDataSource {
-  Future<LoginResponse> login(LoginRequest request);
+  Future<LoginResponse> login(LoginRequest request, String codeVerifier);
   Future<LoginResponse> refresh(RefreshRequest request);
 }
 
@@ -15,10 +15,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   const AuthRemoteDataSourceImpl(this._client);
 
   @override
-  Future<LoginResponse> login(LoginRequest request) async {
+  Future<LoginResponse> login(LoginRequest request, String codeVerifier) async {
     final response = await _client.post(
       '/api/v2/auth/login',
-      data: {'authCode': request.code},
+      data: {'authCode': request.code, 'codeVerifier': codeVerifier},
     );
     return LoginResponse.fromJson(
       response.data['data'] as Map<String, dynamic>,

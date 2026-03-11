@@ -49,6 +49,7 @@ dependencies:
   flutter_secure_storage: 10.0.0
   flutter_dotenv: ^5.2.1
   webview_flutter: ^4.13.0
+  crypto: ^3.0.3
 
 dev_dependencies:
   flutter_test:

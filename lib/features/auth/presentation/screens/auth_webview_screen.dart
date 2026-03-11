@@ -1,4 +1,8 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'dart:convert';
+import 'dart:math';
+
+import 'package:crypto/crypto.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,6 +15,19 @@ import 'package:webview_flutter/webview_flutter.dart';
 const _redirectUri = 'com.washer://auth/callback';
 const _callbackScheme = 'com.washer';
 
+/// RFC 7636 PKCE: 32 바이트 난수를 base64url(패딩 없음)로 인코딩
+String _generateCodeVerifier() {
+  final random = Random.secure();
+  final bytes = List<int>.generate(32, (_) => random.nextInt(256));
+  return base64UrlEncode(bytes).replaceAll('=', '');
+}
+
+/// RFC 7636 PKCE: SHA-256(code_verifier) → base64url(패딩 없음)
+String _generateCodeChallenge(String verifier) {
+  final digest = sha256.convert(utf8.encode(verifier));
+  return base64UrlEncode(digest.bytes).replaceAll('=', '');
+}
+
 class AuthWebViewScreen extends ConsumerStatefulWidget {
   const AuthWebViewScreen({super.key});
 
@@ -19,18 +36,34 @@ class AuthWebViewScreen extends ConsumerStatefulWidget {
 }
 
 class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
-  late final WebViewController _controller;
+  WebViewController? _controller;
+  String _codeVerifier = '';
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
 
-    final oauthBaseUrl = dotenv.env['OAUTH_BASE_URL']!;
+    final oauthBaseUrl = dotenv.env['OAUTH_BASE_URL'];
+    final clientId = dotenv.env['OAUTH_CLIENT_ID'];
+
+    if (oauthBaseUrl == null ||
+        oauthBaseUrl.isEmpty ||
+        clientId == null ||
+        clientId.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _onError());
+      return;
+    }
+
+    _codeVerifier = _generateCodeVerifier();
+    final codeChallenge = _generateCodeChallenge(_codeVerifier);
+
     final uri = Uri.parse(oauthBaseUrl).replace(
       queryParameters: {
         'redirect_uri': _redirectUri,
-        'client_id': dotenv.env['OAUTH_CLIENT_ID']!,
+        'client_id': clientId,
+        'code_challenge': codeChallenge,
+        'code_challenge_method': 'S256',
       },
     );
 
@@ -67,7 +100,7 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
   Future<void> _onAuthCode(String authCode) async {
     await ref
         .read(authCallbackViewModelProvider.notifier)
-        .handleAuthCode(authCode);
+        .handleAuthCode(authCode, _codeVerifier);
 
     if (!mounted) return;
 
@@ -89,12 +122,17 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final controller = _controller;
+    if (controller == null) {
+      return const AuthBaseScaffold(body: SizedBox.shrink());
+    }
+
     final isProcessing = ref.watch(authCallbackViewModelProvider).isLoading;
 
     return AuthBaseScaffold(
       body: Stack(
         children: [
-          WebViewWidget(controller: _controller),
+          WebViewWidget(controller: controller),
           if (_isLoading || isProcessing)
             const ColoredBox(
               color: Colors.white54,

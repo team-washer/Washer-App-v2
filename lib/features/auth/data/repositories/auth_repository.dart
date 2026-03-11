@@ -6,7 +6,7 @@ import 'package:washer/features/auth/data/models/request/login_request.dart';
 import 'package:washer/features/auth/data/models/request/refresh_request.dart';
 
 abstract class AuthRepository {
-  Future<void> login(String code);
+  Future<void> login(String code, String codeVerifier);
   Future<void> logout();
   Future<void> refresh();
 }
@@ -18,8 +18,11 @@ class AuthRepositoryImpl implements AuthRepository {
   const AuthRepositoryImpl(this._dataSource, this._storage);
 
   @override
-  Future<void> login(String code) async {
-    final response = await _dataSource.login(LoginRequest(code: code));
+  Future<void> login(String code, String codeVerifier) async {
+    final response = await _dataSource.login(
+      LoginRequest(code: code),
+      codeVerifier,
+    );
     await Future.wait([
       _storage.write(key: 'access_token', value: response.accessToken),
       _storage.write(key: 'refresh_token', value: response.refreshToken),

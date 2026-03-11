@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
 import 'package:washer/core/theme/color.dart';
+import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
 import 'package:washer/features/home/presentation/viewmodels/home_view_model.dart';
 import 'package:washer/features/home/presentation/widgets/home_base_scaffold.dart';
@@ -50,7 +51,7 @@ class _HomeErrorView extends StatelessWidget {
             '기기 현황을 불러오지 못했습니다.',
             style: WasherTypography.body1(WasherColor.baseGray500),
           ),
-          const SizedBox(height: 12),
+          AppGap.v12,
           TextButton(
             onPressed: onRetry,
             child: const Text('다시 시도'),

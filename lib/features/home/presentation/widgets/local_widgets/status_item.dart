@@ -16,7 +16,7 @@ class _StatusItem extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(
         horizontal: 17.5,
-        vertical: 12,
+        vertical: AppSpacing.v12,
       ),
       decoration: BoxDecoration(
         color: Colors.white,

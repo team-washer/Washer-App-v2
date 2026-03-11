@@ -30,12 +30,12 @@ class HomeMyReservationWidget extends StatelessWidget {
       children: [
         Text('301호 예약 현황', style: WasherTypography.h2()),
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.v16),
           child: myMachine != null
               ? _MyMachineCard(machine: myMachine)
               : Center(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 24.0),
+                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.v24),
                     child: Text(
                       '현재 예약하거나 사용중인 기기가 없습니다.',
                       style: WasherTypography.body1(WasherColor.baseGray300),

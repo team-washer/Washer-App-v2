@@ -35,10 +35,10 @@ class HomeMachineSectionWidget extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SectionHeader(title: _title, onViewAll: () {}),
-        const SizedBox(height: AppSpacing.v16),
+        AppGap.v16,
         if (items.isEmpty)
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.v16),
             child: Center(
               child: Text(
                 '기기 정보가 없습니다.',

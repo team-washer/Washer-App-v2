@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'auth_interceptor.dart';
 
@@ -12,7 +13,7 @@ class DioClient {
   final FlutterSecureStorage _storage;
 
   DioClient(this._storage) : _dio = Dio() {
-    final baseUrl = dotenv.env['BASE_URL'] ?? 'https://your-api-base-url.com';
+    final baseUrl = dotenv.env['API_BASE_URL'] ?? '';
 
     _dio
       ..options.baseUrl = baseUrl
@@ -164,3 +165,11 @@ class DioClient {
     }
   }
 }
+
+final secureStorageProvider = Provider<FlutterSecureStorage>(
+  (_) => const FlutterSecureStorage(),
+);
+
+final dioClientProvider = Provider<DioClient>(
+  (ref) => DioClient(ref.watch(secureStorageProvider)),
+);

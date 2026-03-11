@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/network/dio_client.dart';
-import 'package:washer/data/models/auth/login_request.dart';
-import 'package:washer/data/models/auth/login_response.dart';
-import 'package:washer/data/models/auth/refresh_request.dart';
+import 'package:washer/data/models/auth/request/login_request.dart';
+import 'package:washer/data/models/auth/request/refresh_request.dart';
+import 'package:washer/data/models/auth/response/login_response.dart';
 
 abstract class AuthRemoteDataSource {
   Future<LoginResponse> login(LoginRequest request);

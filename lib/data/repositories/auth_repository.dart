@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:washer/data/data_sources/remote/auth_remote_data_source.dart';
-import 'package:washer/data/models/auth/login_request.dart';
-import 'package:washer/data/models/auth/refresh_request.dart';
+import 'package:washer/data/models/auth/request/login_request.dart';
+import 'package:washer/data/models/auth/request/refresh_request.dart';
 
 abstract class AuthRepository {
   Future<void> login(String code);
@@ -37,7 +37,9 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<void> refresh() async {
     final refreshToken = await _storage.read(key: 'refresh_token');
     if (refreshToken == null) return;
-    final response = await _dataSource.refresh(RefreshRequest(refreshToken: refreshToken));
+    final response = await _dataSource.refresh(
+      RefreshRequest(refreshToken: refreshToken),
+    );
     await Future.wait([
       _storage.write(key: 'access_token', value: response.accessToken),
       _storage.write(key: 'refresh_token', value: response.refreshToken),

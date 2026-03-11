@@ -1,16 +1,17 @@
-﻿import 'dart:convert';
+﻿import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 
+import 'package:app_links/app_links.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_custom_tabs/flutter_custom_tabs.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:washer/core/router/route_paths.dart';
-import 'package:washer/core/theme/color.dart';
 import 'package:washer/features/auth/presentation/viewmodels/auth_callback_view_model.dart';
 import 'package:washer/features/auth/presentation/widgets/auth_base_scaffold.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 
 const _redirectUri = 'com.washer://auth/callback';
 const _callbackScheme = 'com.washer';
@@ -28,6 +29,11 @@ String _generateCodeChallenge(String verifier) {
   return base64UrlEncode(digest.bytes).replaceAll('=', '');
 }
 
+/// OAuth 인증 화면.
+///
+/// WebView 대신 시스템 브라우저(Android: Chrome Custom Tabs,
+/// iOS: SFSafariViewController)를 사용하여 XSS 위험을 차단합니다.
+/// OAuth 콜백은 [app_links]를 통해 수신합니다.
 class AuthWebViewScreen extends ConsumerStatefulWidget {
   const AuthWebViewScreen({super.key});
 
@@ -36,14 +42,30 @@ class AuthWebViewScreen extends ConsumerStatefulWidget {
 }
 
 class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
-  WebViewController? _controller;
-  String _codeVerifier = '';
-  bool _isLoading = true;
+  late final String _codeVerifier;
+  StreamSubscription<Uri>? _linkSub;
 
   @override
   void initState() {
     super.initState();
+    _codeVerifier = _generateCodeVerifier();
 
+    // 콜백 URI 수신 구독 → 브라우저 실행보다 먼저 등록
+    _linkSub = AppLinks().uriLinkStream.listen(
+      _handleIncomingLink,
+      onError: (_) => _onError(),
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => _launchBrowser());
+  }
+
+  @override
+  void dispose() {
+    _linkSub?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _launchBrowser() async {
     final oauthBaseUrl = dotenv.env['OAUTH_BASE_URL'];
     final clientId = dotenv.env['OAUTH_CLIENT_ID'];
 
@@ -51,13 +73,11 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
         oauthBaseUrl.isEmpty ||
         clientId == null ||
         clientId.isEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _onError());
+      _onError();
       return;
     }
 
-    _codeVerifier = _generateCodeVerifier();
     final codeChallenge = _generateCodeChallenge(_codeVerifier);
-
     final uri = Uri.parse(oauthBaseUrl).replace(
       queryParameters: {
         'redirect_uri': _redirectUri,
@@ -67,34 +87,28 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
       },
     );
 
-    _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(WasherColor.backgroundColor)
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onPageStarted: (_) => setState(() => _isLoading = true),
-          onPageFinished: (_) => setState(() => _isLoading = false),
-          onNavigationRequest: _handleNavigationRequest,
+    try {
+      await launchUrl(
+        uri,
+        customTabsOptions: const CustomTabsOptions(showTitle: false),
+        safariVCOptions: const SafariViewControllerOptions(
+          entersReaderIfAvailable: false,
         ),
-      )
-      ..loadRequest(uri);
+      );
+    } catch (_) {
+      _onError();
+    }
   }
 
-  NavigationDecision _handleNavigationRequest(NavigationRequest request) {
-    final uri = Uri.tryParse(request.url);
-    if (uri == null) return NavigationDecision.navigate;
+  void _handleIncomingLink(Uri uri) {
+    if (uri.scheme != _callbackScheme) return;
 
-    if (uri.scheme == _callbackScheme) {
-      final authCode = uri.queryParameters['code'];
-      if (authCode != null && authCode.isNotEmpty) {
-        _onAuthCode(authCode);
-      } else {
-        _onError();
-      }
-      return NavigationDecision.prevent;
+    final authCode = uri.queryParameters['code'];
+    if (authCode != null && authCode.isNotEmpty) {
+      _onAuthCode(authCode);
+    } else {
+      _onError();
     }
-
-    return NavigationDecision.navigate;
   }
 
   Future<void> _onAuthCode(String authCode) async {
@@ -122,23 +136,13 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final controller = _controller;
-    if (controller == null) {
-      return const AuthBaseScaffold(body: SizedBox.shrink());
-    }
-
     final isProcessing = ref.watch(authCallbackViewModelProvider).isLoading;
 
     return AuthBaseScaffold(
-      body: Stack(
-        children: [
-          WebViewWidget(controller: controller),
-          if (_isLoading || isProcessing)
-            const ColoredBox(
-              color: Colors.white54,
-              child: Center(child: CircularProgressIndicator()),
-            ),
-        ],
+      body: Center(
+        child: isProcessing
+            ? const CircularProgressIndicator()
+            : const SizedBox.shrink(),
       ),
     );
   }

@@ -9,9 +9,11 @@ class LoginViewModel extends AsyncNotifier<void> {
     _authRepository = ref.watch(authRepositoryProvider);
   }
 
-  Future<void> loginWithCode(String authCode) async {
+  Future<void> loginWithCode(String authCode, String codeVerifier) async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() => _authRepository.login(authCode));
+    state = await AsyncValue.guard(
+      () => _authRepository.login(authCode, codeVerifier),
+    );
   }
 }
 

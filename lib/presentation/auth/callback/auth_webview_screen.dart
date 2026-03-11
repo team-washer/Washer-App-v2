@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:washer/core/router/route_paths.dart';
 import 'package:washer/core/theme/color.dart';
-import 'package:washer/presentation/auth/login/viewModels/login_view_model.dart';
+import 'package:washer/presentation/auth/callback/viewmodels/auth_callback_viewmodel.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 const _redirectUri = 'com.washer://auth/callback';
@@ -50,13 +50,12 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
     final uri = Uri.tryParse(request.url);
     if (uri == null) return NavigationDecision.navigate;
 
-    // OAuth 콜백 인터셉트: com.washer://auth/callback?code=XXX
     if (uri.scheme == _callbackScheme) {
       final authCode = uri.queryParameters['code'];
       if (authCode != null && authCode.isNotEmpty) {
-        _handleAuthCode(authCode);
+        _onAuthCode(authCode);
       } else {
-        _showError();
+        _onError();
       }
       return NavigationDecision.prevent;
     }
@@ -64,20 +63,22 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
     return NavigationDecision.navigate;
   }
 
-  Future<void> _handleAuthCode(String authCode) async {
-    await ref.read(loginViewModelProvider.notifier).loginWithCode(authCode);
+  Future<void> _onAuthCode(String authCode) async {
+    await ref
+        .read(authCallbackViewModelProvider.notifier)
+        .handleAuthCode(authCode);
 
     if (!mounted) return;
 
-    final loginState = ref.read(loginViewModelProvider);
-    if (loginState.hasError) {
-      _showError();
+    final state = ref.read(authCallbackViewModelProvider);
+    if (state.hasError) {
+      _onError();
     } else {
       context.go(RoutePaths.home);
     }
   }
 
-  void _showError() {
+  void _onError() {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('로그인에 실패했습니다. 다시 시도해주세요.')),
@@ -87,7 +88,7 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isProcessing = ref.watch(loginViewModelProvider).isLoading;
+    final isProcessing = ref.watch(authCallbackViewModelProvider).isLoading;
 
     return Scaffold(
       backgroundColor: WasherColor.backgroundColor,

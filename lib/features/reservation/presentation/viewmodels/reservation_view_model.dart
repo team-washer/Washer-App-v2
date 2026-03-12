@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/features/reservation/data/repositories/reservation_repository.dart';
 
@@ -43,15 +44,29 @@ class ReservationViewModel extends Notifier<ReservationActionState> {
   }) async {
     state = state.copyWith(status: ReservationActionStatus.loading);
     try {
-      await ref.read(reservationRepositoryProvider).createReservation(
+      final isoString = startTime.toIso8601String();
+      await ref
+          .read(reservationRepositoryProvider)
+          .createReservation(
             machineId: machineId,
-            startTime: startTime.toIso8601String(),
+            startTime: isoString,
           );
       state = state.copyWith(status: ReservationActionStatus.success);
     } catch (e) {
+      // 서버 에러 응답에서 message 추출
+      String errorMessage = '예약에 실패했습니다. 다시 시도해주세요.';
+      if (e is DioException && e.response?.data != null) {
+        final response = e.response!.data;
+        if (response is Map<String, dynamic> &&
+            response.containsKey('message')) {
+          errorMessage = response['message'] as String;
+          print('❌ 예약 실패: $errorMessage');
+        }
+      }
+
       state = state.copyWith(
         status: ReservationActionStatus.error,
-        errorMessage: '예약에 실패했습니다. 다시 시도해주세요.',
+        errorMessage: errorMessage,
       );
     }
   }
@@ -64,5 +79,5 @@ class ReservationViewModel extends Notifier<ReservationActionState> {
 
 final reservationViewModelProvider =
     NotifierProvider<ReservationViewModel, ReservationActionState>(
-  ReservationViewModel.new,
-);
+      ReservationViewModel.new,
+    );

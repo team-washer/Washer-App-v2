@@ -30,5 +30,5 @@ class ReservationRemoteDataSourceImpl implements ReservationRemoteDataSource {
 
 final reservationRemoteDataSourceProvider =
     Provider<ReservationRemoteDataSource>((ref) {
-  return ReservationRemoteDataSourceImpl(ref.watch(dioClientProvider));
-});
+      return ReservationRemoteDataSourceImpl(ref.watch(dioClientProvider));
+    });

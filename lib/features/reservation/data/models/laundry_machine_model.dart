@@ -20,6 +20,7 @@ abstract class MachineModel with _$MachineModel {
     int? remainingMinutes,
     int? reservationId,
     int? userId,
+    String? roomNumber,
   }) = _MachineModel;
 
   factory MachineModel.fromJson(Map<String, dynamic> json) =>

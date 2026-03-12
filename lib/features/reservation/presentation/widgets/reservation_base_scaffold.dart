@@ -19,7 +19,9 @@ class ReservationBaseScaffold extends StatelessWidget {
       children: [
         sectionTitle,
         AppGap.v16,
-        Expanded(child: reservationList),
+        Expanded(
+          child: reservationList,
+        ),
       ],
     );
   }

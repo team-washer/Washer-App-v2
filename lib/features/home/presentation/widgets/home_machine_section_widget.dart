@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
+import 'package:washer/core/enums/machine_state.dart';
 import 'package:washer/core/theme/color.dart';
 import 'package:washer/core/theme/icon.dart';
 import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
+import 'package:washer/core/ui/dialog/laundry_status_dialog.dart';
 import 'package:washer/features/reservation/data/models/laundry_machine_model.dart';
 
 /// 세탁기/건조기 기계 상태를 그리드로 표시하는 위젯
-/// 
+///
 /// 기능:
 /// - 기계 상태에 따른 색상 변경 (가용/예약/사용중)
 /// - 2열 그리드 레이아웃으로 기계 표시
@@ -43,11 +45,16 @@ class HomeMachineSectionWidget extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _SectionTitle(title: _title),
-            _ViewAll(onTap: () {}),
+            _SectionTitle(
+              title: _title,
+            ),
+            _ViewAll(
+              onTap: () {}, //TODO: 전체보기 기능 구현
+            ),
           ],
         ),
         AppGap.v16,
+        // 세탁기 및 건조기가 없을때
         if (items.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.v16),
@@ -58,6 +65,7 @@ class HomeMachineSectionWidget extends StatelessWidget {
               ),
             ),
           )
+        // 아닐 경우
         else
           GridView.builder(
             shrinkWrap: true,
@@ -70,14 +78,17 @@ class HomeMachineSectionWidget extends StatelessWidget {
             ),
             itemCount: items.length,
             itemBuilder: (context, index) {
-              return _StatusItem(machine: items[index]);
+              return _StatusItem(
+                machine: items[index],
+              );
             },
           ),
       ],
     );
   }
 }
-/// 섹션 제목 표시 위젯class _SectionTitle extends StatelessWidget {
+
+class _SectionTitle extends StatelessWidget {
   final String title;
 
   const _SectionTitle({required this.title});
@@ -86,7 +97,9 @@ class HomeMachineSectionWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       title,
-      style: WasherTypography.h2(),
+      style: WasherTypography.h2(
+        WasherColor.baseGray700,
+      ),
     );
   }
 }
@@ -107,7 +120,9 @@ class _ViewAll extends StatelessWidget {
         children: [
           Text(
             '전체보기',
-            style: WasherTypography.body2(WasherColor.baseGray300),
+            style: WasherTypography.body2(
+              WasherColor.baseGray300,
+            ),
           ),
           AppGap.h4,
           WasherIcon(
@@ -121,11 +136,19 @@ class _ViewAll extends StatelessWidget {
   }
 }
 
-/// 기계 상태 아이템 (이름 및 아이콘)
+/// 세탁기/건조기 상태 아이템 (이름 및 아이콘)
 class _StatusItem extends StatelessWidget {
   final MachineModel machine;
 
   const _StatusItem({required this.machine});
+
+  /// 상태에 따른 MachineState 매핑
+  MachineState? _toMachineState() {
+    final operatingState = machine.operatingState?.toLowerCase();
+    if (operatingState == 'running') return MachineState.run;
+    if (operatingState == 'delay_wash') return MachineState.delayWash;
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -133,35 +156,54 @@ class _StatusItem extends StatelessWidget {
         ? LaundryMachineType.washer
         : LaundryMachineType.dryer;
     final isAvailable = machine.isAvailable;
+    final machineState = _toMachineState();
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 17.5,
-        vertical: AppSpacing.v12,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: AppRadius.circular,
-      ),
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            machineType.icon(
-              color: isAvailable
-                  ? WasherColor.mainColor400
-                  : WasherColor.baseGray200,
-            ),
-            const SizedBox(width: AppSpacing.h12),
-            Text(
-              machine.name,
-              style: WasherTypography.body3(
-                isAvailable ? WasherColor.baseGray700 : WasherColor.baseGray200,
+    return GestureDetector(
+      onTap: () async {
+        await showDialog(
+          context: context,
+          builder: (_) => LaundryStatusDialog(
+            machineType: machineType,
+            machineName: machine.name,
+            isUsed: !isAvailable,
+            isUnavailable: machine.isUnavailable,
+            machineState: machineState,
+            roomNumber: machine.roomNumber,
+            expectedTime: machine.expectedCompletionTime,
+          ),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(
+          horizontal: 17.5,
+          vertical: AppSpacing.v12,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: AppRadius.circular,
+        ),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              machineType.icon(
+                color: isAvailable
+                    ? WasherColor.mainColor400
+                    : WasherColor.baseGray200,
               ),
-            ),
-          ],
+              AppGap.h12,
+              Text(
+                machine.name,
+                style: WasherTypography.body3(
+                  isAvailable
+                      ? WasherColor.baseGray700
+                      : WasherColor.baseGray200,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

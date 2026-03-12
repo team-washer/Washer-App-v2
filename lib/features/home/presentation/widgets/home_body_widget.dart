@@ -10,7 +10,7 @@ import 'package:washer/features/home/presentation/widgets/home_machine_section_w
 import 'package:washer/features/home/presentation/widgets/home_my_reservation_widget.dart';
 
 /// 홈 화면의 주요 컨텐츠 영역 — 세탁기/건조기 현황 표시
-/// 
+///
 /// 기능:
 /// - 예약/사용 중 기기 현황 조회 (캐시 기반, 초기 로드 시만 API 호출)
 /// - 앱 포그라운드 진입 시 자동 갱신 (생명주기 감지)
@@ -42,8 +42,8 @@ class _HomeBodyWidgetState extends ConsumerState<HomeBodyWidget>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // 앱이 백그라운드에서 포그라운드로 돌아올 때 데이터 새로고침
     if (state == AppLifecycleState.resumed) {
-      ref.invalidate(machineStatusProvider);       // 기기 상태 캐시 무효화
-      ref.invalidate(activeReservationProvider);   // 현재 예약 정보 캐시 무효화
+      ref.invalidate(machineStatusProvider); // 기기 상태 캐시 무효화
+      ref.invalidate(activeReservationProvider); // 현재 예약 정보 캐시 무효화
     }
   }
 
@@ -61,6 +61,8 @@ class _HomeBodyWidgetState extends ConsumerState<HomeBodyWidget>
     });
 
     final machineAsync = ref.watch(machineStatusProvider);
+    // 예약 정보도 함께 로드
+    ref.watch(activeReservationProvider);
 
     return machineAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),

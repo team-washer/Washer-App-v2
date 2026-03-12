@@ -67,7 +67,7 @@ class _ReservationSectionWidgetState
           final isMyMachine =
               activeReservation != null &&
               m.reservationId == activeReservation.id;
-          
+
           // expectedCompletionTime에서 남은 시간 계산 (HH:MM:SS 형식)
           String? remainDuration;
           if (m.expectedCompletionTime != null) {
@@ -79,17 +79,19 @@ class _ReservationSectionWidgetState
                 final hours = remaining.inHours;
                 final minutes = remaining.inMinutes % 60;
                 final seconds = remaining.inSeconds % 60;
-                remainDuration = '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+                remainDuration =
+                    '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
               }
             }
           }
-          
+
           return _MachineData(
             m.machineId,
             m.name,
             state,
             finishedAt: m.expectedCompletionTime,
             room: isMyMachine ? activeReservation.userRoomNumber : null,
+            reservedAt: isMyMachine ? activeReservation.reservedAt : null,
             remainDuration: remainDuration,
           );
         })
@@ -105,13 +107,16 @@ class _ReservationSectionWidgetState
 
     ref.listen<ReservationActionState>(
       reservationViewModelProvider,
-      (_, next) {
+      (_, next) async {
         switch (next.status) {
           case ReservationActionStatus.success:
-            ref.read(machineStatusProvider.notifier).refresh();
-            ref.read(activeReservationProvider.notifier).refresh();
+            // 예약 성공 후 데이터 개신 (정상 완료 대기)
+            await ref.read(machineStatusProvider.notifier).refresh();
+            await ref.read(activeReservationProvider.notifier).refresh();
             ref.read(reservationViewModelProvider.notifier).reset();
-            context.go(RoutePaths.home);
+            if (context.mounted) {
+              context.go(RoutePaths.home);
+            }
           case ReservationActionStatus.error:
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -144,23 +149,31 @@ class _ReservationSectionWidgetState
           currentFloor,
         );
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _FloorSelectorRow(
-              floors: floors,
-              selectedFloor: currentFloor,
-              onFloorChanged: (floor) => setState(() => _selectedFloor = floor),
-              onMapTap: widget.onMapTap,
-            ),
-            AppGap.v16,
-            Expanded(
-              child: ListView.separated(
+        return SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _FloorSelectorRow(
+                floors: floors,
+                selectedFloor: currentFloor,
+                onFloorChanged: (floor) =>
+                    setState(() => _selectedFloor = floor),
+                onMapTap: widget.onMapTap,
+              ),
+              AppGap.v16,
+              ListView.separated(
                 padding: EdgeInsets.zero,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
                 itemCount: items.length,
                 separatorBuilder: (_, __) => AppGap.v24,
                 itemBuilder: (_, index) {
                   final item = items[index];
+                  // 예약 중인 상태 확인 (더블 터치 방지)
+                  final actionState = ref.watch(reservationViewModelProvider);
+                  final isLoading =
+                      actionState.status == ReservationActionStatus.loading;
+
                   return ReservationWidget(
                     laundryMachineType: widget.laundryMachineType,
                     reservationState: item.state,
@@ -169,19 +182,23 @@ class _ReservationSectionWidgetState
                     room: item.room,
                     reservedAt: item.reservedAt,
                     remainDuration: item.remainDuration,
-                    onReserve: item.state == ReservationState.available
+                    // 가용 상태 AND 요청 중이 아닐 때만 버튼 활성화
+                    onReserve:
+                        (item.state == ReservationState.available && !isLoading)
                         ? () => ref
                               .read(reservationViewModelProvider.notifier)
                               .reserve(
                                 machineId: item.machineId,
-                                startTime: DateTime.now(),
+                                startTime: DateTime.now().add(
+                                  const Duration(minutes: 5), // 5분 뒤 예약
+                                ),
                               )
                         : null,
                   );
                 },
               ),
-            ),
-          ],
+            ],
+          ),
         );
       },
     );

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:washer/core/theme/spacing.dart';
 
 /// 홈 화면의 기본 레이아웃 구조를 정의하는 스캐폴드
-/// 
+///
 /// 구성:
 /// - 상단: 내 예약 현황 섹션
 /// - 중간: 세탁기 섹션

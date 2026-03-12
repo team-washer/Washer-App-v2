@@ -30,7 +30,7 @@ class MachineStatusNotifier extends AsyncNotifier<MachineStatusResponse> {
   /// 초기 로드 — 서버에서 기기 상태 조회
   @override
   Future<MachineStatusResponse> build() async {
-    ref.keepAlive();  // 위젯이 언마운트되어도 캐시 유지
+    ref.keepAlive(); // 위젯이 언마운트되어도 캐시 유지
     try {
       return await ref.read(homeRepositoryProvider).getMachineStatus();
     } on DioException catch (e) {
@@ -39,8 +39,7 @@ class MachineStatusNotifier extends AsyncNotifier<MachineStatusResponse> {
         ref.read(pollingErrorProvider.notifier).state =
             '서버 오류가 발생했습니다. ($statusCode)';
       } else if (e.response == null) {
-        ref.read(pollingErrorProvider.notifier).state =
-            '네트워크 오류가 발생했습니다.';
+        ref.read(pollingErrorProvider.notifier).state = '네트워크 오류가 발생했습니다.';
       }
       rethrow;
     }
@@ -48,7 +47,7 @@ class MachineStatusNotifier extends AsyncNotifier<MachineStatusResponse> {
 
   /// Pull-to-Refresh 또는 앱 포그라운드 진입 시 호출 — 데이터 갱신
   Future<void> refresh() async {
-    state = const AsyncLoading();  // 로딩 상태로 변경
+    state = const AsyncLoading(); // 로딩 상태로 변경
     state = await AsyncValue.guard(
       () => ref.read(homeRepositoryProvider).getMachineStatus(),
     );
@@ -69,7 +68,7 @@ class ActiveReservationNotifier extends AsyncNotifier<ActiveReservationModel?> {
   /// 초기 로드 — 서버에서 현재 예약 조회
   @override
   Future<ActiveReservationModel?> build() async {
-    ref.keepAlive();  // 위젯이 언마운트되어도 캐시 유지
+    ref.keepAlive(); // 위젯이 언마운트되어도 캐시 유지
     try {
       return await ref.read(homeRepositoryProvider).getActiveReservation();
     } on DioException catch (e) {
@@ -78,8 +77,7 @@ class ActiveReservationNotifier extends AsyncNotifier<ActiveReservationModel?> {
         ref.read(pollingErrorProvider.notifier).state =
             '서버 오류가 발생했습니다. ($statusCode)';
       } else if (e.response == null) {
-        ref.read(pollingErrorProvider.notifier).state =
-            '네트워크 오류가 발생했습니다.';
+        ref.read(pollingErrorProvider.notifier).state = '네트워크 오류가 발생했습니다.';
       }
       rethrow;
     }
@@ -87,7 +85,7 @@ class ActiveReservationNotifier extends AsyncNotifier<ActiveReservationModel?> {
 
   /// Pull-to-Refresh 또는 앱 포그라운드 진입 시 호출 — 예약 정보 갱신
   Future<void> refresh() async {
-    state = const AsyncLoading();  // 로딩 상태로 변경
+    state = const AsyncLoading(); // 로딩 상태로 변경
     state = await AsyncValue.guard(
       () => ref.read(homeRepositoryProvider).getActiveReservation(),
     );

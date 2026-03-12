@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
 import 'package:washer/core/enums/laundry_status.dart';
@@ -10,7 +10,7 @@ import 'package:washer/core/ui/reservation_state_widget.dart';
 import 'package:washer/features/home/presentation/viewmodels/home_view_model.dart';
 
 /// 현재 예약 현황을 표시하는 위젯
-/// 
+///
 /// 기능:
 /// - 활성 예약 정보 조회 및 표시
 /// - 예약 없을 경우 안내 메시지 표시
@@ -47,6 +47,7 @@ class HomeMyReservationWidget extends ConsumerWidget {
                 ? _MyReservationCard(
                     laundryMachineType: reservation.machineType,
                     laundryStatus: reservation.laundryStatus,
+                    remainDuration: reservation.actualCompletionTime,
                     machine: reservation.machineName,
                     reservedAt: reservation.reservedAt,
                     finishedAt: reservation.expectedCompletionTime,
@@ -91,7 +92,6 @@ class _MyReservationCard extends StatelessWidget {
   final String? reservedAt;
   final String? remainDuration;
   final String? finishedAt;
-  final String? message;
 
   const _MyReservationCard({
     required this.laundryMachineType,
@@ -100,7 +100,6 @@ class _MyReservationCard extends StatelessWidget {
     this.reservedAt,
     this.remainDuration,
     this.finishedAt,
-    this.message,
   });
 
   @override
@@ -119,7 +118,10 @@ class _MyReservationCard extends StatelessWidget {
             children: [
               laundryMachineType.icon(),
               AppGap.h8,
-              Text(machine, style: WasherTypography.body1()),
+              Text(
+                machine,
+                style: WasherTypography.body1(),
+              ),
               const Spacer(),
               ReservationStateWidget(
                 label: laundryStatus.label,
@@ -134,7 +136,6 @@ class _MyReservationCard extends StatelessWidget {
             reservedAt: reservedAt,
             remainDuration: remainDuration,
             finishedAt: finishedAt,
-            message: message,
           ),
           _BottomSection(
             laundryMachineType: laundryMachineType,
@@ -152,7 +153,6 @@ class _Body extends StatelessWidget {
   final String? reservedAt;
   final String? remainDuration;
   final String? finishedAt;
-  final String? message;
 
   const _Body({
     required this.laundryMachineType,
@@ -160,7 +160,6 @@ class _Body extends StatelessWidget {
     required this.reservedAt,
     required this.remainDuration,
     required this.finishedAt,
-    required this.message,
   });
 
   @override
@@ -172,7 +171,7 @@ class _Body extends StatelessWidget {
           remainDuration: remainDuration,
         );
       case LaundryStatus.reserved:
-        return _ReservedBody();
+        return _ReservedBody(finishedAt: finishedAt);
       case LaundryStatus.needConfirm:
         return _NeedConfirmBody();
       case LaundryStatus.inUse:
@@ -189,7 +188,8 @@ class _Body extends StatelessWidget {
   }
 }
 
-class _WaitingBody extends StatelessWidget {
+// 예약 대기 상태일 때 예약 시간과 남은 시간 표시
+class _WaitingBody extends ConsumerWidget {
   final String? reservedAt;
   final String? remainDuration;
 
@@ -199,7 +199,26 @@ class _WaitingBody extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // 실시간 시간 업데이트를 위해 clockProvider watch
+    ref.watch(clockProvider);
+
+    // remainDuration을 실시간 계산 (서버 시간이 정확한 경우)
+    String? updatedRemain = remainDuration;
+    if (reservedAt != null) {
+      final reservedTime = DateTime.tryParse(reservedAt!);
+      if (reservedTime != null) {
+        final now = DateTime.now();
+        if (reservedTime.isAfter(now)) {
+          final remaining = reservedTime.difference(now);
+          final minutes = remaining.inMinutes;
+          final seconds = remaining.inSeconds % 60;
+          updatedRemain =
+              '${minutes.toString().padLeft(2, '0')}분 ${seconds.toString().padLeft(2, '0')}초';
+        }
+      }
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -209,7 +228,7 @@ class _WaitingBody extends StatelessWidget {
         ),
         AppGap.v4,
         Text(
-          '예약 만료까지: ${remainDuration ?? ''}',
+          '예약 만료까지: ${updatedRemain ?? ''}',
           style: WasherTypography.body2(WasherColor.errorColor),
         ),
         AppGap.v12,
@@ -218,24 +237,31 @@ class _WaitingBody extends StatelessWidget {
   }
 }
 
-class _ReservedBody extends StatelessWidget {
-  const _ReservedBody();
+class _ReservedBody extends ConsumerWidget {
+  final String? finishedAt;
+
+  const _ReservedBody({this.finishedAt});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // 실시간 시간 업데이트
+    ref.watch(clockProvider);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           '기기에 연결 중입니다. 잠시만 기다려주세요.',
-          style: WasherTypography.body2(WasherColor.baseGray500),
+          style: WasherTypography.body2(
+            WasherColor.baseGray500,
+          ),
         ),
-        AppGap.v24,
       ],
     );
   }
 }
 
+// 세탁/건조 시작후 확인이 필요한 상태
 class _NeedConfirmBody extends StatelessWidget {
   const _NeedConfirmBody();
 
@@ -248,6 +274,7 @@ class _NeedConfirmBody extends StatelessWidget {
   }
 }
 
+// 사용중일때 남은 시간 계산 및 표시
 class _InUseBody extends ConsumerWidget {
   final LaundryMachineType laundryMachineType;
   final String? finishedAt;
@@ -282,18 +309,23 @@ class _InUseBody extends ConsumerWidget {
       children: [
         Text(
           '${laundryMachineType.text} 중...',
-          style: WasherTypography.body2(WasherColor.baseGray500),
+          style: WasherTypography.body2(
+            WasherColor.baseGray500,
+          ),
         ),
         AppGap.v4,
         Text(
-          '완료까지: ${_formatCountdown(finishTime, now)}',
-          style: WasherTypography.body2(WasherColor.baseGray500),
+          '${laundryMachineType.text} 완료 예정 시간: ${_formatCountdown(finishTime, now)}',
+          style: WasherTypography.body2(
+            WasherColor.baseGray500,
+          ),
         ),
       ],
     );
   }
 }
 
+// 세탁/건조가 끝났을 경우
 class _CompletedBody extends StatelessWidget {
   final LaundryMachineType laundryMachineType;
   final String? finishedAt;
@@ -309,19 +341,24 @@ class _CompletedBody extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '${laundryMachineType.text} 완료',
-          style: WasherTypography.body2(WasherColor.baseGray500),
+          '${laundryMachineType.text} 완료!',
+          style: WasherTypography.body2(
+            WasherColor.baseGray500,
+          ),
         ),
         AppGap.v4,
         Text(
-          '세탁 완료 시간: ${finishedAt ?? ''}',
-          style: WasherTypography.body2(WasherColor.baseGray500),
+          '${laundryMachineType.text} 완료 시간: ${finishedAt ?? ''}',
+          style: WasherTypography.body2(
+            WasherColor.baseGray500,
+          ),
         ),
       ],
     );
   }
 }
 
+// 하단 버튼들 (예약 취소, 시작하기 등) - 상태에 따라 다르게 표시
 class _BottomSection extends StatelessWidget {
   final LaundryMachineType laundryMachineType;
   final LaundryStatus laundryStatus;

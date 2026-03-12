@@ -8,10 +8,9 @@ import 'package:washer/core/ui/dialog/washer_dialog.dart';
 
 class LaundryStatusDialog extends StatelessWidget {
   final LaundryMachineType machineType;
-  final int floor;
-  final String side;
-  final int number;
+  final String machineName;
   final bool isUsed;
+  final bool isUnavailable;
 
   final MachineState? machineState;
   final String? roomNumber;
@@ -20,10 +19,9 @@ class LaundryStatusDialog extends StatelessWidget {
   const LaundryStatusDialog({
     super.key,
     required this.machineType,
-    required this.floor,
-    required this.side,
-    required this.number,
+    required this.machineName,
     required this.isUsed,
+    this.isUnavailable = false,
     this.machineState,
     this.roomNumber,
     this.expectedTime,
@@ -31,10 +29,9 @@ class LaundryStatusDialog extends StatelessWidget {
 
   LaundryStatusViewData get _viewData => LaundryStatusViewData.from(
     machineType: machineType,
-    floor: floor,
-    side: side,
-    number: number,
+    machineName: machineName,
     isUsed: isUsed,
+    isUnavailable: isUnavailable,
     machineState: machineState,
     roomNumber: roomNumber,
     expectedTime: expectedTime,
@@ -44,26 +41,28 @@ class LaundryStatusDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final vd = _viewData;
 
-    return WasherDialog(
-      title: vd.title,
-      confirmText: vd.confirmText,
-      onConfirmPressed: vd.onConfirmPressed == null
-          ? null
-          : () => vd.onConfirmPressed!.call(context),
-      content: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          AppGap.v10,
-          _InfoRow(label: "기기명", value: vd.machineId),
-          AppGap.v8,
-          _InfoRow(label: "상태", value: vd.statusText),
-          AppGap.v10,
-          _InfoRow(label: "사용호실", value: vd.roomText),
-          AppGap.v10,
-          _InfoRow(label: "특이사항", value: vd.notesText),
-          AppGap.v10,
-        ],
+    return Dialog(
+      child: WasherDialog(
+        title: vd.title,
+        confirmText: vd.confirmText,
+        onConfirmPressed: vd.onConfirmPressed == null
+            ? null
+            : () => vd.onConfirmPressed!.call(context),
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AppGap.v10,
+            _InfoRow(label: "기기명", value: vd.machineId),
+            AppGap.v8,
+            _InfoRow(label: "상태", value: vd.statusText),
+            AppGap.v10,
+            _InfoRow(label: "사용호실", value: vd.roomText),
+            AppGap.v10,
+            _InfoRow(label: "특이사항", value: vd.notesText),
+            AppGap.v10,
+          ],
+        ),
       ),
     );
   }
@@ -91,33 +90,30 @@ class LaundryStatusViewData {
 
   factory LaundryStatusViewData.from({
     required LaundryMachineType machineType,
-    required int floor,
-    required String side,
-    required int number,
+    required String machineName,
     required bool isUsed,
+    required bool isUnavailable,
     required MachineState? machineState,
     required String? roomNumber,
     required String? expectedTime,
   }) {
-    final machineName = machineType == LaundryMachineType.washer
-        ? "Washer"
-        : "Dryer";
-    final machineId = '$machineName-${floor}F-$side$number';
+    final machineId = machineName;
 
     final title = machineType == LaundryMachineType.washer
         ? "세탁기 현황"
         : "건조기 현황";
 
-    final statusText = _buildStatusText(isUsed, machineState);
+    final statusText = _buildStatusText(isUnavailable, isUsed, machineState);
     final roomText = roomNumber ?? "없음";
     final notesText = _buildNotesText(
       machineType: machineType,
+      isUnavailable: isUnavailable,
       machineState: machineState,
       expectedTime: expectedTime,
     );
 
-    final confirmText = isUsed ? "확인" : "예약하기";
-    final onConfirmPressed = isUsed
+    final confirmText = (isUsed || isUnavailable) ? "확인" : "예약하기";
+    final onConfirmPressed = (isUsed || isUnavailable)
         ? null
         : (BuildContext context) {
             // TODO: 예약 플로우 진입 (예: Navigator push / bloc event)
@@ -134,17 +130,31 @@ class LaundryStatusViewData {
     );
   }
 
-  static String _buildStatusText(bool isUsed, MachineState? machineState) {
+  static String _buildStatusText(
+    bool isUnavailable,
+    bool isUsed,
+    MachineState? machineState,
+  ) {
+    if (isUnavailable) return "사용 불가(기기고장)";
     if (!isUsed) return "사용 가능";
     if (machineState != null) return "사용중 (${machineState.text})";
     return "사용중";
   }
 
+  // 세탁기/건조기 사용 불가능일 경우 - 특이사항
   static String _buildNotesText({
     required LaundryMachineType machineType,
+    required bool isUnavailable,
     required MachineState? machineState,
     required String? expectedTime,
   }) {
+    if (isUnavailable) {
+      final machineTypeText = machineType == LaundryMachineType.washer
+          ? "세탁기"
+          : "건조기";
+      return "$machineTypeText 사용 불가";
+    }
+
     if (expectedTime == null) return "없음";
 
     if (machineState == MachineState.delayWash) {
@@ -157,6 +167,7 @@ class LaundryStatusViewData {
   }
 }
 
+// 공통 설명 로우
 class _InfoRow extends StatelessWidget {
   final String label;
   final String value;
@@ -168,7 +179,10 @@ class _InfoRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: WasherTypography.subTitle4()),
+        Text(
+          label,
+          style: WasherTypography.subTitle4(),
+        ),
         AppGap.h8,
         Expanded(
           child: Text(

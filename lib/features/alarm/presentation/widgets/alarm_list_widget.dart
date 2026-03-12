@@ -8,6 +8,12 @@ import 'package:washer/features/alarm/presentation/widgets/machine_state_widget.
 part 'local_widgets/alarm_date_section.dart';
 part 'local_widgets/alarm_date_divider.dart';
 
+/// 날짜별 알람 목록을 그룹화하여 표시하는 위젯
+/// 
+/// 기능:
+/// - 날짜 분류 규칙
+/// - 날짜 분류기 링크 제공
+/// - 스크롤 펴닝
 // 목업 데이터
 final _mockDateSections = [
   (
@@ -97,6 +103,7 @@ final _mockDateSections = [
 class AlarmListWidget extends StatelessWidget {
   const AlarmListWidget({super.key});
 
+  /// 알람 목록 빌드
   @override
   Widget build(BuildContext context) {
     return Column(

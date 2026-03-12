@@ -4,6 +4,12 @@ import 'package:washer/core/theme/color.dart';
 import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
 
+/// 기계 상태 알람을 카드 형태로 표시하는 위젯
+/// 
+/// 기능:
+/// - 알람 상태별 아이콘 표시 (완료, 에러, 경고)
+/// - 날짜 및 설명 표시
+/// - 사용 위반 신고 사유 표시
 class MachineStateWidget extends StatelessWidget {
   final LaundryAlarmStatus laundryStatus;
   final String date;
@@ -43,6 +49,7 @@ class MachineStateWidget extends StatelessWidget {
   }
 }
 
+/// 헤더 행 (상태 및 날짜)
 class _HeaderRow extends StatelessWidget {
   final LaundryAlarmStatus laundryStatus;
   final String date;
@@ -61,6 +68,7 @@ class _HeaderRow extends StatelessWidget {
   }
 }
 
+/// 상태 텍스트 및 상태 아이콘
 class _TitleWithStatus extends StatelessWidget {
   final LaundryAlarmStatus laundryStatus;
 
@@ -87,6 +95,7 @@ class _TitleWithStatus extends StatelessWidget {
   }
 }
 
+/// 날짜 텍스트 표시
 class _DateText extends StatelessWidget {
   final String date;
 
@@ -103,6 +112,7 @@ class _DateText extends StatelessWidget {
   }
 }
 
+/// 날짜 및 설명 텍스트 렌더링
 class _DescriptionText extends StatelessWidget {
   final LaundryAlarmStatus laundryStatus;
   final String descriptionText;

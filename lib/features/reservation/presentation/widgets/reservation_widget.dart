@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/theme/color.dart';
 import 'package:washer/core/theme/icon.dart';
 import 'package:washer/core/theme/typography.dart';
@@ -7,7 +8,14 @@ import 'package:washer/core/ui/reservation_state_widget.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
 import 'package:washer/core/enums/reservation_state.dart';
 import 'package:washer/core/theme/spacing.dart';
+import 'package:washer/features/home/presentation/viewmodels/home_view_model.dart';
 
+/// 예약 가능 기계를 카드 단위로 표시하는 위젯
+/// 
+/// 기능:
+/// - 기계 상태별 요약 (가용/예약/사용중 등)
+/// - 예약/예약 취소/시작 버튼 제공
+/// - 사용했던 실나 점율 표시
 class ReservationWidget extends StatelessWidget {
   final LaundryMachineType laundryMachineType;
   final ReservationState reservationState;
@@ -17,6 +25,7 @@ class ReservationWidget extends StatelessWidget {
   final String? reservedAt;
   final String? finishedAt;
   final String? remainDuration;
+  final VoidCallback? onReserve;
 
   const ReservationWidget({
     super.key,
@@ -27,38 +36,8 @@ class ReservationWidget extends StatelessWidget {
     this.reservedAt,
     this.finishedAt,
     this.remainDuration,
+    this.onReserve,
   });
-
-  @override
-  Widget build(BuildContext context) {
-    return _ReservationCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _Header(
-            laundryMachineType: laundryMachineType,
-            reservationState: reservationState,
-            machineName: machineName,
-          ),
-          AppGap.v12,
-          ReservationBottomSection(
-            laundryMachineType: laundryMachineType,
-            reservationState: reservationState,
-            room: room,
-            reservedAt: reservedAt,
-            finishedAt: finishedAt,
-            remainDuration: remainDuration,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ReservationCard extends StatelessWidget {
-  final Widget child;
-
-  const _ReservationCard({required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -69,85 +48,46 @@ class _ReservationCard extends StatelessWidget {
         borderRadius: AppRadius.card,
         color: Colors.white,
       ),
-      child: child,
-    );
-  }
-}
-
-class _Header extends StatelessWidget {
-  final LaundryMachineType laundryMachineType;
-  final ReservationState reservationState;
-  final String machineName;
-
-  const _Header({
-    required this.laundryMachineType,
-    required this.reservationState,
-    required this.machineName,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        _MachineInfo(
-          type: laundryMachineType,
-          state: reservationState,
-          name: machineName,
-        ),
-        _ReservationStatus(state: reservationState),
-      ],
-    );
-  }
-}
-
-class _MachineInfo extends StatelessWidget {
-  final LaundryMachineType type;
-  final ReservationState state;
-  final String name;
-
-  const _MachineInfo({
-    required this.type,
-    required this.state,
-    required this.name,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        type.icon(
-          color: state.color,
-        ),
-        AppGap.h8,
-        Text(
-          name,
-          style: WasherTypography.subTitle3(
-            WasherColor.baseGray700,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  laundryMachineType.icon(color: reservationState.color),
+                  AppGap.h8,
+                  Text(
+                    machineName,
+                    style: WasherTypography.subTitle3(WasherColor.baseGray700),
+                  ),
+                ],
+              ),
+              ReservationStateWidget(
+                label: reservationState.label,
+                color: reservationState.color,
+                textStyle: WasherTypography.caption(Colors.white),
+              ),
+            ],
           ),
-        ),
-      ],
+          AppGap.v12,
+          ReservationBottomSection(
+            laundryMachineType: laundryMachineType,
+            reservationState: reservationState,
+            room: room,
+            reservedAt: reservedAt,
+            finishedAt: finishedAt,
+            remainDuration: remainDuration,
+            onReserve: onReserve,
+          ),
+        ],
+      ),
     );
   }
 }
-
-class _ReservationStatus extends StatelessWidget {
-  final ReservationState state;
-
-  const _ReservationStatus({required this.state});
-
-  @override
-  Widget build(BuildContext context) {
-    return ReservationStateWidget(
-      label: state.label,
-      color: state.color,
-      textStyle: WasherTypography.caption(Colors.white),
-    );
-  }
-}
-
-class ReservationBottomSection extends StatelessWidget {
+/// 예약 상태별 하단 섹션 정보 렌더링class ReservationBottomSection extends StatelessWidget {
   final LaundryMachineType laundryMachineType;
   final ReservationState reservationState;
 
@@ -155,6 +95,7 @@ class ReservationBottomSection extends StatelessWidget {
   final String? reservedAt;
   final String? finishedAt;
   final String? remainDuration;
+  final VoidCallback? onReserve;
 
   const ReservationBottomSection({
     super.key,
@@ -164,6 +105,7 @@ class ReservationBottomSection extends StatelessWidget {
     this.reservedAt,
     this.finishedAt,
     this.remainDuration,
+    this.onReserve,
   });
 
   @override
@@ -177,13 +119,15 @@ class ReservationBottomSection extends StatelessWidget {
         );
 
       case ReservationState.available:
-        return _AvailableBottom(laundryMachineType: laundryMachineType);
+        return _AvailableBottom(
+          laundryMachineType: laundryMachineType,
+          onReserve: onReserve,
+        );
 
       case ReservationState.reservedByMe:
         return _ReservedByMeBottom(
           laundryMachineType: laundryMachineType,
           reservedAt: reservedAt,
-          remainDuration: remainDuration,
         );
 
       case ReservationState.reservedByOther:
@@ -199,6 +143,7 @@ class ReservationBottomSection extends StatelessWidget {
   }
 }
 
+/// 사용 중 상태 메시지
 class _InUseBottom extends StatelessWidget {
   final LaundryMachineType laundryMachineType;
   final String? finishedAt;
@@ -235,10 +180,15 @@ class _InUseBottom extends StatelessWidget {
   }
 }
 
+/// 가용 가능 상태 메시지
 class _AvailableBottom extends StatelessWidget {
   final LaundryMachineType laundryMachineType;
+  final VoidCallback? onReserve;
 
-  const _AvailableBottom({required this.laundryMachineType});
+  const _AvailableBottom({
+    required this.laundryMachineType,
+    this.onReserve,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -254,7 +204,7 @@ class _AvailableBottom extends StatelessWidget {
           children: [
             CustomBigButton(
               text: '예약',
-              onPressed: () {},
+              onPressed: onReserve ?? () {},
               color: WasherColor.mainColor500,
             ),
             const SizedBox(width: AppSpacing.h8),
@@ -276,19 +226,33 @@ class _AvailableBottom extends StatelessWidget {
   }
 }
 
-class _ReservedByMeBottom extends StatelessWidget {
+/// 내가 예약한 상태 메시지 - 시간 카운트다운 표시
+class _ReservedByMeBottom extends ConsumerWidget {
   final LaundryMachineType laundryMachineType;
   final String? reservedAt;
-  final String? remainDuration;
 
   const _ReservedByMeBottom({
     required this.laundryMachineType,
     this.reservedAt,
-    this.remainDuration,
   });
 
+  String _formatCountdown(DateTime expireAt, DateTime now) {
+    final remaining = expireAt.difference(now);
+    if (remaining.isNegative) return '만료됨';
+    final m = remaining.inMinutes;
+    final s = remaining.inSeconds % 60;
+    return '${m.toString().padLeft(2, '0')}분 ${s.toString().padLeft(2, '0')}초';
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final now = ref.watch(clockProvider).asData?.value ?? DateTime.now();
+    // reservedAt 기준 5분 후가 만료 시각
+    final reservedTime = reservedAt != null
+        ? DateTime.tryParse(reservedAt!)
+        : null;
+    final expireAt = reservedTime?.add(const Duration(minutes: 5));
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -298,10 +262,9 @@ class _ReservedByMeBottom extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.v4),
         Text(
-          '예약 만료까지: ${remainDuration ?? ''}',
+          '예약 만료까지: ${expireAt != null ? _formatCountdown(expireAt, now) : ''}',
           style: WasherTypography.body2(WasherColor.errorColor),
         ),
-
         const SizedBox(height: AppSpacing.v12),
         Row(
           children: [
@@ -323,6 +286,7 @@ class _ReservedByMeBottom extends StatelessWidget {
   }
 }
 
+/// 단 늟 나눠로 줋닸 는 비른 메시지 - 다른 사람의 예약
 class _ReservedBottom extends StatelessWidget {
   final String? reservedAt;
   final String? remainDuration;
@@ -358,6 +322,7 @@ class _ReservedBottom extends StatelessWidget {
   }
 }
 
+/// 사용 불가 상태 메시지
 class _UnavailableBottom extends StatelessWidget {
   final LaundryMachineType laundryMachineType;
 

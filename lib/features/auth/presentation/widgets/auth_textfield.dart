@@ -4,12 +4,19 @@ import 'package:washer/core/theme/icon.dart';
 import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
 
+/// 인증 입력 테스트필드 유상
 enum AuthTextFieldType {
   text,
   email,
   password,
 }
 
+/// 로그인 입력 필드 (징초, 비밀번호, 메일) 위젯
+/// 
+/// 기능:
+/// - 징초 가늤린 완료 단이 요구사항 나타내기
+/// - 비밀번호 비뱀 토글
+/// - 메일 번 겄사 주차 타인 좌측 내용
 class AuthTextField extends StatefulWidget {
   const AuthTextField({
     super.key,
@@ -51,6 +58,7 @@ class _AuthTextFieldState extends State<AuthTextField> {
     super.dispose();
   }
 
+  /// 포커스 상태 변화 리스너
   void _onFocusChange() {
     setState(() {
       _isFocused = _focusNode.hasFocus;
@@ -59,6 +67,7 @@ class _AuthTextFieldState extends State<AuthTextField> {
 
   bool get _hasError => widget.errorText?.isNotEmpty ?? false;
 
+  /// 에러 여부에 따른 테두리 색으로 결정
   Color get _borderColor {
     if (_hasError) return WasherColor.errorColor;
     if (_isFocused) return WasherColor.baseGray700;
@@ -68,6 +77,7 @@ class _AuthTextFieldState extends State<AuthTextField> {
   bool get _isPassword => widget.type == AuthTextFieldType.password;
   bool get _isEmail => widget.type == AuthTextFieldType.email;
 
+  /// 입력 유형에 따른 키보드 유형 결정
   TextInputType get _keyboardType {
     return _isEmail ? TextInputType.emailAddress : TextInputType.text;
   }
@@ -85,6 +95,7 @@ class _AuthTextFieldState extends State<AuthTextField> {
     );
   }
 
+  /// 레이블 텍스트 렌더링
   Widget _buildLabel() {
     return Text(
       widget.label,
@@ -92,6 +103,7 @@ class _AuthTextFieldState extends State<AuthTextField> {
     );
   }
 
+  /// 에러 메시지 렌더링
   Widget _buildErrorText() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -105,6 +117,7 @@ class _AuthTextFieldState extends State<AuthTextField> {
     );
   }
 
+  /// 텍스트필드 렌더링
   Widget _buildTextField() {
     return Container(
       decoration: BoxDecoration(
@@ -138,6 +151,7 @@ class _AuthTextFieldState extends State<AuthTextField> {
     );
   }
 
+  /// 비밀번호/이메일 전용 접미사 아이콘 렌더링
   Widget? _buildSuffixIcon() {
     if (_isPassword) {
       return IconButton(
@@ -166,6 +180,7 @@ class _AuthTextFieldState extends State<AuthTextField> {
     return null;
   }
 
+  /// 비밀번호 표시/숨김 전환
   void _togglePasswordVisibility() {
     setState(() {
       _obscureText = !_obscureText;

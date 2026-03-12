@@ -18,8 +18,6 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<LoginResponse> login(LoginRequest request, String codeVerifier) async {
     final response = await _client.post(
       '/api/v2/auth/login',
-      // TODO: 백엔드가 PKCE를 지원하면 codeVerifier 추가
-      // data: {'authCode': request.code, 'codeVerifier': codeVerifier},
       data: {'authCode': request.code},
     );
     return LoginResponse.fromJson(

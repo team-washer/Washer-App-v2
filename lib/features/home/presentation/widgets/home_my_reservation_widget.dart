@@ -1,11 +1,13 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:washer/core/enums/laundry_action_type.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
 import 'package:washer/core/enums/laundry_status.dart';
 import 'package:washer/core/theme/color.dart';
 import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
 import 'package:washer/core/ui/buttons/custom_small_button.dart';
+import 'package:washer/core/ui/dialog/laundry_action_dialog.dart';
 import 'package:washer/core/ui/reservation_state_widget.dart';
 import 'package:washer/features/home/presentation/viewmodels/home_view_model.dart';
 
@@ -51,6 +53,7 @@ class HomeMyReservationWidget extends ConsumerWidget {
                     machine: reservation.machineName,
                     reservedAt: reservation.reservedAt,
                     finishedAt: reservation.expectedCompletionTime,
+                    machineId: reservation.machineId,
                   )
                 : Center(
                     child: Padding(
@@ -92,6 +95,7 @@ class _MyReservationCard extends StatelessWidget {
   final String? reservedAt;
   final String? remainDuration;
   final String? finishedAt;
+  final int? machineId;
 
   const _MyReservationCard({
     required this.laundryMachineType,
@@ -100,6 +104,7 @@ class _MyReservationCard extends StatelessWidget {
     this.reservedAt,
     this.remainDuration,
     this.finishedAt,
+    this.machineId,
   });
 
   @override
@@ -140,6 +145,7 @@ class _MyReservationCard extends StatelessWidget {
           _BottomSection(
             laundryMachineType: laundryMachineType,
             laundryStatus: laundryStatus,
+            machineId: machineId,
           ),
         ],
       ),
@@ -362,10 +368,12 @@ class _CompletedBody extends StatelessWidget {
 class _BottomSection extends StatelessWidget {
   final LaundryMachineType laundryMachineType;
   final LaundryStatus laundryStatus;
+  final int? machineId;
 
   const _BottomSection({
     required this.laundryMachineType,
     required this.laundryStatus,
+    this.machineId,
   });
 
   @override
@@ -376,13 +384,35 @@ class _BottomSection extends StatelessWidget {
       children: [
         CustomSmallButton(
           text: '예약 취소',
-          onPressed: () {},
+          onPressed: () {
+            if (machineId != null) {
+              showDialog(
+                context: context,
+                builder: (context) => LaundryActionDialog(
+                  actionType: LaundryActionType.cancelReservation,
+                  deviceId: '',
+                  machineId: machineId!,
+                ),
+              );
+            }
+          },
           color: WasherColor.baseGray200,
         ),
         AppGap.h4,
         CustomSmallButton(
           text: '${laundryMachineType.text} 시작',
-          onPressed: () {},
+          onPressed: () {
+            if (machineId != null) {
+              showDialog(
+                context: context,
+                builder: (context) => LaundryActionDialog(
+                  actionType: LaundryActionType.reserve,
+                  deviceId: '',
+                  machineId: machineId!,
+                ),
+              );
+            }
+          },
           color: laundryStatus == LaundryStatus.waiting
               ? WasherColor.mainColor500
               : WasherColor.mainColor200,

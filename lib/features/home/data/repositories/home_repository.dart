@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/features/home/data/data_sources/remote/home_remote_data_source.dart';
-import 'package:washer/features/reservation/data/models/active_reservation_model.dart';
-import 'package:washer/features/reservation/data/models/laundry_machine_model.dart';
+import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
+import 'package:washer/features/reservation/data/models/local/laundry_machine_model.dart';
 
 abstract class HomeRepository {
   Future<MachineStatusResponse> getMachineStatus();

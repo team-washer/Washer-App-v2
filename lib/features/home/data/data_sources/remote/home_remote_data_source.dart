@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/network/dio_client.dart';
-import 'package:washer/features/reservation/data/models/active_reservation_model.dart';
-import 'package:washer/features/reservation/data/models/laundry_machine_model.dart';
+import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
+import 'package:washer/features/reservation/data/models/local/laundry_machine_model.dart';
 
 abstract class HomeRemoteDataSource {
   Future<MachineStatusResponse> getMachineStatus();

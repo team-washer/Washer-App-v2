@@ -6,7 +6,7 @@ import 'package:washer/core/theme/icon.dart';
 import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
 import 'package:washer/core/ui/dialog/laundry_status_dialog.dart';
-import 'package:washer/features/reservation/data/models/laundry_machine_model.dart';
+import 'package:washer/features/reservation/data/models/local/laundry_machine_model.dart';
 
 /// 세탁기/건조기 기계 상태를 그리드로 표시하는 위젯
 ///

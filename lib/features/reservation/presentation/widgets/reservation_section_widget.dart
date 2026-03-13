@@ -163,13 +163,31 @@ class _ReservationSectionWidgetState
                                     machineId: item.machineId,
                                   );
 
+                              // 예약 상태 확인
+                              final reservationState =
+                                  ref.read(reservationViewModelProvider);
+                              if (reservationState.status ==
+                                  ReservationActionStatus.error) {
+                                // 에러 발생한 경우
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        '예약 실패: ${reservationState.errorMessage}',
+                                      ),
+                                    ),
+                                  );
+                                }
+                                return;
+                              }
+
                               if (context.mounted) {
                                 // 예약 성공 후 홈으로 이동
                                 context.go(RoutePaths.home);
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(
-                                      '${item.name} 예약이 완료되었습니다',
+                                      '${item.name} 예약이 완료되었습니다\n5분 이내에 기기를 켜주세요',
                                     ),
                                   ),
                                 );
@@ -178,7 +196,7 @@ class _ReservationSectionWidgetState
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text('예약 실패: $e'),
+                                    content: Text('오류: $e'),
                                   ),
                                 );
                               }

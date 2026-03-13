@@ -55,14 +55,12 @@ class _LaundryActionDialogState extends ConsumerState<LaundryActionDialog> {
         try {
           switch (widget.actionType) {
             case LaundryActionType.reserve:
-              // 예약 확인 (세탁/건조 시작)
-              await ref
-                  .read(reservationViewModelProvider.notifier)
-                  .confirm(reservationId: widget.machineId);
+              // 세탁/건조 시작
+              // API 호출 없음 - 30초 폴링으로 자동 확인됨
               if (context.mounted) {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('세탁/건조를 시작했습니다')),
+                  const SnackBar(content: Text('기기가 켜졌는지 확인 중입니다')),
                 );
               }
               break;

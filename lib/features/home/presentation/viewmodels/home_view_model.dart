@@ -104,15 +104,4 @@ class ActiveReservationNotifier extends AsyncNotifier<ActiveReservationModel?> {
     // 기계 상태도 함께 갱신
     await ref.read(machineStatusProvider.notifier).refresh();
   }
-
-  /// 예약 확인 (세탁/건조 시작) — reservationViewModel으로 이동됨
-  Future<void> confirmReservation(int machineId) async {
-    await ref
-        .read(reservationRepositoryProvider)
-        .confirmReservation(id: machineId);
-    // 예약 확인 후 정보를 다시 조회
-    await refresh();
-    // 기계 상태도 함께 갱신
-    await ref.read(machineStatusProvider.notifier).refresh();
-  }
 }

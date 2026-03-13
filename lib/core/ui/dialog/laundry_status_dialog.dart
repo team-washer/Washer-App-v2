@@ -61,13 +61,33 @@ class LaundryStatusDialog extends ConsumerWidget {
                       .reserve(
                         machineId: machineId,
                       );
-                  Navigator.pop(context);
 
-                  // 스낵바 표시는 context.mounted 재확인 후 진행
+                  // 예약 상태 확인
+                  final reservationState = ref.read(
+                    reservationViewModelProvider,
+                  );
+                  if (reservationState.status ==
+                      ReservationActionStatus.error) {
+                    // 에러 발생한 경우
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            '예약 실패: ${reservationState.errorMessage}',
+                          ),
+                        ),
+                      );
+                    }
+                    return;
+                  }
+                  Navigator.pop(context);
+                  // 예약 성공한 경우
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('$machineName 예약이 완료되었습니다'),
+                        content: Text(
+                          '$machineName 예약이 완료되었습니다\n5분 이내에 기기를 켜주세요',
+                        ),
                       ),
                     );
                   }

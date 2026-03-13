@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:washer/features/home/data/repositories/home_repository.dart';
 import 'package:washer/features/home/presentation/viewmodels/home_view_model.dart';
 import 'package:washer/features/reservation/data/repositories/reservation_repository.dart';
 
@@ -35,6 +37,9 @@ class ReservationActionState {
 /// - reserve(): 기계 예약 요청
 /// - reset(): 상태 초기화
 class ReservationViewModel extends Notifier<ReservationActionState> {
+  Timer? _pollingTimer;
+  Timer? _expiryTimer;
+  
   @override
   ReservationActionState build() => const ReservationActionState();
 
@@ -44,9 +49,9 @@ class ReservationViewModel extends Notifier<ReservationActionState> {
   }) async {
     state = state.copyWith(status: ReservationActionStatus.loading);
     try {
-      // 현재 시간 + 1초로 설정
+      // 현재 시간 + 5분으로 설정 (서버 시간 동기화 문제 해결)
       final startTime = DateTime.now()
-          .add(const Duration(seconds: 1))
+          .add(const Duration(minutes: 5))
           .toIso8601String();
 
       // 예약 API 호출
@@ -65,6 +70,9 @@ class ReservationViewModel extends Notifier<ReservationActionState> {
       await ref.read(machineStatusProvider.notifier).refresh();
 
       state = state.copyWith(status: ReservationActionStatus.success);
+      
+      // 30초 폴링 시작 (5분 제한)
+      _startPolling();
     } catch (e) {
       // 서버 에러 응답에서 message 추출
       String errorMessage = '예약에 실패했습니다. 다시 시도해주세요.';
@@ -112,38 +120,45 @@ class ReservationViewModel extends Notifier<ReservationActionState> {
     }
   }
 
-  /// 예약 확인 (세탁/건조 시작)
-  Future<void> confirm({required int reservationId}) async {
-    state = state.copyWith(status: ReservationActionStatus.loading);
-    try {
-      await ref
-          .read(reservationRepositoryProvider)
-          .confirmReservation(id: reservationId);
-
-      await Future.delayed(const Duration(milliseconds: 500));
-      await ref.read(activeReservationProvider.notifier).refresh();
-      await ref.read(machineStatusProvider.notifier).refresh();
-
-      state = state.copyWith(status: ReservationActionStatus.success);
-    } catch (e) {
-      String errorMessage = '예약 확인에 실패했습니다.';
-      if (e is DioException && e.response?.data != null) {
-        final response = e.response!.data;
-        if (response is Map<String, dynamic> &&
-            response.containsKey('message')) {
-          errorMessage = response['message'] as String;
-        }
-      }
-      state = state.copyWith(
-        status: ReservationActionStatus.error,
-        errorMessage: errorMessage,
-      );
-    }
-  }
-
   /// 상태 초기화 — 예약 완료 후 상태 리셋
   void reset() {
     state = const ReservationActionState();
+    _stopPolling();
+  }
+
+  /// 30초마다 예약 확인 폴링 (5분 제한)
+  void _startPolling() {
+    // 기존 타이머 정리
+    _stopPolling();
+
+    // 5분 후 폴링 중단
+    _expiryTimer = Timer(const Duration(minutes: 5), () {
+      _stopPolling();
+    });
+
+    // 30초마다 폴링
+    _pollingTimer = Timer.periodic(const Duration(seconds: 30), (_) async {
+      try {
+        // 예약 상태 확인
+        final reservation =
+            await ref.read(homeRepositoryProvider).getActiveReservation();
+
+        // 예약이 확인되었으면 상태 업데이트
+        if (reservation != null) {
+          await ref.read(machineStatusProvider.notifier).refresh();
+        }
+      } catch (e) {
+        // 폴링 중 에러는 무시
+      }
+    });
+  }
+
+  /// 폴링 중단
+  void _stopPolling() {
+    _pollingTimer?.cancel();
+    _expiryTimer?.cancel();
+    _pollingTimer = null;
+    _expiryTimer = null;
   }
 }
 

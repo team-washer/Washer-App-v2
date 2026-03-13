@@ -206,22 +206,34 @@ class _WaitingBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // 실시간 시간 업데이트를 위해 clockProvider watch
-    ref.watch(clockProvider);
+    // 실시간 시간 업데이트를 위해 clockProvider watch - 1초마다 UI 업데이트
+    final now = ref.watch(clockProvider).asData?.value ?? DateTime.now();
 
-    // remainDuration을 실시간 계산 (서버 시간이 정확한 경우)
-    String? updatedRemain = remainDuration;
+    // 예약 시간 + 5분 = 예약 만료 시간
+    String updatedRemain = '만료됨';
+    String displayReservedAt = '시간 정보 없음';
+    
     if (reservedAt != null) {
-      final reservedTime = DateTime.tryParse(reservedAt!);
-      if (reservedTime != null) {
-        final now = DateTime.now();
-        if (reservedTime.isAfter(now)) {
-          final remaining = reservedTime.difference(now);
-          final minutes = remaining.inMinutes;
-          final seconds = remaining.inSeconds % 60;
-          updatedRemain =
-              '${minutes.toString().padLeft(2, '0')}분 ${seconds.toString().padLeft(2, '0')}초';
+      try {
+        final reservedTime = DateTime.tryParse(reservedAt!);
+        if (reservedTime != null) {
+          // 예약 시간에서 5분 추가
+          final expiryTime = reservedTime.add(const Duration(minutes: 5));
+
+          if (expiryTime.isAfter(now)) {
+            final remaining = expiryTime.difference(now);
+            final minutes = remaining.inMinutes;
+            final seconds = remaining.inSeconds % 60;
+            updatedRemain =
+                '${minutes.toString().padLeft(2, '0')}분 ${seconds.toString().padLeft(2, '0')}초';
+          }
+          
+          // 예약 시간 포맷 (HH:mm:ss)
+          displayReservedAt = 
+              '${reservedTime.hour.toString().padLeft(2, '0')}:${reservedTime.minute.toString().padLeft(2, '0')}:${reservedTime.second.toString().padLeft(2, '0')}';
         }
+      } catch (e) {
+        // 파싱 실패 시 무시
       }
     }
 
@@ -229,12 +241,12 @@ class _WaitingBody extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '예약 시간: ${reservedAt ?? ''}',
+          '예약 시간: $displayReservedAt',
           style: WasherTypography.body2(WasherColor.baseGray500),
         ),
         AppGap.v4,
         Text(
-          '예약 만료까지: ${updatedRemain ?? ''}',
+          '예약 만료까지: $updatedRemain',
           style: WasherTypography.body2(WasherColor.errorColor),
         ),
         AppGap.v12,
@@ -248,10 +260,26 @@ class _ReservedBody extends ConsumerWidget {
 
   const _ReservedBody({this.finishedAt});
 
+  String _formatCountdown(DateTime? finishTime, DateTime now) {
+    if (finishTime == null) return '';
+    final remaining = finishTime.difference(now);
+    if (remaining.isNegative) return '완료 예정';
+    final h = remaining.inHours;
+    final m = remaining.inMinutes % 60;
+    final s = remaining.inSeconds % 60;
+    if (h > 0) {
+      return '$h시간 ${m.toString().padLeft(2, '0')}분 ${s.toString().padLeft(2, '0')}초';
+    }
+    return '${m.toString().padLeft(2, '0')}분 ${s.toString().padLeft(2, '0')}초';
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // 실시간 시간 업데이트
-    ref.watch(clockProvider);
+    final now = ref.watch(clockProvider).asData?.value ?? DateTime.now();
+    final finishTime = finishedAt != null
+        ? DateTime.tryParse(finishedAt!)
+        : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -262,6 +290,14 @@ class _ReservedBody extends ConsumerWidget {
             WasherColor.baseGray500,
           ),
         ),
+        AppGap.v4,
+        Text(
+          '예정 완료 시간: ${_formatCountdown(finishTime, now)}',
+          style: WasherTypography.body2(
+            WasherColor.baseGray500,
+          ),
+        ),
+        AppGap.v12,
       ],
     );
   }
@@ -388,10 +424,12 @@ class _BottomSection extends StatelessWidget {
             if (machineId != null) {
               showDialog(
                 context: context,
-                builder: (context) => LaundryActionDialog(
-                  actionType: LaundryActionType.cancelReservation,
-                  deviceId: '',
-                  machineId: machineId!,
+                builder: (context) => Dialog(
+                  child: LaundryActionDialog(
+                    actionType: LaundryActionType.cancelReservation,
+                    deviceId: '',
+                    machineId: machineId!,
+                  ),
                 ),
               );
             }
@@ -405,10 +443,12 @@ class _BottomSection extends StatelessWidget {
             if (machineId != null) {
               showDialog(
                 context: context,
-                builder: (context) => LaundryActionDialog(
-                  actionType: LaundryActionType.reserve,
-                  deviceId: '',
-                  machineId: machineId!,
+                builder: (context) => Dialog(
+                  child: LaundryActionDialog(
+                    actionType: LaundryActionType.reserve,
+                    deviceId: '',
+                    machineId: machineId!,
+                  ),
                 ),
               );
             }

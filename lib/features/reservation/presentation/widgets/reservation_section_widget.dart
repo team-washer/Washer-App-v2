@@ -105,32 +105,6 @@ class _ReservationSectionWidgetState
         .watch(activeReservationProvider)
         .whenOrNull(data: (r) => r);
 
-    ref.listen<ReservationActionState>(
-      reservationViewModelProvider,
-      (_, next) async {
-        switch (next.status) {
-          case ReservationActionStatus.success:
-            // 예약 성공 후 데이터 개신 (정상 완료 대기)
-            await ref.read(machineStatusProvider.notifier).refresh();
-            await ref.read(activeReservationProvider.notifier).refresh();
-            ref.read(reservationViewModelProvider.notifier).reset();
-            if (context.mounted) {
-              context.go(RoutePaths.home);
-            }
-          case ReservationActionStatus.error:
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(next.errorMessage ?? '예약에 실패했습니다.'),
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-            ref.read(reservationViewModelProvider.notifier).reset();
-          default:
-            break;
-        }
-      },
-    );
-
     return machineAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (_, __) => Center(
@@ -169,10 +143,6 @@ class _ReservationSectionWidgetState
                 separatorBuilder: (_, __) => AppGap.v24,
                 itemBuilder: (_, index) {
                   final item = items[index];
-                  // 예약 중인 상태 확인 (더블 터치 방지)
-                  final actionState = ref.watch(reservationViewModelProvider);
-                  final isLoading =
-                      actionState.status == ReservationActionStatus.loading;
 
                   return ReservationWidget(
                     laundryMachineType: widget.laundryMachineType,
@@ -182,17 +152,38 @@ class _ReservationSectionWidgetState
                     room: item.room,
                     reservedAt: item.reservedAt,
                     remainDuration: item.remainDuration,
-                    // 가용 상태 AND 요청 중이 아닐 때만 버튼 활성화
-                    onReserve:
-                        (item.state == ReservationState.available && !isLoading)
-                        ? () => ref
-                              .read(reservationViewModelProvider.notifier)
-                              .reserve(
-                                machineId: item.machineId,
-                                startTime: DateTime.now().add(
-                                  const Duration(minutes: 5), // 5분 뒤 예약
-                                ),
-                              )
+                    // 가용 상태일 때만 버튼 활성화
+                    onReserve: item.state == ReservationState.available
+                        ? () async {
+                            try {
+                              // reservationViewModel의 reserve 메서드 호출
+                              await ref
+                                  .read(reservationViewModelProvider.notifier)
+                                  .reserve(
+                                    machineId: item.machineId,
+                                  );
+
+                              if (context.mounted) {
+                                // 예약 성공 후 홈으로 이동
+                                context.go(RoutePaths.home);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      '${item.name} 예약이 완료되었습니다',
+                                    ),
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('예약 실패: $e'),
+                                  ),
+                                );
+                              }
+                            }
+                          }
                         : null,
                   );
                 },

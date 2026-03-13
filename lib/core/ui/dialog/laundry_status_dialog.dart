@@ -1,14 +1,17 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
 import 'package:washer/core/enums/machine_state.dart';
 import 'package:washer/core/theme/color.dart';
 import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
 import 'package:washer/core/ui/dialog/washer_dialog.dart';
+import 'package:washer/features/reservation/presentation/viewmodels/reservation_view_model.dart';
 
-class LaundryStatusDialog extends StatelessWidget {
+class LaundryStatusDialog extends ConsumerWidget {
   final LaundryMachineType machineType;
   final String machineName;
+  final int machineId;
   final bool isUsed;
   final bool isUnavailable;
 
@@ -20,6 +23,7 @@ class LaundryStatusDialog extends StatelessWidget {
     super.key,
     required this.machineType,
     required this.machineName,
+    required this.machineId,
     required this.isUsed,
     this.isUnavailable = false,
     this.machineState,
@@ -27,78 +31,9 @@ class LaundryStatusDialog extends StatelessWidget {
     this.expectedTime,
   });
 
-  LaundryStatusViewData get _viewData => LaundryStatusViewData.from(
-    machineType: machineType,
-    machineName: machineName,
-    isUsed: isUsed,
-    isUnavailable: isUnavailable,
-    machineState: machineState,
-    roomNumber: roomNumber,
-    expectedTime: expectedTime,
-  );
-
   @override
-  Widget build(BuildContext context) {
-    final vd = _viewData;
-
-    return Dialog(
-      child: WasherDialog(
-        title: vd.title,
-        confirmText: vd.confirmText,
-        onConfirmPressed: vd.onConfirmPressed == null
-            ? null
-            : () => vd.onConfirmPressed!.call(context),
-        content: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AppGap.v10,
-            _InfoRow(label: "기기명", value: vd.machineId),
-            AppGap.v8,
-            _InfoRow(label: "상태", value: vd.statusText),
-            AppGap.v10,
-            _InfoRow(label: "사용호실", value: vd.roomText),
-            AppGap.v10,
-            _InfoRow(label: "특이사항", value: vd.notesText),
-            AppGap.v10,
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class LaundryStatusViewData {
-  final String title;
-  final String machineId;
-  final String statusText;
-  final String roomText;
-  final String notesText;
-
-  final String confirmText;
-  final void Function(BuildContext context)? onConfirmPressed;
-
-  LaundryStatusViewData({
-    required this.title,
-    required this.machineId,
-    required this.statusText,
-    required this.roomText,
-    required this.notesText,
-    required this.confirmText,
-    required this.onConfirmPressed,
-  });
-
-  factory LaundryStatusViewData.from({
-    required LaundryMachineType machineType,
-    required String machineName,
-    required bool isUsed,
-    required bool isUnavailable,
-    required MachineState? machineState,
-    required String? roomNumber,
-    required String? expectedTime,
-  }) {
-    final machineId = machineName;
-
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isAvailable = !isUsed && !isUnavailable;
     final title = machineType == LaundryMachineType.washer
         ? "세탁기 현황"
         : "건조기 현황";
@@ -112,21 +47,56 @@ class LaundryStatusViewData {
       expectedTime: expectedTime,
     );
 
-    final confirmText = (isUsed || isUnavailable) ? "확인" : "예약하기";
-    final onConfirmPressed = (isUsed || isUnavailable)
-        ? null
-        : (BuildContext context) {
-            // TODO: 예약 플로우 진입 (예: Navigator push / bloc event)
-          };
+    return Dialog(
+      child: WasherDialog(
+        title: title,
+        confirmText: isAvailable ? "예약하기" : "확인",
+        backText: isAvailable ? "취소" : null,
+        onConfirmPressed: isAvailable
+            ? () async {
+                try {
+                  // reservationViewModel의 reserve 메서드 호출
+                  await ref
+                      .read(reservationViewModelProvider.notifier)
+                      .reserve(
+                        machineId: machineId,
+                      );
+                  Navigator.pop(context);
 
-    return LaundryStatusViewData(
-      title: title,
-      machineId: machineId,
-      statusText: statusText,
-      roomText: roomText,
-      notesText: notesText,
-      confirmText: confirmText,
-      onConfirmPressed: onConfirmPressed,
+                  // 스낵바 표시는 context.mounted 재확인 후 진행
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('$machineName 예약이 완료되었습니다'),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    Navigator.pop(context); // 에러 시에도 다이얼로그 종료
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('예약 실패: $e')),
+                    );
+                  }
+                }
+              }
+            : null,
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AppGap.v10,
+            _InfoRow(label: "기기명", value: machineName),
+            AppGap.v8,
+            _InfoRow(label: "상태", value: statusText),
+            AppGap.v10,
+            _InfoRow(label: "사용호실", value: roomText),
+            AppGap.v10,
+            _InfoRow(label: "특이사항", value: notesText),
+            AppGap.v10,
+          ],
+        ),
+      ),
     );
   }
 
@@ -141,7 +111,6 @@ class LaundryStatusViewData {
     return "사용중";
   }
 
-  // 세탁기/건조기 사용 불가능일 경우 - 특이사항
   static String _buildNotesText({
     required LaundryMachineType machineType,
     required bool isUnavailable,
@@ -167,7 +136,6 @@ class LaundryStatusViewData {
   }
 }
 
-// 공통 설명 로우
 class _InfoRow extends StatelessWidget {
   final String label;
   final String value;

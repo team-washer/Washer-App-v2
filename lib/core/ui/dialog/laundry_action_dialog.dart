@@ -6,7 +6,7 @@ import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
 import 'package:washer/core/ui/circle_widget.dart';
 import 'package:washer/core/ui/dialog/washer_dialog.dart';
-import 'package:washer/features/home/presentation/viewmodels/home_view_model.dart';
+import 'package:washer/features/reservation/presentation/viewmodels/reservation_view_model.dart';
 
 class LaundryActionDialog extends ConsumerStatefulWidget {
   final LaundryActionType actionType;
@@ -57,8 +57,8 @@ class _LaundryActionDialogState extends ConsumerState<LaundryActionDialog> {
             case LaundryActionType.reserve:
               // 예약 확인 (세탁/건조 시작)
               await ref
-                  .read(activeReservationProvider.notifier)
-                  .confirmReservation(widget.machineId);
+                  .read(reservationViewModelProvider.notifier)
+                  .confirm(reservationId: widget.machineId);
               if (context.mounted) {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -68,8 +68,8 @@ class _LaundryActionDialogState extends ConsumerState<LaundryActionDialog> {
               break;
             case LaundryActionType.cancelReservation:
               await ref
-                  .read(activeReservationProvider.notifier)
-                  .cancelReservation(widget.machineId);
+                  .read(reservationViewModelProvider.notifier)
+                  .cancel(reservationId: widget.machineId);
               if (context.mounted) {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(

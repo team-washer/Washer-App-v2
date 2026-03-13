@@ -51,7 +51,7 @@ class ReservationRemoteDataSourceImpl implements ReservationRemoteDataSource {
   Future<ConfirmReservationResponse> confirmReservation({
     required int id,
   }) async {
-    final response = await _client.post(
+    final response = await _client.put(
       '/api/v2/reservations/$id/confirm',
     );
     return ConfirmReservationResponse.fromJson(response.data);

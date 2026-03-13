@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
 import 'package:washer/core/enums/machine_state.dart';
+import 'package:washer/core/router/route_paths.dart';
 import 'package:washer/core/theme/color.dart';
 import 'package:washer/core/theme/icon.dart';
 import 'package:washer/core/theme/spacing.dart';
@@ -49,7 +51,12 @@ class HomeMachineSectionWidget extends StatelessWidget {
               title: _title,
             ),
             _ViewAll(
-              onTap: () {}, //TODO: 전체보기 기능 구현
+              onTap: () {
+                final route = machineType == LaundryMachineType.washer
+                    ? RoutePaths.washer
+                    : RoutePaths.dryer;
+                context.go(route);
+              },
             ),
           ],
         ),
@@ -165,6 +172,7 @@ class _StatusItem extends StatelessWidget {
           builder: (_) => LaundryStatusDialog(
             machineType: machineType,
             machineName: machine.name,
+            machineId: machine.machineId,
             isUsed: !isAvailable,
             isUnavailable: machine.isUnavailable,
             machineState: machineState,

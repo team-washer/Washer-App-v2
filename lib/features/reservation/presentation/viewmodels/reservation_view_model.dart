@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:washer/features/home/presentation/viewmodels/home_view_model.dart';
 import 'package:washer/features/reservation/data/repositories/reservation_repository.dart';
 
 /// 예약 생성 작업의 상태 열거형
@@ -40,17 +41,29 @@ class ReservationViewModel extends Notifier<ReservationActionState> {
   /// 기계 예약 요청 — 서버에 예약 정보 전송
   Future<void> reserve({
     required int machineId,
-    required DateTime startTime,
   }) async {
     state = state.copyWith(status: ReservationActionStatus.loading);
     try {
-      final isoString = startTime.toIso8601String();
+      // 현재 시간 + 1초로 설정
+      final startTime = DateTime.now()
+          .add(const Duration(seconds: 1))
+          .toIso8601String();
+
+      // 예약 API 호출
       await ref
           .read(reservationRepositoryProvider)
           .createReservation(
             machineId: machineId,
-            startTime: isoString,
+            startTime: startTime,
           );
+
+      // 서버 응답 대기 - 예약이 DB에 저장될 시간 확보
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // 예약 생성 후 데이터 갱신
+      await ref.read(activeReservationProvider.notifier).refresh();
+      await ref.read(machineStatusProvider.notifier).refresh();
+
       state = state.copyWith(status: ReservationActionStatus.success);
     } catch (e) {
       // 서버 에러 응답에서 message 추출
@@ -60,10 +73,67 @@ class ReservationViewModel extends Notifier<ReservationActionState> {
         if (response is Map<String, dynamic> &&
             response.containsKey('message')) {
           errorMessage = response['message'] as String;
-          print('❌ 예약 실패: $errorMessage');
         }
       }
 
+      state = state.copyWith(
+        status: ReservationActionStatus.error,
+        errorMessage: errorMessage,
+      );
+    }
+  }
+
+  /// 예약 취소
+  Future<void> cancel({required int reservationId}) async {
+    state = state.copyWith(status: ReservationActionStatus.loading);
+    try {
+      await ref
+          .read(reservationRepositoryProvider)
+          .cancelReservation(id: reservationId);
+
+      await Future.delayed(const Duration(milliseconds: 500));
+      await ref.read(activeReservationProvider.notifier).refresh();
+      await ref.read(machineStatusProvider.notifier).refresh();
+
+      state = state.copyWith(status: ReservationActionStatus.success);
+    } catch (e) {
+      String errorMessage = '예약 취소에 실패했습니다.';
+      if (e is DioException && e.response?.data != null) {
+        final response = e.response!.data;
+        if (response is Map<String, dynamic> &&
+            response.containsKey('message')) {
+          errorMessage = response['message'] as String;
+        }
+      }
+      state = state.copyWith(
+        status: ReservationActionStatus.error,
+        errorMessage: errorMessage,
+      );
+    }
+  }
+
+  /// 예약 확인 (세탁/건조 시작)
+  Future<void> confirm({required int reservationId}) async {
+    state = state.copyWith(status: ReservationActionStatus.loading);
+    try {
+      await ref
+          .read(reservationRepositoryProvider)
+          .confirmReservation(id: reservationId);
+
+      await Future.delayed(const Duration(milliseconds: 500));
+      await ref.read(activeReservationProvider.notifier).refresh();
+      await ref.read(machineStatusProvider.notifier).refresh();
+
+      state = state.copyWith(status: ReservationActionStatus.success);
+    } catch (e) {
+      String errorMessage = '예약 확인에 실패했습니다.';
+      if (e is DioException && e.response?.data != null) {
+        final response = e.response!.data;
+        if (response is Map<String, dynamic> &&
+            response.containsKey('message')) {
+          errorMessage = response['message'] as String;
+        }
+      }
       state = state.copyWith(
         status: ReservationActionStatus.error,
         errorMessage: errorMessage,

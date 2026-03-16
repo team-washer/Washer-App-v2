@@ -1,6 +1,7 @@
 ﻿import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
+import 'package:washer/core/network/auth_notifier.dart';
 import 'package:washer/features/alarm/presentation/screens/alarm_screen.dart';
 import 'package:washer/features/auth/presentation/screens/auth_webview_screen.dart';
 import 'package:washer/features/auth/presentation/screens/login_screen.dart';
@@ -13,6 +14,7 @@ const _storage = FlutterSecureStorage();
 
 final appRouter = GoRouter(
   initialLocation: RoutePaths.login,
+  refreshListenable: authNotifier,
   redirect: (context, state) async {
     final token = await _storage.read(key: 'access_token');
     final hasToken = token != null && token.isNotEmpty;

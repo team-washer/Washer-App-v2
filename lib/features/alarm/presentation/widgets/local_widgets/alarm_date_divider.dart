@@ -1,5 +1,6 @@
 part of '../alarm_list_widget.dart';
 
+/// 날짜로 구분되는 나누기 위젯
 class _DateDivider extends StatelessWidget {
   final String date;
 

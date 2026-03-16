@@ -1,7 +1,6 @@
 ﻿import 'dart:convert';
 import 'dart:math';
 
-import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,12 +19,6 @@ String _generateCodeVerifier() {
   final random = Random.secure();
   final bytes = List<int>.generate(32, (_) => random.nextInt(256));
   return base64UrlEncode(bytes).replaceAll('=', '');
-}
-
-/// RFC 7636 PKCE: SHA-256(code_verifier) → base64url(패딩 없음)
-String _generateCodeChallenge(String verifier) {
-  final digest = sha256.convert(utf8.encode(verifier));
-  return base64UrlEncode(digest.bytes).replaceAll('=', '');
 }
 
 class AuthWebViewScreen extends ConsumerStatefulWidget {
@@ -68,9 +61,6 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
       queryParameters: {
         'redirect_uri': _redirectUri,
         'client_id': clientId,
-        // TODO: 백엔드가 PKCE를 지원하면 아래 두 줄 주석 해제
-        // 'code_challenge': _generateCodeChallenge(_codeVerifier),
-        // 'code_challenge_method': 'S256',
       },
     );
 

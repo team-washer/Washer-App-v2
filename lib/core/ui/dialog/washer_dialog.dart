@@ -30,28 +30,30 @@ class WasherDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.cardPadding),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-        color: Colors.white,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _WasherDialogHeader(title: title),
-          content,
-          _WasherDialogActions(
-            backText: backText ?? "뒤로가기",
-            confirmText: confirmText ?? "확인",
-            backColor: backColor ?? WasherColor.baseGray200,
-            confirmColor: confirmColor ?? WasherColor.mainColor500,
-            onBackPressed: onBackPressed ?? () => _pop(context),
-            onConfirmPressed: onConfirmPressed ?? () => _pop(context),
-          ),
-        ],
+    return SingleChildScrollView(
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(AppSpacing.cardPadding),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+          color: Colors.white,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _WasherDialogHeader(title: title),
+            content,
+            _WasherDialogActions(
+              backText: backText ?? "뒤로가기",
+              confirmText: confirmText ?? "확인",
+              backColor: backColor ?? WasherColor.baseGray200,
+              confirmColor: confirmColor ?? WasherColor.mainColor500,
+              onBackPressed: onBackPressed ?? () => _pop(context),
+              onConfirmPressed: onConfirmPressed ?? () => _pop(context),
+            ),
+          ],
+        ),
       ),
     );
   }

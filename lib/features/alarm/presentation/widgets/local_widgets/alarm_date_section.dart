@@ -1,5 +1,6 @@
 part of '../alarm_list_widget.dart';
 
+/// 알람 데이터 모델
 class _AlarmData {
   final LaundryAlarmStatus status;
   final String time;
@@ -14,6 +15,7 @@ class _AlarmData {
   });
 }
 
+/// 특정 날짜의 알람 섹션 위젯 - 날짜 구분선과 알람 카드 나열
 class _DateSection extends StatelessWidget {
   final String date;
   final List<_AlarmData> alarms;

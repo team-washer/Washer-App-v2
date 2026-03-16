@@ -1,11 +1,22 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+/// HTTP 토큰 자동 갱신 및 에러 처리 인터셉터
+///
+/// 역할:
+/// - 모든 API 요청에 Bearer 토큰 자동 추가
+/// - 401/403 (토큰 만료) 시 refresh token으로 자동 갱신
+/// - 갱신 실패 시 강제 로그아웃 처리
+/// - 동시 refresh 요청 중복 방지 (Future 캐싱)
 class AuthInterceptor extends Interceptor {
   final Dio _dio;
   final FlutterSecureStorage _storage;
+
+  /// 리프레시 실패 시 호출되는 콜백 (강제 로그아웃 처리용)
+  final VoidCallback? onLogout;
 
   // 토큰 갱신 전용 Dio 인스턴스 (인터셉터 없이)
   late final Dio _refreshDio;
@@ -19,11 +30,11 @@ class AuthInterceptor extends Interceptor {
   // 재시도 플래그 (무한 루프 방지)
   static const String _retryKey = 'is_retry_request';
 
-  AuthInterceptor(this._dio, this._storage) {
+  AuthInterceptor(this._dio, this._storage, {this.onLogout}) {
     // 토큰 갱신 전용 Dio 인스턴스 생성 (인터셉터 제거)
     _refreshDio = Dio(
       BaseOptions(
-        baseUrl: dotenv.env['BASE_URL'] ?? '',
+        baseUrl: dotenv.env['API_BASE_URL'] ?? '',
         connectTimeout: const Duration(seconds: 30),
         receiveTimeout: const Duration(seconds: 30),
         headers: {
@@ -51,39 +62,33 @@ class AuthInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
+    final statusCode = err.response?.statusCode;
     final isRetry = err.requestOptions.extra[_retryKey] == true;
 
-    // 401 Unauthorized 에러 처리 (토큰 만료, 재시도가 아닐 때만)
-    if (err.response?.statusCode == 401 && !isRetry) {
+    // 401 Unauthorized / 403 Forbidden — 토큰 만료 처리 (재시도가 아닐 때만)
+    if ((statusCode == 401 || statusCode == 403) && !isRetry) {
       try {
-        // 토큰 리프레시 (동시성 제어: _refreshFuture 캐싱으로 중복 방지)
         final newAccessToken = await _refreshToken();
 
         if (newAccessToken != null) {
-          // 실패했던 요청 재시도
+          // 갱신 성공 → 원 요청 재시도
           final response = await _retryRequest(
             err.requestOptions,
             newAccessToken,
           );
           return handler.resolve(response);
-        } else {
-          // 리프레시 토큰도 없거나 만료됨
-          _handleRefreshFailure();
         }
+
+        // 리프레시 토큰도 없거나 만료됨 → 강제 로그아웃
+        await _handleRefreshFailure();
+        return handler.next(err);
       } on DioException catch (e) {
-        // 리프레시 실패 시
-        _handleRefreshFailure();
+        await _handleRefreshFailure();
         return handler.next(e);
-      } catch (e) {
-        // 기타 에러
-        _handleRefreshFailure();
+      } catch (_) {
+        await _handleRefreshFailure();
         return handler.next(err);
       }
-    }
-
-    // 403 Forbidden 에러 처리 (권한 부족)
-    if (err.response?.statusCode == 403) {
-      // TODO :: 권한 부족 안내 또는 적절한 처리
     }
 
     return handler.next(err);
@@ -172,14 +177,12 @@ class AuthInterceptor extends Interceptor {
     );
   }
 
-  /// 리프레시 실패 처리
-  void _handleRefreshFailure() {
-    // 캐시 및 토큰 초기화
+  /// 리프레시 실패 처리 — 토큰 삭제 후 onLogout 콜백으로 강제 로그아웃
+  Future<void> _handleRefreshFailure() async {
     _cachedAccessToken = null;
-    _storage.delete(key: 'access_token');
-    _storage.delete(key: 'refresh_token');
-
-    // TODO :: 리프레시 실패 시 로그아웃 처리 또는 로그인 페이지로 이동
+    await _storage.delete(key: 'access_token');
+    await _storage.delete(key: 'refresh_token');
+    onLogout?.call();
   }
 
   /// 토큰 캐시 무효화 (로그아웃 시 호출)

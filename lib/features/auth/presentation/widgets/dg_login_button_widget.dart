@@ -6,6 +6,7 @@ import 'package:washer/core/theme/icon.dart';
 import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
 
+/// DG 로그인 버튼 위젯 — 로그인 화면으로 이동
 class DgLoginButtonWidget extends StatelessWidget {
   const DgLoginButtonWidget({super.key});
 

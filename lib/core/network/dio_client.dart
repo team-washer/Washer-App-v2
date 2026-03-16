@@ -4,6 +4,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'auth_interceptor.dart';
+import 'auth_notifier.dart';
 
 class DioClient {
   static const Duration _connectTimeout = Duration(seconds: 30);
@@ -25,7 +26,9 @@ class DioClient {
       };
 
     // 인터셉터 추가
-    _dio.interceptors.add(AuthInterceptor(_dio, _storage));
+    _dio.interceptors.add(
+      AuthInterceptor(_dio, _storage, onLogout: authNotifier.logout),
+    );
 
     // 로깅 인터셉터 (디버그 모드에서만)
     if (kDebugMode) {

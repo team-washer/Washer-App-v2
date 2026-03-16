@@ -141,6 +141,7 @@ class ReservationBottomSection extends StatelessWidget {
 
       case ReservationState.confirmed:
         return _ConfirmedByMeBottom(
+          laundryMachineType: laundryMachineType,
           reservedAt: reservedAt,
           finishedAt: finishedAt,
         );
@@ -319,27 +320,29 @@ class _ReservedByMeBottom extends ConsumerWidget {
 
 /// 예약 확인 중 상태 - myReservation 의 confirmed 와 동일한 UI
 class _ConfirmedByMeBottom extends ConsumerWidget {
+  final LaundryMachineType laundryMachineType;
   final String? reservedAt;
   final String? finishedAt;
 
   const _ConfirmedByMeBottom({
+    required this.laundryMachineType,
     this.reservedAt,
     this.finishedAt,
   });
 
   String _formatCountdown(DateTime? baseTime, DateTime now) {
     if (baseTime == null) return '';
-    final expiryTime = baseTime.add(const Duration(minutes: 3));
-    final remaining = expiryTime.difference(now);
+    final DateTime expiryTime = baseTime.add(const Duration(minutes: 3));
+    final Duration remaining = expiryTime.difference(now);
     if (remaining.isNegative) return '만료됨';
-    final m = remaining.inMinutes;
-    final s = remaining.inSeconds % 60;
+    final int m = remaining.inMinutes;
+    final int s = remaining.inSeconds % 60;
     return '${m.toString().padLeft(2, '0')}분 ${s.toString().padLeft(2, '0')}초';
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final now = ref.watch(clockProvider).asData?.value ?? DateTime.now();
+    final DateTime now = ref.watch(clockProvider).asData?.value ?? DateTime.now();
     final DateTime? reservedTime =
         reservedAt != null ? DateTime.tryParse(reservedAt!) : null;
     final String countdown = reservedTime != null

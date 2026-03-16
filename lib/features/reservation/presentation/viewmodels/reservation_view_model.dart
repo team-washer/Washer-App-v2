@@ -73,8 +73,7 @@ class ReservationViewModel extends Notifier<ReservationActionState> {
       await Future.delayed(const Duration(milliseconds: 500));
 
       // 예약 생성 후 데이터 갱신
-      await ref.read(activeReservationProvider.notifier).refresh();
-      await ref.read(machineStatusProvider.notifier).refresh();
+      await _refreshReservationData();
 
       // 생성된 예약 정보를 상태에 저장
       state = state.copyWith(
@@ -108,8 +107,7 @@ class ReservationViewModel extends Notifier<ReservationActionState> {
           .cancelReservation(id: reservationId);
 
       await Future.delayed(const Duration(milliseconds: 500));
-      await ref.read(activeReservationProvider.notifier).refresh();
-      await ref.read(machineStatusProvider.notifier).refresh();
+      await _refreshReservationData();
 
       state = state.copyWith(status: ReservationActionStatus.success);
     } catch (e) {
@@ -128,6 +126,12 @@ class ReservationViewModel extends Notifier<ReservationActionState> {
     }
   }
 
+  /// 예약 관련 데이터(활성 예약 내역, 세탁기 상태) 최신화
+  Future<void> _refreshReservationData() async {
+    await ref.read(activeReservationProvider.notifier).refresh();
+    await ref.read(machineStatusProvider.notifier).refresh();
+  }
+
   /// 상태 초기화 — 예약 완료 후 상태 리셋
   void reset() {
     state = const ReservationActionState();
@@ -141,6 +145,10 @@ class ReservationViewModel extends Notifier<ReservationActionState> {
       await ref
           .read(reservationRepositoryProvider)
           .confirmReservation(id: reservationId);
+
+      // 예약 확인 후 즉시 데이터 갱신
+      await _refreshReservationData();
+
       state = state.copyWith(status: ReservationActionStatus.success);
       _startPollingReservation();
     } catch (e) {

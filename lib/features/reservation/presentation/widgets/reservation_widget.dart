@@ -217,8 +217,8 @@ class _AvailableBottom extends StatelessWidget {
   const _AvailableBottom({
     required this.laundryMachineType,
     this.onReserve,
-    this.machineId = 0,
-    this.machineName = '',
+    required this.machineId,
+    required this.machineName,
   });
 
   @override
@@ -368,14 +368,16 @@ class _ConfirmedByMeBottom extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final DateTime now = ref.watch(clockProvider).asData?.value ?? DateTime.now();
-    final DateTime? reservedTime =
-        reservedAt != null ? DateTime.tryParse(reservedAt!) : null;
+    final DateTime now =
+        ref.watch(clockProvider).asData?.value ?? DateTime.now();
+    final DateTime? reservedTime = reservedAt != null
+        ? DateTime.tryParse(reservedAt!)
+        : null;
     final String countdown = reservedTime != null
         ? _formatCountdown(reservedTime, now)
         : (finishedAt != null
-            ? _formatCountdown(DateTime.tryParse(finishedAt!), now)
-            : '');
+              ? _formatCountdown(DateTime.tryParse(finishedAt!), now)
+              : '');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

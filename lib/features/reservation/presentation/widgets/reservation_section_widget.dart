@@ -134,6 +134,7 @@ class _ReservationSectionWidgetState
                   return ReservationWidget(
                     laundryMachineType: widget.laundryMachineType,
                     reservationState: item.state,
+                    machineId: item.machineId,
                     machineName: item.name,
                     finishedAt: item.finishedAt,
                     room: item.room,

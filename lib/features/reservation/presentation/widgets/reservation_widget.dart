@@ -10,6 +10,7 @@ import 'package:washer/core/ui/buttons/custom_big_button.dart';
 import 'package:washer/core/ui/reservation_state_widget.dart';
 import 'package:washer/features/home/presentation/viewmodels/home_view_model.dart';
 import 'package:washer/core/utils/date_time_formatter.dart';
+import 'package:washer/features/history/presentation/widgets/history_dialog.dart';
 
 /// 예약 가능 기계를 카드 단위로 표시하는 위젯
 ///
@@ -21,6 +22,7 @@ class ReservationWidget extends StatelessWidget {
   final LaundryMachineType laundryMachineType;
   final ReservationState reservationState;
   final String machineName;
+  final int machineId;
 
   final String? room;
   final String? reservedAt;
@@ -33,6 +35,7 @@ class ReservationWidget extends StatelessWidget {
     required this.laundryMachineType,
     required this.reservationState,
     required this.machineName,
+    this.machineId = 0, // 기본값 적용
     this.room,
     this.reservedAt,
     this.finishedAt,
@@ -81,6 +84,8 @@ class ReservationWidget extends StatelessWidget {
           AppGap.v12,
           // 상태에 다른 나머지 부분
           ReservationBottomSection(
+            machineId: machineId,
+            machineName: machineName,
             laundryMachineType: laundryMachineType,
             reservationState: reservationState,
             room: room,
@@ -98,6 +103,8 @@ class ReservationWidget extends StatelessWidget {
 class ReservationBottomSection extends StatelessWidget {
   final LaundryMachineType laundryMachineType;
   final ReservationState reservationState;
+  final int machineId;
+  final String machineName;
 
   final String? room;
   final String? reservedAt;
@@ -109,6 +116,8 @@ class ReservationBottomSection extends StatelessWidget {
     super.key,
     required this.reservationState,
     required this.laundryMachineType,
+    this.machineId = 0,
+    this.machineName = '',
     this.room,
     this.reservedAt,
     this.finishedAt,
@@ -129,6 +138,8 @@ class ReservationBottomSection extends StatelessWidget {
 
       case ReservationState.available:
         return _AvailableBottom(
+          machineId: machineId,
+          machineName: machineName,
           laundryMachineType: laundryMachineType,
           onReserve: onReserve,
         );
@@ -200,10 +211,14 @@ class _InUseBottom extends StatelessWidget {
 class _AvailableBottom extends StatelessWidget {
   final LaundryMachineType laundryMachineType;
   final VoidCallback? onReserve;
+  final int machineId;
+  final String machineName;
 
   const _AvailableBottom({
     required this.laundryMachineType,
     this.onReserve,
+    required this.machineId,
+    required this.machineName,
   });
 
   @override
@@ -230,10 +245,21 @@ class _AvailableBottom extends StatelessWidget {
               size: 33,
             ),
             AppGap.h8,
-            WasherIcon(
-              type: WasherIconType.historyCircle,
-              color: WasherColor.baseGray200,
-              size: 33,
+            GestureDetector(
+              onTap: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => HistoryDialog(
+                    machineId: machineId,
+                    machineName: machineName,
+                  ),
+                );
+              },
+              child: WasherIcon(
+                type: WasherIconType.historyCircle,
+                color: WasherColor.baseGray200,
+                size: 33,
+              ),
             ),
           ],
         ),
@@ -342,14 +368,16 @@ class _ConfirmedByMeBottom extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final DateTime now = ref.watch(clockProvider).asData?.value ?? DateTime.now();
-    final DateTime? reservedTime =
-        reservedAt != null ? DateTime.tryParse(reservedAt!) : null;
+    final DateTime now =
+        ref.watch(clockProvider).asData?.value ?? DateTime.now();
+    final DateTime? reservedTime = reservedAt != null
+        ? DateTime.tryParse(reservedAt!)
+        : null;
     final String countdown = reservedTime != null
         ? _formatCountdown(reservedTime, now)
         : (finishedAt != null
-            ? _formatCountdown(DateTime.tryParse(finishedAt!), now)
-            : '');
+              ? _formatCountdown(DateTime.tryParse(finishedAt!), now)
+              : '');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

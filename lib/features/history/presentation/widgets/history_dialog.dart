@@ -137,7 +137,7 @@ class _HistoryCard extends StatelessWidget {
     final timeLabel = status.timeLabel;
 
     final timeValue = DateTimeFormatter.formatToShortWithTime(
-      item.completionTime,
+      status == HistoryStatus.cancelled ? item.createdAt : item.completionTime,
     );
 
     return Container(

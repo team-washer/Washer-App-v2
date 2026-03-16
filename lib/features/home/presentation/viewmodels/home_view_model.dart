@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/legacy.dart';
 import 'package:washer/features/home/data/repositories/home_repository.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/data/models/local/laundry_machine_model.dart';
-import 'package:washer/features/reservation/data/repositories/reservation_repository.dart';
 
 /// 1초마다 시간을 업데이트하는 스트림 — 카운트다운 위젯에서 사용
 /// (예: 세탁 완료까지 남은 시간 표시)
@@ -65,8 +64,6 @@ final activeReservationProvider =
 /// 활성 예약 조회 비즈니스 로직
 /// - build(): 초기 로드 시 현재 예약 정보 조회
 /// - refresh(): 사용자가 새로고침 요청 시 예약 상태 갱신
-/// - cancelReservation(): 예약 취소
-/// - confirmReservation(): 예약 확인
 class ActiveReservationNotifier extends AsyncNotifier<ActiveReservationModel?> {
   /// 초기 로드 — 서버에서 현재 예약 조회
   @override
@@ -94,14 +91,8 @@ class ActiveReservationNotifier extends AsyncNotifier<ActiveReservationModel?> {
     );
   }
 
-  /// 예약 취소 — reservationViewModel으로 이동됨
-  Future<void> cancelReservation(int machineId) async {
-    await ref
-        .read(reservationRepositoryProvider)
-        .cancelReservation(id: machineId);
-    // 예약 취소 후 정보를 다시 조회
-    await refresh();
-    // 기계 상태도 함께 갱신
-    await ref.read(machineStatusProvider.notifier).refresh();
+  /// 외부 폴링에서 직접 값을 주입할 때 사용 — 로딩 상태 없이 데이터만 교체
+  void setReservation(ActiveReservationModel? reservation) {
+    state = AsyncData(reservation);
   }
 }

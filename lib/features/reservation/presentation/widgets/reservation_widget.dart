@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
 import 'package:washer/core/enums/reservation_state.dart';
@@ -9,6 +9,7 @@ import 'package:washer/core/theme/typography.dart';
 import 'package:washer/core/ui/buttons/custom_big_button.dart';
 import 'package:washer/core/ui/reservation_state_widget.dart';
 import 'package:washer/features/home/presentation/viewmodels/home_view_model.dart';
+import 'package:washer/core/utils/date_time_formatter.dart';
 
 /// 예약 가능 기계를 카드 단위로 표시하는 위젯
 ///
@@ -138,6 +139,12 @@ class ReservationBottomSection extends StatelessWidget {
           reservedAt: reservedAt,
         );
 
+      case ReservationState.confirmed:
+        return _ConfirmedByMeBottom(
+          reservedAt: reservedAt,
+          finishedAt: finishedAt,
+        );
+
       case ReservationState.reservedByOther:
         return _ReservedBottom(
           reservedAt: reservedAt,
@@ -174,7 +181,7 @@ class _InUseBottom extends StatelessWidget {
         ),
         AppGap.v4,
         Text(
-          '${laundryMachineType.text} 완료 예정시간: ${finishedAt ?? ''}',
+          '${laundryMachineType.text} 완료 예정시간: ${DateTimeFormatter.formatToShortWithTime(finishedAt)}',
           style: WasherTypography.body2(WasherColor.baseGray400),
         ),
         AppGap.v4,
@@ -277,7 +284,7 @@ class _ReservedByMeBottom extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '예약 시간: ${reservedAt ?? ''}',
+          '예약 시간: ${DateTimeFormatter.formatToShortWithTime(reservedAt)}',
           style: WasherTypography.body2(
             WasherColor.baseGray500,
           ),
@@ -310,6 +317,59 @@ class _ReservedByMeBottom extends ConsumerWidget {
   }
 }
 
+/// 예약 확인 중 상태 - myReservation 의 confirmed 와 동일한 UI
+class _ConfirmedByMeBottom extends ConsumerWidget {
+  final String? reservedAt;
+  final String? finishedAt;
+
+  const _ConfirmedByMeBottom({
+    this.reservedAt,
+    this.finishedAt,
+  });
+
+  String _formatCountdown(DateTime? baseTime, DateTime now) {
+    if (baseTime == null) return '';
+    final expiryTime = baseTime.add(const Duration(minutes: 3));
+    final remaining = expiryTime.difference(now);
+    if (remaining.isNegative) return '만료됨';
+    final m = remaining.inMinutes;
+    final s = remaining.inSeconds % 60;
+    return '${m.toString().padLeft(2, '0')}분 ${s.toString().padLeft(2, '0')}초';
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final now = ref.watch(clockProvider).asData?.value ?? DateTime.now();
+    final DateTime? reservedTime =
+        reservedAt != null ? DateTime.tryParse(reservedAt!) : null;
+    final String countdown = reservedTime != null
+        ? _formatCountdown(reservedTime, now)
+        : (finishedAt != null
+            ? _formatCountdown(DateTime.tryParse(finishedAt!), now)
+            : '');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '기기에 연결 중입니다. 잠시만 기다려주세요.',
+          style: WasherTypography.body2(
+            WasherColor.baseGray500,
+          ),
+        ),
+        AppGap.v4,
+        Text(
+          '예정 완료 시간: $countdown',
+          style: WasherTypography.body2(
+            WasherColor.baseGray500,
+          ),
+        ),
+        AppGap.v12,
+      ],
+    );
+  }
+}
+
 /// 다른 사람이 예약한 상태 - 예약 불가능
 class _ReservedBottom extends StatelessWidget {
   final String? reservedAt;
@@ -328,7 +388,7 @@ class _ReservedBottom extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '예약 시간: ${reservedAt ?? ''}',
+          '예약 시간: ${DateTimeFormatter.formatToShortWithTime(reservedAt)}',
           style: WasherTypography.body2(WasherColor.baseGray500),
         ),
         AppGap.v4,

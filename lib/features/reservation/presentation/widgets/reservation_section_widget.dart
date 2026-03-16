@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
 import 'package:washer/core/enums/reservation_state.dart';
+import 'package:washer/core/enums/laundry_status.dart';
 import 'package:washer/core/router/route_paths.dart';
 import 'package:washer/core/theme/color.dart';
 import 'package:washer/core/theme/spacing.dart';
@@ -45,6 +46,9 @@ class _ReservationSectionWidgetState
     if (machine.isAvailable) return ReservationState.available;
     if (activeReservation != null &&
         machine.reservationId == activeReservation.id) {
+      if (activeReservation.laundryStatus == LaundryStatus.confirmed) {
+        return ReservationState.confirmed;
+      }
       return ReservationState.reservedByMe;
     }
     if (machine.operatingState == 'running') return ReservationState.inUse;
@@ -68,23 +72,6 @@ class _ReservationSectionWidgetState
               activeReservation != null &&
               m.reservationId == activeReservation.id;
 
-          // expectedCompletionTime에서 남은 시간 계산 (HH:MM:SS 형식)
-          String? remainDuration;
-          if (m.expectedCompletionTime != null) {
-            final completionTime = DateTime.tryParse(m.expectedCompletionTime!);
-            if (completionTime != null) {
-              final now = DateTime.now();
-              if (completionTime.isAfter(now)) {
-                final remaining = completionTime.difference(now);
-                final hours = remaining.inHours;
-                final minutes = remaining.inMinutes % 60;
-                final seconds = remaining.inSeconds % 60;
-                remainDuration =
-                    '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-              }
-            }
-          }
-
           return _MachineData(
             m.machineId,
             m.name,
@@ -92,7 +79,7 @@ class _ReservationSectionWidgetState
             finishedAt: m.expectedCompletionTime,
             room: isMyMachine ? activeReservation.userRoomNumber : null,
             reservedAt: isMyMachine ? activeReservation.reservedAt : null,
-            remainDuration: remainDuration,
+            remainDuration: null,
           );
         })
         .toList();
@@ -164,8 +151,9 @@ class _ReservationSectionWidgetState
                                   );
 
                               // 예약 상태 확인
-                              final reservationState =
-                                  ref.read(reservationViewModelProvider);
+                              final reservationState = ref.read(
+                                reservationViewModelProvider,
+                              );
                               if (reservationState.status ==
                                   ReservationActionStatus.error) {
                                 // 에러 발생한 경우

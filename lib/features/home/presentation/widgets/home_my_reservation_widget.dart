@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/enums/laundry_action_type.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
@@ -10,6 +10,7 @@ import 'package:washer/core/ui/buttons/custom_small_button.dart';
 import 'package:washer/core/ui/dialog/laundry_action_dialog.dart';
 import 'package:washer/core/ui/reservation_state_widget.dart';
 import 'package:washer/features/home/presentation/viewmodels/home_view_model.dart';
+import 'package:washer/core/utils/date_time_formatter.dart';
 
 /// 현재 예약 현황을 표시하는 위젯
 ///
@@ -54,6 +55,7 @@ class HomeMyReservationWidget extends ConsumerWidget {
                     reservedAt: reservation.reservedAt,
                     finishedAt: reservation.expectedCompletionTime,
                     machineId: reservation.machineId,
+                    reservationId: reservation.id,
                   )
                 : Center(
                     child: Padding(
@@ -96,6 +98,7 @@ class _MyReservationCard extends StatelessWidget {
   final String? remainDuration;
   final String? finishedAt;
   final int? machineId;
+  final int reservationId;
 
   const _MyReservationCard({
     required this.laundryMachineType,
@@ -105,6 +108,7 @@ class _MyReservationCard extends StatelessWidget {
     this.remainDuration,
     this.finishedAt,
     this.machineId,
+    required this.reservationId,
   });
 
   @override
@@ -146,6 +150,8 @@ class _MyReservationCard extends StatelessWidget {
             laundryMachineType: laundryMachineType,
             laundryStatus: laundryStatus,
             machineId: machineId,
+            reservationId: reservationId,
+            deviceId: machine,
           ),
         ],
       ),
@@ -171,13 +177,13 @@ class _Body extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     switch (laundryStatus) {
-      case LaundryStatus.waiting:
+      case LaundryStatus.reserved:
         return _WaitingBody(
           reservedAt: reservedAt,
           remainDuration: remainDuration,
         );
-      case LaundryStatus.reserved:
-        return _ReservedBody(finishedAt: finishedAt);
+      case LaundryStatus.confirmed:
+        return _ReservedBody(reservedAt: reservedAt, finishedAt: finishedAt);
       case LaundryStatus.needConfirm:
         return _NeedConfirmBody();
       case LaundryStatus.inUse:
@@ -211,15 +217,14 @@ class _WaitingBody extends ConsumerWidget {
 
     // 예약 시간 + 5분 = 예약 만료 시간
     String updatedRemain = '만료됨';
-    String displayReservedAt = '시간 정보 없음';
-    
+    String displayReservedAt =
+        DateTimeFormatter.formatToShortWithTime(reservedAt);
+
     if (reservedAt != null) {
       try {
         final reservedTime = DateTime.tryParse(reservedAt!);
         if (reservedTime != null) {
-          // 예약 시간에서 5분 추가
           final expiryTime = reservedTime.add(const Duration(minutes: 5));
-
           if (expiryTime.isAfter(now)) {
             final remaining = expiryTime.difference(now);
             final minutes = remaining.inMinutes;
@@ -227,14 +232,8 @@ class _WaitingBody extends ConsumerWidget {
             updatedRemain =
                 '${minutes.toString().padLeft(2, '0')}분 ${seconds.toString().padLeft(2, '0')}초';
           }
-          
-          // 예약 시간 포맷 (HH:mm:ss)
-          displayReservedAt = 
-              '${reservedTime.hour.toString().padLeft(2, '0')}:${reservedTime.minute.toString().padLeft(2, '0')}:${reservedTime.second.toString().padLeft(2, '0')}';
         }
-      } catch (e) {
-        // 파싱 실패 시 무시
-      }
+      } catch (_) {}
     }
 
     return Column(
@@ -255,31 +254,32 @@ class _WaitingBody extends ConsumerWidget {
   }
 }
 
+// 예약 확인 후 기기 동작을 감지할때
 class _ReservedBody extends ConsumerWidget {
+  final String? reservedAt;
   final String? finishedAt;
 
-  const _ReservedBody({this.finishedAt});
+  const _ReservedBody({this.reservedAt, this.finishedAt});
 
-  String _formatCountdown(DateTime? finishTime, DateTime now) {
-    if (finishTime == null) return '';
-    final remaining = finishTime.difference(now);
-    if (remaining.isNegative) return '완료 예정';
-    final h = remaining.inHours;
-    final m = remaining.inMinutes % 60;
+  String _formatCountdown(DateTime? baseTime, DateTime now) {
+    if (baseTime == null) return '';
+    final expiryTime = baseTime.add(const Duration(minutes: 3));
+    final remaining = expiryTime.difference(now);
+    if (remaining.isNegative) return '만료됨';
+    final m = remaining.inMinutes;
     final s = remaining.inSeconds % 60;
-    if (h > 0) {
-      return '$h시간 ${m.toString().padLeft(2, '0')}분 ${s.toString().padLeft(2, '0')}초';
-    }
     return '${m.toString().padLeft(2, '0')}분 ${s.toString().padLeft(2, '0')}초';
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // 실시간 시간 업데이트
     final now = ref.watch(clockProvider).asData?.value ?? DateTime.now();
-    final finishTime = finishedAt != null
-        ? DateTime.tryParse(finishedAt!)
-        : null;
+    DateTime? reservedTime = reservedAt != null ? DateTime.tryParse(reservedAt!) : null;
+    String countdown = reservedTime != null
+        ? _formatCountdown(reservedTime, now)
+        : (finishedAt != null
+            ? _formatCountdown(DateTime.tryParse(finishedAt!), now)
+            : '');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -292,7 +292,7 @@ class _ReservedBody extends ConsumerWidget {
         ),
         AppGap.v4,
         Text(
-          '예정 완료 시간: ${_formatCountdown(finishTime, now)}',
+          '예정 완료 시간: $countdown',
           style: WasherTypography.body2(
             WasherColor.baseGray500,
           ),
@@ -390,7 +390,7 @@ class _CompletedBody extends StatelessWidget {
         ),
         AppGap.v4,
         Text(
-          '${laundryMachineType.text} 완료 시간: ${finishedAt ?? ''}',
+          '${laundryMachineType.text} 완료 시간: ${DateTimeFormatter.formatToShortWithTime(finishedAt)}',
           style: WasherTypography.body2(
             WasherColor.baseGray500,
           ),
@@ -405,11 +405,15 @@ class _BottomSection extends StatelessWidget {
   final LaundryMachineType laundryMachineType;
   final LaundryStatus laundryStatus;
   final int? machineId;
+  final int reservationId;
+  final String deviceId;
 
   const _BottomSection({
     required this.laundryMachineType,
     required this.laundryStatus,
     this.machineId,
+    required this.reservationId,
+    required this.deviceId,
   });
 
   @override
@@ -421,14 +425,14 @@ class _BottomSection extends StatelessWidget {
         CustomSmallButton(
           text: '예약 취소',
           onPressed: () {
-            if (machineId != null) {
+            if (reservationId > 0) {
               showDialog(
                 context: context,
                 builder: (context) => Dialog(
                   child: LaundryActionDialog(
                     actionType: LaundryActionType.cancelReservation,
-                    deviceId: '',
-                    machineId: machineId!,
+                    deviceId: deviceId,
+                    reservationId: reservationId,
                   ),
                 ),
               );
@@ -440,20 +444,20 @@ class _BottomSection extends StatelessWidget {
         CustomSmallButton(
           text: '${laundryMachineType.text} 시작',
           onPressed: () {
-            if (machineId != null) {
+            if (reservationId > 0) {
               showDialog(
                 context: context,
                 builder: (context) => Dialog(
                   child: LaundryActionDialog(
                     actionType: LaundryActionType.reserve,
-                    deviceId: '',
-                    machineId: machineId!,
+                    deviceId: deviceId,
+                    reservationId: reservationId,
                   ),
                 ),
               );
             }
           },
-          color: laundryStatus == LaundryStatus.waiting
+          color: laundryStatus == LaundryStatus.reserved
               ? WasherColor.mainColor500
               : WasherColor.mainColor200,
         ),

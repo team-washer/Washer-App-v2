@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/enums/laundry_action_type.dart';
 import 'package:washer/core/theme/color.dart';
@@ -11,13 +11,13 @@ import 'package:washer/features/reservation/presentation/viewmodels/reservation_
 class LaundryActionDialog extends ConsumerStatefulWidget {
   final LaundryActionType actionType;
   final String deviceId;
-  final int machineId;
+  final int reservationId;
 
   const LaundryActionDialog({
     super.key,
     required this.actionType,
     required this.deviceId,
-    required this.machineId,
+    required this.reservationId,
   });
 
   @override
@@ -55,8 +55,9 @@ class _LaundryActionDialogState extends ConsumerState<LaundryActionDialog> {
         try {
           switch (widget.actionType) {
             case LaundryActionType.reserve:
-              // 세탁/건조 시작
-              // API 호출 없음 - 30초 폴링으로 자동 확인됨
+              await ref
+                  .read(reservationViewModelProvider.notifier)
+                  .confirmAndWatch(reservationId: widget.reservationId);
               if (context.mounted) {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -67,7 +68,7 @@ class _LaundryActionDialogState extends ConsumerState<LaundryActionDialog> {
             case LaundryActionType.cancelReservation:
               await ref
                   .read(reservationViewModelProvider.notifier)
-                  .cancel(reservationId: widget.machineId);
+                  .cancel(reservationId: widget.reservationId);
               if (context.mounted) {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(

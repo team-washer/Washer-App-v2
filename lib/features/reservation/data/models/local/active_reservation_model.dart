@@ -32,12 +32,10 @@ abstract class ActiveReservationModel with _$ActiveReservationModel {
 
   LaundryStatus get laundryStatus {
     switch (status) {
-      case 'WAITING':
-        return LaundryStatus.waiting;
       case 'RESERVED':
         return LaundryStatus.reserved;
-      case 'NEED_CONFIRM':
-        return LaundryStatus.needConfirm;
+      case 'CONFIRMED':
+        return LaundryStatus.confirmed;
       case 'IN_USE':
         return LaundryStatus.inUse;
       case 'COMPLETED':

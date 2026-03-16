@@ -2,9 +2,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/network/dio_client.dart';
 import 'package:washer/features/reservation/data/models/remote/cancel_reservation_response.dart';
 import 'package:washer/features/reservation/data/models/remote/confirm_reservation_response.dart';
+import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 
 abstract class ReservationRemoteDataSource {
-  Future<void> createReservation({
+  /// 예약 생성 — 성공 시 생성된 예약 전체 정보 반환
+  Future<ActiveReservationModel> createReservation({
     required int machineId,
     required String startTime,
   });
@@ -24,17 +26,19 @@ class ReservationRemoteDataSourceImpl implements ReservationRemoteDataSource {
   const ReservationRemoteDataSourceImpl(this._client);
 
   @override
-  Future<void> createReservation({
+  Future<ActiveReservationModel> createReservation({
     required int machineId,
     required String startTime,
   }) async {
-    await _client.post(
+    final response = await _client.post(
       '/api/v2/reservations',
       data: {
         'machineId': machineId,
         'startTime': startTime,
       },
     );
+    // 예약 생성 성공 시 응답의 data 부분을 모델로 변환하여 리턴
+    return ActiveReservationModel.fromJson(response.data['data'] as Map<String, dynamic>);
   }
 
   @override

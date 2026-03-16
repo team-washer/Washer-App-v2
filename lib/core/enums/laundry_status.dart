@@ -3,8 +3,8 @@ import 'dart:ui';
 import '../theme/color.dart';
 
 enum LaundryStatus {
-  waiting, // 대기
   reserved, // 예약완료
+  confirmed, // 예약확인 및 기기 동작 감지
   needConfirm, // 확인필요
   inUse, // 사용중
   completed, // 완료
@@ -13,9 +13,9 @@ enum LaundryStatus {
 extension LaundryStatusExt on LaundryStatus {
   String get label {
     switch (this) {
-      case LaundryStatus.waiting:
-        return "대기중";
       case LaundryStatus.reserved:
+        return "대기중";
+      case LaundryStatus.confirmed:
         return "예약완료";
       case LaundryStatus.needConfirm:
         return "확인필요";
@@ -30,11 +30,11 @@ extension LaundryStatusExt on LaundryStatus {
     switch (this) {
       case LaundryStatus.needConfirm:
         return WasherColor.errorColor;
-      case LaundryStatus.waiting:
+      case LaundryStatus.reserved:
         return WasherColor.mainColor200;
       case LaundryStatus.inUse:
         return WasherColor.mainColor500;
-      case LaundryStatus.reserved:
+      case LaundryStatus.confirmed:
         return WasherColor.mainColor500;
       case LaundryStatus.completed:
         return WasherColor.mainColor500;

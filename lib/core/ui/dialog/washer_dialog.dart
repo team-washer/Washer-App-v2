@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:washer/core/theme/color.dart';
 import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
@@ -92,6 +92,21 @@ class _WasherDialogActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (confirmText.isEmpty) {
+      // confirmText가 빈 문자열이면 단일 버튼(backButton)만 표시.
+      // CustomBigButton 내부에 Expanded가 있으므로 반드시 Row 내부에 배치해야 
+      // 세로 방향(Column)의 unbounded height 에러가 발생하지 않습니다.
+      return Row(
+        children: [
+          CustomBigButton(
+            text: backText,
+            onPressed: onBackPressed,
+            color: backColor,
+          ),
+        ],
+      );
+    }
+    
     return Row(
       children: [
         CustomBigButton(

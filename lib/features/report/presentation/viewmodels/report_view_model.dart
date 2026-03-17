@@ -36,12 +36,12 @@ class ReportViewModel extends Notifier<ReportActionState> {
     state = const ReportActionState(status: ReportActionStatus.loading);
 
     try {
-      await ref.read(reportRepositoryProvider).createMalfunctionReport(
+      await ref
+          .read(reportRepositoryProvider)
+          .createMalfunctionReport(
             machineId: machineId,
             description: description,
           );
-
-      await Future.delayed(const Duration(milliseconds: 500));
       await ref.read(machineStatusProvider.notifier).refresh();
       await ref.read(activeReservationProvider.notifier).refresh();
 

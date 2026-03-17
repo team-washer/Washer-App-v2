@@ -96,7 +96,7 @@ class NotificationService {
   StreamSubscription<RemoteMessage>? _foregroundMessageSubscription;
   bool _isInitialized = false;
 
-  static bool _timeZoneInitialized = false;
+  bool _timeZoneInitialized = false;
 
   Future<void> initialize() async {
     if (_isInitialized) return;

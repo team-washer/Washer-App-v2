@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/theme/color.dart';
 import 'package:washer/core/theme/spacing.dart';
@@ -11,14 +11,14 @@ import 'package:washer/features/history/domain/enum/history_status_enum.dart';
 import 'package:washer/features/history/presentation/viewmodels/history_view_model.dart';
 
 class HistoryDialog extends ConsumerStatefulWidget {
-  final String machineName;
-  final int machineId;
-
   const HistoryDialog({
     super.key,
     required this.machineName,
     required this.machineId,
   });
+
+  final String machineName;
+  final int machineId;
 
   @override
   ConsumerState<HistoryDialog> createState() => _HistoryDialogState();
@@ -52,9 +52,7 @@ class _HistoryDialogState extends ConsumerState<HistoryDialog> {
             AppGap.v16,
             Text(
               '기기명 ${widget.machineName} ${widget.machineId}',
-              style: WasherTypography.body1(
-                WasherColor.baseGray800,
-              ),
+              style: WasherTypography.body1(WasherColor.baseGray800),
             ),
             AppGap.v16,
             _buildContent(state),
@@ -78,9 +76,7 @@ class _HistoryDialogState extends ConsumerState<HistoryDialog> {
         child: Center(
           child: Text(
             state.errorMessage!,
-            style: WasherTypography.body1(
-              WasherColor.errorColor,
-            ),
+            style: WasherTypography.body1(WasherColor.errorColor),
           ),
         ),
       );
@@ -92,9 +88,7 @@ class _HistoryDialogState extends ConsumerState<HistoryDialog> {
         child: Center(
           child: Text(
             '당일 사용 기록이 없습니다.',
-            style: WasherTypography.body1(
-              WasherColor.baseGray500,
-            ),
+            style: WasherTypography.body1(WasherColor.baseGray500),
           ),
         ),
       );
@@ -120,22 +114,17 @@ class _HistoryDialogState extends ConsumerState<HistoryDialog> {
 }
 
 class _HistoryCard extends StatelessWidget {
-  final String machineName;
-  final HistoryContent item;
-
   const _HistoryCard({
     required this.machineName,
     required this.item,
   });
 
+  final String machineName;
+  final HistoryContent item;
+
   @override
   Widget build(BuildContext context) {
     final status = HistoryStatusX.fromString(item.status);
-
-    final statusColor = status.color;
-    final statusText = status.label;
-    final timeLabel = status.timeLabel;
-
     final timeValue = DateTimeFormatter.formatToShortWithTime(
       status == HistoryStatus.cancelled ? item.createdAt : item.completionTime,
     );
@@ -145,9 +134,7 @@ class _HistoryCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: WasherColor.baseGray200,
-        ),
+        border: Border.all(color: WasherColor.baseGray200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -157,27 +144,25 @@ class _HistoryCard extends StatelessWidget {
             children: [
               Text(
                 machineName,
-                style: WasherTypography.body1(
-                  WasherColor.baseGray700,
-                ),
+                style: WasherTypography.body1(WasherColor.baseGray700),
               ),
               ReservationStateWidget(
-                label: statusText,
-                color: statusColor,
+                label: status.label,
+                color: status.color,
               ),
             ],
           ),
           AppGap.v8,
           Divider(color: WasherColor.baseGray200, height: 1),
           AppGap.v8,
-          _buildInfoRow('예약호실', '${item.userRoomNumber}호'),
+          _buildInfoRow('예약 호실', '${item.userRoomNumber}호'),
           AppGap.v8,
           _buildInfoRow(
-            '예약시간',
+            '예약 시간',
             DateTimeFormatter.formatToShortWithTime(item.startTime),
           ),
           AppGap.v8,
-          _buildInfoRow(timeLabel, timeValue),
+          _buildInfoRow(status.timeLabel, timeValue),
         ],
       ),
     );
@@ -189,17 +174,14 @@ class _HistoryCard extends StatelessWidget {
       children: [
         Text(
           label,
-          style: WasherTypography.body2(
-            WasherColor.baseGray600,
-          ),
+          style: WasherTypography.body2(WasherColor.baseGray600),
         ),
         Text(
           value,
-          style: WasherTypography.body2(
-            WasherColor.baseGray500,
-          ),
+          style: WasherTypography.body2(WasherColor.baseGray500),
         ),
       ],
     );
   }
 }
+

@@ -82,6 +82,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       body: Center(
         child: WasherIcon(
           type: WasherIconType.logo,
+          size: 120,
         ),
       ),
     );

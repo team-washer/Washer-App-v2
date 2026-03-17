@@ -217,8 +217,9 @@ class _WaitingBody extends ConsumerWidget {
 
     // 예약 시간 + 5분 = 예약 만료 시간
     String updatedRemain = '만료됨';
-    String displayReservedAt =
-        DateTimeFormatter.formatToShortWithTime(reservedAt);
+    String displayReservedAt = DateTimeFormatter.formatToShortWithTime(
+      reservedAt,
+    );
 
     if (reservedAt != null) {
       try {
@@ -274,12 +275,14 @@ class _ReservedBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final now = ref.watch(clockProvider).asData?.value ?? DateTime.now();
-    DateTime? reservedTime = reservedAt != null ? DateTime.tryParse(reservedAt!) : null;
+    DateTime? reservedTime = reservedAt != null
+        ? DateTime.tryParse(reservedAt!)
+        : null;
     String countdown = reservedTime != null
         ? _formatCountdown(reservedTime, now)
         : (finishedAt != null
-            ? _formatCountdown(DateTime.tryParse(finishedAt!), now)
-            : '');
+              ? _formatCountdown(DateTime.tryParse(finishedAt!), now)
+              : '');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -433,6 +436,7 @@ class _BottomSection extends StatelessWidget {
                     actionType: LaundryActionType.cancelReservation,
                     deviceId: deviceId,
                     reservationId: reservationId,
+                    machineId: machineId!,
                   ),
                 ),
               );
@@ -452,6 +456,7 @@ class _BottomSection extends StatelessWidget {
                     actionType: LaundryActionType.reserve,
                     deviceId: deviceId,
                     reservationId: reservationId,
+                    machineId: machineId!,
                   ),
                 ),
               );

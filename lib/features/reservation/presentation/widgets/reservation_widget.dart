@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:washer/core/enums/laundry_action_type.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
 import 'package:washer/core/enums/reservation_state.dart';
 import 'package:washer/core/theme/color.dart';
@@ -7,23 +8,17 @@ import 'package:washer/core/theme/icon.dart';
 import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
 import 'package:washer/core/ui/buttons/custom_big_button.dart';
+import 'package:washer/core/ui/dialog/laundry_action_dialog.dart';
 import 'package:washer/core/ui/reservation_state_widget.dart';
-import 'package:washer/features/home/presentation/viewmodels/home_view_model.dart';
 import 'package:washer/core/utils/date_time_formatter.dart';
 import 'package:washer/features/history/presentation/widgets/history_dialog.dart';
+import 'package:washer/features/home/presentation/viewmodels/home_view_model.dart';
 
-/// 예약 가능 기계를 카드 단위로 표시하는 위젯
-///
-/// 기능:
-/// - 기계 상태별 요약 (가용/예약/사용중 등)
-/// - 예약/예약 취소/시작 버튼 제공
-/// - 사용했던 실나 점율 표시
 class ReservationWidget extends StatelessWidget {
   final LaundryMachineType laundryMachineType;
   final ReservationState reservationState;
   final String machineName;
   final int machineId;
-
   final String? room;
   final String? reservedAt;
   final String? finishedAt;
@@ -35,7 +30,7 @@ class ReservationWidget extends StatelessWidget {
     required this.laundryMachineType,
     required this.reservationState,
     required this.machineName,
-    this.machineId = 0, // 기본값 적용
+    this.machineId = 0,
     this.room,
     this.reservedAt,
     this.finishedAt,
@@ -58,13 +53,10 @@ class ReservationWidget extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // 예) 아이콘 Washser-3F-L1 사용중
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  laundryMachineType.icon(
-                    color: reservationState.color,
-                  ),
+                  laundryMachineType.icon(color: reservationState.color),
                   AppGap.h8,
                   Text(
                     machineName,
@@ -82,7 +74,6 @@ class ReservationWidget extends StatelessWidget {
             ],
           ),
           AppGap.v12,
-          // 상태에 다른 나머지 부분
           ReservationBottomSection(
             machineId: machineId,
             machineName: machineName,
@@ -105,7 +96,6 @@ class ReservationBottomSection extends StatelessWidget {
   final ReservationState reservationState;
   final int machineId;
   final String machineName;
-
   final String? room;
   final String? reservedAt;
   final String? finishedAt;
@@ -129,13 +119,11 @@ class ReservationBottomSection extends StatelessWidget {
   Widget build(BuildContext context) {
     switch (reservationState) {
       case ReservationState.inUse:
-        // 사용 중 일때
         return _InUseBottom(
           laundryMachineType: laundryMachineType,
           finishedAt: finishedAt,
           room: room,
         );
-
       case ReservationState.available:
         return _AvailableBottom(
           machineId: machineId,
@@ -143,34 +131,29 @@ class ReservationBottomSection extends StatelessWidget {
           laundryMachineType: laundryMachineType,
           onReserve: onReserve,
         );
-
       case ReservationState.reservedByMe:
         return _ReservedByMeBottom(
           laundryMachineType: laundryMachineType,
           reservedAt: reservedAt,
         );
-
       case ReservationState.confirmed:
         return _ConfirmedByMeBottom(
           laundryMachineType: laundryMachineType,
           reservedAt: reservedAt,
           finishedAt: finishedAt,
         );
-
       case ReservationState.reservedByOther:
         return _ReservedBottom(
           reservedAt: reservedAt,
           remainDuration: remainDuration,
           room: room,
         );
-
       case ReservationState.unavailable:
         return _UnavailableBottom(laundryMachineType: laundryMachineType);
     }
   }
 }
 
-/// 사용 중일때
 class _InUseBottom extends StatelessWidget {
   final LaundryMachineType laundryMachineType;
   final String? finishedAt;
@@ -188,7 +171,7 @@ class _InUseBottom extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '${laundryMachineType.text} 중…',
+          '${laundryMachineType.text} 중',
           style: WasherTypography.body2(WasherColor.baseGray400),
         ),
         AppGap.v4,
@@ -199,7 +182,7 @@ class _InUseBottom extends StatelessWidget {
         AppGap.v4,
         if (room != null)
           Text(
-            '사용 호실: ${room ?? ''}',
+            '사용 호실: $room',
             style: WasherTypography.body2(WasherColor.baseGray400),
           ),
       ],
@@ -207,7 +190,6 @@ class _InUseBottom extends StatelessWidget {
   }
 }
 
-/// 사용 가능 상태일때
 class _AvailableBottom extends StatelessWidget {
   final LaundryMachineType laundryMachineType;
   final VoidCallback? onReserve;
@@ -239,13 +221,31 @@ class _AvailableBottom extends StatelessWidget {
               color: WasherColor.mainColor500,
             ),
             AppGap.h8,
-            WasherIcon(
+            WasherIconButton(
               type: WasherIconType.warningCircle,
               color: WasherColor.errorColor,
               size: 33,
+              padding: EdgeInsets.zero,
+              onTap: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => Dialog(
+                    child: LaundryActionDialog(
+                      actionType: LaundryActionType.reportBroken,
+                      machineId: machineId,
+                      deviceId: machineName,
+                      reservationId: 0,
+                    ),
+                  ),
+                );
+              },
             ),
             AppGap.h8,
-            GestureDetector(
+            WasherIconButton(
+              type: WasherIconType.historyCircle,
+              color: WasherColor.baseGray200,
+              size: 33,
+              padding: EdgeInsets.zero,
               onTap: () {
                 showDialog(
                   context: context,
@@ -255,11 +255,6 @@ class _AvailableBottom extends StatelessWidget {
                   ),
                 );
               },
-              child: WasherIcon(
-                type: WasherIconType.historyCircle,
-                color: WasherColor.baseGray200,
-                size: 33,
-              ),
             ),
           ],
         ),
@@ -268,7 +263,6 @@ class _AvailableBottom extends StatelessWidget {
   }
 }
 
-/// 내가 예약한 상태 메시지 - 시간 카운트다운 표시
 class _ReservedByMeBottom extends ConsumerWidget {
   final LaundryMachineType laundryMachineType;
   final String? reservedAt;
@@ -278,10 +272,8 @@ class _ReservedByMeBottom extends ConsumerWidget {
     this.reservedAt,
   });
 
-  /// 서버 시간 포멧팅
   String _formatCountdown(DateTime expireAt, DateTime now) {
     final remaining = expireAt.difference(now);
-
     if (remaining.isNegative) return '만료됨';
 
     final minutes = remaining.inMinutes.remainder(60);
@@ -301,7 +293,6 @@ class _ReservedByMeBottom extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final now = ref.watch(clockProvider).asData?.value ?? DateTime.now();
-    // reservedAt 기준 5분 후가 만료 시각
     final reservedTime = reservedAt != null
         ? DateTime.tryParse(reservedAt!)
         : null;
@@ -312,29 +303,25 @@ class _ReservedByMeBottom extends ConsumerWidget {
       children: [
         Text(
           '예약 시간: ${DateTimeFormatter.formatToShortWithTime(reservedAt)}',
-          style: WasherTypography.body2(
-            WasherColor.baseGray500,
-          ),
+          style: WasherTypography.body2(WasherColor.baseGray500),
         ),
         AppGap.v4,
         Text(
           '예약 만료까지: ${expireAt != null ? _formatCountdown(expireAt, now) : ''}',
-          style: WasherTypography.body2(
-            WasherColor.errorColor,
-          ),
+          style: WasherTypography.body2(WasherColor.errorColor),
         ),
         AppGap.v12,
         Row(
           children: [
             CustomBigButton(
               text: '예약 취소',
-              onPressed: () {}, //TTODO 예약 취소 기능 구현
+              onPressed: () {},
               color: WasherColor.baseGray200,
             ),
             AppGap.h8,
             CustomBigButton(
               text: '${laundryMachineType.text} 시작',
-              onPressed: () {}, //TODO: 세탁/건조 시작 기능 구현
+              onPressed: () {},
               color: WasherColor.mainColor500,
             ),
           ],
@@ -344,7 +331,6 @@ class _ReservedByMeBottom extends ConsumerWidget {
   }
 }
 
-/// 예약 확인 중 상태 - myReservation 의 confirmed 와 동일한 UI
 class _ConfirmedByMeBottom extends ConsumerWidget {
   final LaundryMachineType laundryMachineType;
   final String? reservedAt;
@@ -358,22 +344,22 @@ class _ConfirmedByMeBottom extends ConsumerWidget {
 
   String _formatCountdown(DateTime? baseTime, DateTime now) {
     if (baseTime == null) return '';
-    final DateTime expiryTime = baseTime.add(const Duration(minutes: 3));
-    final Duration remaining = expiryTime.difference(now);
+    final expiryTime = baseTime.add(const Duration(minutes: 3));
+    final remaining = expiryTime.difference(now);
     if (remaining.isNegative) return '만료됨';
-    final int m = remaining.inMinutes;
-    final int s = remaining.inSeconds % 60;
-    return '${m.toString().padLeft(2, '0')}분 ${s.toString().padLeft(2, '0')}초';
+
+    final minutes = remaining.inMinutes;
+    final seconds = remaining.inSeconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}분 ${seconds.toString().padLeft(2, '0')}초';
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final DateTime now =
-        ref.watch(clockProvider).asData?.value ?? DateTime.now();
-    final DateTime? reservedTime = reservedAt != null
+    final now = ref.watch(clockProvider).asData?.value ?? DateTime.now();
+    final reservedTime = reservedAt != null
         ? DateTime.tryParse(reservedAt!)
         : null;
-    final String countdown = reservedTime != null
+    final countdown = reservedTime != null
         ? _formatCountdown(reservedTime, now)
         : (finishedAt != null
               ? _formatCountdown(DateTime.tryParse(finishedAt!), now)
@@ -383,17 +369,13 @@ class _ConfirmedByMeBottom extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '기기에 연결 중입니다. 잠시만 기다려주세요.',
-          style: WasherTypography.body2(
-            WasherColor.baseGray500,
-          ),
+          '기기 연결을 확인 중입니다. 잠시만 기다려 주세요.',
+          style: WasherTypography.body2(WasherColor.baseGray500),
         ),
         AppGap.v4,
         Text(
           '예정 완료 시간: $countdown',
-          style: WasherTypography.body2(
-            WasherColor.baseGray500,
-          ),
+          style: WasherTypography.body2(WasherColor.baseGray500),
         ),
         AppGap.v12,
       ],
@@ -401,7 +383,6 @@ class _ConfirmedByMeBottom extends ConsumerWidget {
   }
 }
 
-/// 다른 사람이 예약한 상태 - 예약 불가능
 class _ReservedBottom extends StatelessWidget {
   final String? reservedAt;
   final String? remainDuration;
@@ -429,7 +410,7 @@ class _ReservedBottom extends StatelessWidget {
         ),
         AppGap.v4,
         Text(
-          '사용 호실: ${room ?? ''}호',
+          '사용 호실: ${room ?? ''}',
           style: WasherTypography.body2(WasherColor.baseGray500),
         ),
       ],
@@ -437,7 +418,6 @@ class _ReservedBottom extends StatelessWidget {
   }
 }
 
-/// 사용 불가 상태 메시지 - 고장 등의 이유로 예약/사용 모두 불가
 class _UnavailableBottom extends StatelessWidget {
   final LaundryMachineType laundryMachineType;
 
@@ -446,10 +426,8 @@ class _UnavailableBottom extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      '${laundryMachineType.text}기 고장으로 인해 당분간 사용이 정지됩니다.',
-      style: WasherTypography.body2(
-        WasherColor.errorColor,
-      ),
+      '${laundryMachineType.text}기 고장으로 인해 당분간 사용할 수 없습니다.',
+      style: WasherTypography.body2(WasherColor.errorColor),
     );
   }
 }

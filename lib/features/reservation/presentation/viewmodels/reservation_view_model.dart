@@ -181,15 +181,17 @@ class ReservationViewModel extends Notifier<ReservationActionState> {
     _pollingTimer = Timer.periodic(const Duration(seconds: 10), (_) async {
       try {
         // 현재 캐시된 활성 예약
-        final ActiveReservationModel? current =
-            ref.read(activeReservationProvider).maybeWhen(
-                  data: (value) => value,
-                  orElse: () => null,
-                );
+        final ActiveReservationModel? current = ref
+            .read(activeReservationProvider)
+            .maybeWhen(
+              data: (value) => value,
+              orElse: () => null,
+            );
 
         // 서버에서 최신 myReservation 조회
-        final ActiveReservationModel? latest =
-            await ref.read(homeRepositoryProvider).getActiveReservation();
+        final ActiveReservationModel? latest = await ref
+            .read(homeRepositoryProvider)
+            .getActiveReservation();
 
         // 데이터가 변경된 경우에만 상태 갱신 (로딩 상태 없이)
         if (current != latest) {

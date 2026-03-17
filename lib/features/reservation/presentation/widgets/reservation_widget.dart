@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/enums/laundry_action_type.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
@@ -15,28 +15,30 @@ import 'package:washer/features/history/presentation/widgets/history_dialog.dart
 import 'package:washer/features/home/presentation/viewmodels/home_view_model.dart';
 
 class ReservationWidget extends StatelessWidget {
-  final LaundryMachineType laundryMachineType;
-  final ReservationState reservationState;
-  final String machineName;
-  final int machineId;
-  final String? room;
-  final String? reservedAt;
-  final String? finishedAt;
-  final String? remainDuration;
-  final VoidCallback? onReserve;
-
   const ReservationWidget({
     super.key,
     required this.laundryMachineType,
     required this.reservationState,
     required this.machineName,
     this.machineId = 0,
+    this.reservationId = 0,
     this.room,
     this.reservedAt,
     this.finishedAt,
     this.remainDuration,
     this.onReserve,
   });
+
+  final LaundryMachineType laundryMachineType;
+  final ReservationState reservationState;
+  final String machineName;
+  final int machineId;
+  final int reservationId;
+  final String? room;
+  final String? reservedAt;
+  final String? finishedAt;
+  final String? remainDuration;
+  final VoidCallback? onReserve;
 
   @override
   Widget build(BuildContext context) {
@@ -76,6 +78,7 @@ class ReservationWidget extends StatelessWidget {
           AppGap.v12,
           ReservationBottomSection(
             machineId: machineId,
+            reservationId: reservationId,
             machineName: machineName,
             laundryMachineType: laundryMachineType,
             reservationState: reservationState,
@@ -92,21 +95,12 @@ class ReservationWidget extends StatelessWidget {
 }
 
 class ReservationBottomSection extends StatelessWidget {
-  final LaundryMachineType laundryMachineType;
-  final ReservationState reservationState;
-  final int machineId;
-  final String machineName;
-  final String? room;
-  final String? reservedAt;
-  final String? finishedAt;
-  final String? remainDuration;
-  final VoidCallback? onReserve;
-
   const ReservationBottomSection({
     super.key,
     required this.reservationState,
     required this.laundryMachineType,
     this.machineId = 0,
+    this.reservationId = 0,
     this.machineName = '',
     this.room,
     this.reservedAt,
@@ -114,6 +108,17 @@ class ReservationBottomSection extends StatelessWidget {
     this.remainDuration,
     this.onReserve,
   });
+
+  final LaundryMachineType laundryMachineType;
+  final ReservationState reservationState;
+  final int machineId;
+  final int reservationId;
+  final String machineName;
+  final String? room;
+  final String? reservedAt;
+  final String? finishedAt;
+  final String? remainDuration;
+  final VoidCallback? onReserve;
 
   @override
   Widget build(BuildContext context) {
@@ -135,6 +140,9 @@ class ReservationBottomSection extends StatelessWidget {
         return _ReservedByMeBottom(
           laundryMachineType: laundryMachineType,
           reservedAt: reservedAt,
+          machineId: machineId,
+          reservationId: reservationId,
+          machineName: machineName,
         );
       case ReservationState.confirmed:
         return _ConfirmedByMeBottom(
@@ -155,15 +163,15 @@ class ReservationBottomSection extends StatelessWidget {
 }
 
 class _InUseBottom extends StatelessWidget {
-  final LaundryMachineType laundryMachineType;
-  final String? finishedAt;
-  final String? room;
-
   const _InUseBottom({
     required this.laundryMachineType,
     this.finishedAt,
     this.room,
   });
+
+  final LaundryMachineType laundryMachineType;
+  final String? finishedAt;
+  final String? room;
 
   @override
   Widget build(BuildContext context) {
@@ -171,12 +179,12 @@ class _InUseBottom extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '${laundryMachineType.text} 중',
+          '${laundryMachineType.text} 사용 중',
           style: WasherTypography.body2(WasherColor.baseGray400),
         ),
         AppGap.v4,
         Text(
-          '${laundryMachineType.text} 완료 예정시간: ${DateTimeFormatter.formatToShortWithTime(finishedAt)}',
+          '${laundryMachineType.text} 완료 예정 시간: ${DateTimeFormatter.formatToShortWithTime(finishedAt)}',
           style: WasherTypography.body2(WasherColor.baseGray400),
         ),
         AppGap.v4,
@@ -191,17 +199,17 @@ class _InUseBottom extends StatelessWidget {
 }
 
 class _AvailableBottom extends StatelessWidget {
-  final LaundryMachineType laundryMachineType;
-  final VoidCallback? onReserve;
-  final int machineId;
-  final String machineName;
-
   const _AvailableBottom({
     required this.laundryMachineType,
     this.onReserve,
     required this.machineId,
     required this.machineName,
   });
+
+  final LaundryMachineType laundryMachineType;
+  final VoidCallback? onReserve;
+  final int machineId;
+  final String machineName;
 
   @override
   Widget build(BuildContext context) {
@@ -264,13 +272,19 @@ class _AvailableBottom extends StatelessWidget {
 }
 
 class _ReservedByMeBottom extends ConsumerWidget {
-  final LaundryMachineType laundryMachineType;
-  final String? reservedAt;
-
   const _ReservedByMeBottom({
     required this.laundryMachineType,
     this.reservedAt,
+    required this.machineId,
+    required this.reservationId,
+    required this.machineName,
   });
+
+  final LaundryMachineType laundryMachineType;
+  final String? reservedAt;
+  final int machineId;
+  final int reservationId;
+  final String machineName;
 
   String _formatCountdown(DateTime expireAt, DateTime now) {
     final remaining = expireAt.difference(now);
@@ -293,9 +307,7 @@ class _ReservedByMeBottom extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final now = ref.watch(clockProvider).asData?.value ?? DateTime.now();
-    final reservedTime = reservedAt != null
-        ? DateTime.tryParse(reservedAt!)
-        : null;
+    final reservedTime = reservedAt != null ? DateTime.tryParse(reservedAt!) : null;
     final expireAt = reservedTime?.add(const Duration(minutes: 5));
 
     return Column(
@@ -315,13 +327,41 @@ class _ReservedByMeBottom extends ConsumerWidget {
           children: [
             CustomBigButton(
               text: '예약 취소',
-              onPressed: () {},
+              onPressed: () {
+                if (reservationId > 0) {
+                  showDialog(
+                    context: context,
+                    builder: (context) => Dialog(
+                      child: LaundryActionDialog(
+                        actionType: LaundryActionType.cancelReservation,
+                        deviceId: machineName,
+                        reservationId: reservationId,
+                        machineId: machineId,
+                      ),
+                    ),
+                  );
+                }
+              },
               color: WasherColor.baseGray200,
             ),
             AppGap.h8,
             CustomBigButton(
               text: '${laundryMachineType.text} 시작',
-              onPressed: () {},
+              onPressed: () {
+                if (reservationId > 0) {
+                  showDialog(
+                    context: context,
+                    builder: (context) => Dialog(
+                      child: LaundryActionDialog(
+                        actionType: LaundryActionType.reserve,
+                        deviceId: machineName,
+                        reservationId: reservationId,
+                        machineId: machineId,
+                      ),
+                    ),
+                  );
+                }
+              },
               color: WasherColor.mainColor500,
             ),
           ],
@@ -332,15 +372,15 @@ class _ReservedByMeBottom extends ConsumerWidget {
 }
 
 class _ConfirmedByMeBottom extends ConsumerWidget {
-  final LaundryMachineType laundryMachineType;
-  final String? reservedAt;
-  final String? finishedAt;
-
   const _ConfirmedByMeBottom({
     required this.laundryMachineType,
     this.reservedAt,
     this.finishedAt,
   });
+
+  final LaundryMachineType laundryMachineType;
+  final String? reservedAt;
+  final String? finishedAt;
 
   String _formatCountdown(DateTime? baseTime, DateTime now) {
     if (baseTime == null) return '';
@@ -356,9 +396,7 @@ class _ConfirmedByMeBottom extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final now = ref.watch(clockProvider).asData?.value ?? DateTime.now();
-    final reservedTime = reservedAt != null
-        ? DateTime.tryParse(reservedAt!)
-        : null;
+    final reservedTime = reservedAt != null ? DateTime.tryParse(reservedAt!) : null;
     final countdown = reservedTime != null
         ? _formatCountdown(reservedTime, now)
         : (finishedAt != null
@@ -369,7 +407,7 @@ class _ConfirmedByMeBottom extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '기기 연결을 확인 중입니다. 잠시만 기다려 주세요.',
+          '기기 연결을 확인하고 있습니다. 잠시만 기다려주세요.',
           style: WasherTypography.body2(WasherColor.baseGray500),
         ),
         AppGap.v4,
@@ -384,15 +422,15 @@ class _ConfirmedByMeBottom extends ConsumerWidget {
 }
 
 class _ReservedBottom extends StatelessWidget {
-  final String? reservedAt;
-  final String? remainDuration;
-  final String? room;
-
   const _ReservedBottom({
     this.reservedAt,
     this.remainDuration,
     this.room,
   });
+
+  final String? reservedAt;
+  final String? remainDuration;
+  final String? room;
 
   @override
   Widget build(BuildContext context) {
@@ -419,14 +457,14 @@ class _ReservedBottom extends StatelessWidget {
 }
 
 class _UnavailableBottom extends StatelessWidget {
-  final LaundryMachineType laundryMachineType;
-
   const _UnavailableBottom({required this.laundryMachineType});
+
+  final LaundryMachineType laundryMachineType;
 
   @override
   Widget build(BuildContext context) {
     return Text(
-      '${laundryMachineType.text}기 고장으로 인해 당분간 사용할 수 없습니다.',
+      '${laundryMachineType.text} 기기 고장으로 인해 당분간 사용할 수 없습니다.',
       style: WasherTypography.body2(WasherColor.errorColor),
     );
   }

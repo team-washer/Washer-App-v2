@@ -80,6 +80,7 @@ class _ReservationSectionWidgetState
             room: isMyMachine ? activeReservation.userRoomNumber : null,
             reservedAt: isMyMachine ? activeReservation.reservedAt : null,
             remainDuration: null,
+            reservationId: m.reservationId ?? 0,
           );
         })
         .toList();
@@ -140,6 +141,7 @@ class _ReservationSectionWidgetState
                     room: item.room,
                     reservedAt: item.reservedAt,
                     remainDuration: item.remainDuration,
+                    reservationId: item.reservationId,
                     onReserve: item.state == ReservationState.available
                         ? () async {
                             try {
@@ -271,6 +273,7 @@ class _MachineData {
     this.room,
     this.reservedAt,
     this.remainDuration,
+    this.reservationId = 0,
   });
 
   final int machineId;
@@ -280,4 +283,6 @@ class _MachineData {
   final String? room;
   final String? reservedAt;
   final String? remainDuration;
+  final int reservationId;
 }
+

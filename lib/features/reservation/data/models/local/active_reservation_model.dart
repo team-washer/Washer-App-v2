@@ -1,4 +1,4 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
+﻿import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
 import 'package:washer/core/enums/laundry_status.dart';
 
@@ -26,9 +26,19 @@ abstract class ActiveReservationModel with _$ActiveReservationModel {
   factory ActiveReservationModel.fromJson(Map<String, dynamic> json) =>
       _$ActiveReservationModelFromJson(json);
 
-  LaundryMachineType get machineType => machineName.contains('세탁')
-      ? LaundryMachineType.washer
-      : LaundryMachineType.dryer;
+  LaundryMachineType get machineType {
+    final normalizedName = machineName.toLowerCase();
+
+    if (normalizedName.startsWith('washer') || machineName.contains('세탁')) {
+      return LaundryMachineType.washer;
+    }
+
+    if (normalizedName.startsWith('dryer') || machineName.contains('건조')) {
+      return LaundryMachineType.dryer;
+    }
+
+    return LaundryMachineType.dryer;
+  }
 
   LaundryStatus get laundryStatus {
     switch (status) {

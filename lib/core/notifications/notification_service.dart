@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -25,6 +25,59 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // 로컬 알림 플러그인 초기화
+  final localNotifications = FlutterLocalNotificationsPlugin();
+
+  const initializationSettings = InitializationSettings(
+    android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+    iOS: DarwinInitializationSettings(
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
+    ),
+  );
+  await localNotifications.initialize(initializationSettings);
+
+  // Android 알림 채널 생성
+  await localNotifications
+      .resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin
+      >()
+      ?.createNotificationChannel(
+        const AndroidNotificationChannel(
+          _completionChannelId,
+          _completionChannelName,
+          description: '세탁 및 건조 완료 알림 채널',
+          importance: Importance.max,
+        ),
+      );
+
+  final notification = message.notification;
+  final title = notification?.title ?? '세탁 알림';
+  final body = notification?.body ?? '새 알림이 도착했습니다.';
+
+  await localNotifications.show(
+    message.messageId?.hashCode.abs() ??
+        DateTime.now().millisecondsSinceEpoch.remainder(100000),
+    title,
+    body,
+    const NotificationDetails(
+      android: AndroidNotificationDetails(
+        _completionChannelId,
+        _completionChannelName,
+        channelDescription: '세탁 및 건조 완료 알림 채널',
+        importance: Importance.max,
+        priority: Priority.high,
+      ),
+      iOS: DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      ),
+    ),
+    payload: message.data.isEmpty ? null : message.data.toString(),
   );
 }
 
@@ -107,8 +160,8 @@ class NotificationService {
 
     await _localNotifications.zonedSchedule(
       _completionNotificationId,
-      '${reservation.machineType.text} ?꾨즺 ?뚮┝',
-      '${reservation.machineName} ?ъ슜???꾨즺?섏뿀?듬땲?? ?명긽臾쇱쓣 ?뺤씤?댁＜?몄슂.',
+      '${reservation.machineType.text} 완료 알림',
+      '${reservation.machineName} 사용이 완료되었습니다. 세탁물을 확인해주세요.',
       tz.TZDateTime.from(completionTime, tz.local),
       _notificationDetails(),
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
@@ -127,8 +180,8 @@ class NotificationService {
     await _initializeLocalNotifications();
 
     final notification = message.notification;
-    final title = notification?.title ?? '?명긽 ?뚮┝';
-    final body = notification?.body ?? '???뚮┝???꾩갑?덉뒿?덈떎.';
+    final title = notification?.title ?? '세탁 알림';
+    final body = notification?.body ?? '새 알림이 도착했습니다.';
 
     await _localNotifications.show(
       _remoteNotificationId(message),
@@ -168,7 +221,7 @@ class NotificationService {
     const channel = AndroidNotificationChannel(
       _completionChannelId,
       _completionChannelName,
-      description: '?명긽 諛?嫄댁“ ?꾨즺 ?뚮┝ 梨꾨꼸',
+      description: '세탁 및 건조 완료 알림 채널',
       importance: Importance.max,
     );
 
@@ -212,7 +265,7 @@ class NotificationService {
       android: AndroidNotificationDetails(
         _completionChannelId,
         _completionChannelName,
-        channelDescription: '?명긽 諛?嫄댁“ ?꾨즺 ?뚮┝ 梨꾨꼸',
+        channelDescription: '세탁 및 건조 완료 알림 채널',
         importance: Importance.max,
         priority: Priority.high,
       ),
@@ -243,5 +296,3 @@ final notificationServiceProvider = Provider<NotificationService>((ref) {
 final notificationInitializationProvider = FutureProvider<void>((ref) async {
   await ref.watch(notificationServiceProvider).initialize();
 });
-
-

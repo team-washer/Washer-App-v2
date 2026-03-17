@@ -1,4 +1,4 @@
-import 'package:dio/dio.dart';
+﻿import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/features/home/presentation/viewmodels/home_view_model.dart';
 import 'package:washer/features/report/data/repositories/report_repository.dart';
@@ -6,30 +6,20 @@ import 'package:washer/features/report/data/repositories/report_repository.dart'
 enum ReportActionStatus { idle, loading, success, error }
 
 class ReportActionState {
-  final ReportActionStatus status;
-  final String? errorMessage;
-
   const ReportActionState({
     this.status = ReportActionStatus.idle,
     this.errorMessage,
   });
 
-  ReportActionState copyWith({
-    ReportActionStatus? status,
-    String? errorMessage,
-  }) {
-    return ReportActionState(
-      status: status ?? this.status,
-      errorMessage: errorMessage ?? this.errorMessage,
-    );
-  }
+  final ReportActionStatus status;
+  final String? errorMessage;
 }
 
 class ReportViewModel extends Notifier<ReportActionState> {
   @override
   ReportActionState build() => const ReportActionState();
 
-  Future<bool> createMalfunctionReport({
+  Future<ReportActionState> createMalfunctionReport({
     required int machineId,
     required String description,
   }) async {
@@ -43,8 +33,9 @@ class ReportViewModel extends Notifier<ReportActionState> {
       await ref.read(machineStatusProvider.notifier).refresh();
       await ref.read(activeReservationProvider.notifier).refresh();
 
-      state = const ReportActionState(status: ReportActionStatus.success);
-      return true;
+      const nextState = ReportActionState(status: ReportActionStatus.success);
+      state = nextState;
+      return nextState;
     } catch (e) {
       var errorMessage = '고장 신고에 실패했습니다. 다시 시도해 주세요.';
 
@@ -57,11 +48,12 @@ class ReportViewModel extends Notifier<ReportActionState> {
         }
       }
 
-      state = ReportActionState(
+      final nextState = ReportActionState(
         status: ReportActionStatus.error,
         errorMessage: errorMessage,
       );
-      return false;
+      state = nextState;
+      return nextState;
     }
   }
 

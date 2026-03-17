@@ -123,7 +123,7 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
     if (state.hasError) {
       _onError();
     } else {
-      context.go(RoutePaths.home);
+      context.go(RoutePaths.splash);
     }
   }
 
@@ -158,3 +158,8 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
     );
   }
 }
+
+
+
+
+

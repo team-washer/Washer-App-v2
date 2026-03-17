@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
-import 'package:washer/core/enums/reservation_state.dart';
 import 'package:washer/core/enums/laundry_status.dart';
+import 'package:washer/core/enums/reservation_state.dart';
 import 'package:washer/core/router/route_paths.dart';
 import 'package:washer/core/theme/color.dart';
 import 'package:washer/core/theme/spacing.dart';
@@ -15,14 +15,14 @@ import 'package:washer/features/reservation/presentation/viewmodels/reservation_
 import 'package:washer/features/reservation/presentation/widgets/reservation_widget.dart';
 
 class ReservationSectionWidget extends ConsumerStatefulWidget {
-  final LaundryMachineType laundryMachineType;
-  final VoidCallback? onMapTap;
-
   const ReservationSectionWidget({
     super.key,
     required this.laundryMachineType,
     this.onMapTap,
   });
+
+  final LaundryMachineType laundryMachineType;
+  final VoidCallback? onMapTap;
 
   @override
   ConsumerState<ReservationSectionWidget> createState() =>
@@ -80,6 +80,7 @@ class _ReservationSectionWidgetState
             room: isMyMachine ? activeReservation.userRoomNumber : null,
             reservedAt: isMyMachine ? activeReservation.reservedAt : null,
             remainDuration: null,
+            reservationId: m.reservationId ?? 0,
           );
         })
         .toList();
@@ -140,24 +141,16 @@ class _ReservationSectionWidgetState
                     room: item.room,
                     reservedAt: item.reservedAt,
                     remainDuration: item.remainDuration,
-                    // 가용 상태일 때만 버튼 활성화
+                    reservationId: item.reservationId,
                     onReserve: item.state == ReservationState.available
                         ? () async {
                             try {
-                              // reservationViewModel의 reserve 메서드 호출
-                              await ref
+                              final reservationState = await ref
                                   .read(reservationViewModelProvider.notifier)
-                                  .reserve(
-                                    machineId: item.machineId,
-                                  );
+                                  .reserve(machineId: item.machineId);
 
-                              // 예약 상태 확인
-                              final reservationState = ref.read(
-                                reservationViewModelProvider,
-                              );
                               if (reservationState.status ==
                                   ReservationActionStatus.error) {
-                                // 에러 발생한 경우
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
@@ -171,7 +164,6 @@ class _ReservationSectionWidgetState
                               }
 
                               if (context.mounted) {
-                                // 예약 성공 후 홈으로 이동
                                 context.go(RoutePaths.home);
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
@@ -204,17 +196,17 @@ class _ReservationSectionWidgetState
 }
 
 class _FloorSelectorRow extends StatelessWidget {
-  final List<int> floors;
-  final int selectedFloor;
-  final ValueChanged<int> onFloorChanged;
-  final VoidCallback? onMapTap;
-
   const _FloorSelectorRow({
     required this.floors,
     required this.selectedFloor,
     required this.onFloorChanged,
     this.onMapTap,
   });
+
+  final List<int> floors;
+  final int selectedFloor;
+  final ValueChanged<int> onFloorChanged;
+  final VoidCallback? onMapTap;
 
   @override
   Widget build(BuildContext context) {
@@ -273,14 +265,6 @@ class _FloorSelectorRow extends StatelessWidget {
 }
 
 class _MachineData {
-  final int machineId;
-  final String name;
-  final ReservationState state;
-  final String? finishedAt;
-  final String? room;
-  final String? reservedAt;
-  final String? remainDuration;
-
   _MachineData(
     this.machineId,
     this.name,
@@ -289,5 +273,19 @@ class _MachineData {
     this.room,
     this.reservedAt,
     this.remainDuration,
+    this.reservationId = 0,
   });
+
+  final int machineId;
+  final String name;
+  final ReservationState state;
+  final String? finishedAt;
+  final String? room;
+  final String? reservedAt;
+  final String? remainDuration;
+  final int reservationId;
 }
+
+
+
+

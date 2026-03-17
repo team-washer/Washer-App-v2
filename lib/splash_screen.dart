@@ -15,10 +15,10 @@ class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  ConsumerState<SplashScreen> createState() => _SplashState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashState extends ConsumerState<SplashScreen> {
+class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() {
     super.initState();
@@ -39,7 +39,9 @@ class _SplashState extends ConsumerState<SplashScreen> {
       return;
     }
 
-    if (hasAccessToken && TokenUtils.isExpired(accessToken) && !hasRefreshToken) {
+    if (hasAccessToken &&
+        TokenUtils.isExpired(accessToken) &&
+        !hasRefreshToken) {
       await _goToLogin(storage);
       return;
     }
@@ -85,4 +87,3 @@ class _SplashState extends ConsumerState<SplashScreen> {
     );
   }
 }
-

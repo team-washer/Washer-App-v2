@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/enums/laundry_action_type.dart';
 import 'package:washer/core/theme/color.dart';
@@ -79,15 +79,15 @@ class _LaundryActionDialogState extends ConsumerState<LaundryActionDialog> {
             return;
           }
 
-          await ref
+          final success = await ref
               .read(reportViewModelProvider.notifier)
               .createMalfunctionReport(
                 machineId: widget.machineId,
                 description: description,
               );
 
-          final reportState = ref.read(reportViewModelProvider);
-          if (reportState.status == ReportActionStatus.error) {
+          if (!success) {
+            final reportState = ref.read(reportViewModelProvider);
             if (!mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -165,9 +165,7 @@ class _ActionConfig {
           confirmColor: WasherColor.errorColor,
         );
       case LaundryActionType.reportBroken:
-        return const _ActionConfig(
-          confirmText: '신고하기',
-        );
+        return const _ActionConfig(confirmText: '신고하기');
     }
   }
 }

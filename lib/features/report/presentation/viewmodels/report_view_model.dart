@@ -29,16 +29,14 @@ class ReportViewModel extends Notifier<ReportActionState> {
   @override
   ReportActionState build() => const ReportActionState();
 
-  Future<void> createMalfunctionReport({
+  Future<bool> createMalfunctionReport({
     required int machineId,
     required String description,
   }) async {
     state = const ReportActionState(status: ReportActionStatus.loading);
 
     try {
-      await ref
-          .read(reportRepositoryProvider)
-          .createMalfunctionReport(
+      await ref.read(reportRepositoryProvider).createMalfunctionReport(
             machineId: machineId,
             description: description,
           );
@@ -46,6 +44,7 @@ class ReportViewModel extends Notifier<ReportActionState> {
       await ref.read(activeReservationProvider.notifier).refresh();
 
       state = const ReportActionState(status: ReportActionStatus.success);
+      return true;
     } catch (e) {
       var errorMessage = '고장 신고에 실패했습니다. 다시 시도해 주세요.';
 
@@ -62,6 +61,7 @@ class ReportViewModel extends Notifier<ReportActionState> {
         status: ReportActionStatus.error,
         errorMessage: errorMessage,
       );
+      return false;
     }
   }
 

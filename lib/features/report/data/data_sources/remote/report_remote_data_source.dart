@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/network/dio_client.dart';
+import 'package:washer/core/utils/background_task.dart';
 
 abstract class ReportRemoteDataSource {
   Future<void> createMalfunctionReport({
@@ -9,21 +10,25 @@ abstract class ReportRemoteDataSource {
 }
 
 class ReportRemoteDataSourceImpl implements ReportRemoteDataSource {
-  final DioClient _client;
-
   const ReportRemoteDataSourceImpl(this._client);
+
+  final DioClient _client;
 
   @override
   Future<void> createMalfunctionReport({
     required int machineId,
     required String description,
   }) async {
-    await _client.post(
-      '/api/v2/malfunction-reports',
-      data: {
+    final payload = await runInBackground(
+      () => <String, dynamic>{
         'machineId': machineId,
         'description': description,
       },
+    );
+
+    await _client.post(
+      '/api/v2/malfunction-reports',
+      data: payload,
     );
   }
 }

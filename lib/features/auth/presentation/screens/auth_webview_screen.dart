@@ -1,4 +1,5 @@
-﻿import 'dart:convert';
+import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -14,36 +15,43 @@ import 'package:webview_flutter/webview_flutter.dart';
 const _redirectUri = 'com.washer://auth/callback';
 const _callbackScheme = 'com.washer';
 
-/// RFC 7636 PKCE: 32 바이트 난수를 base64url(패딩 없음)로 인코딩
+_AuthWebViewSession? _cachedAuthSession;
+
 String _generateCodeVerifier() {
   final random = Random.secure();
   final bytes = List<int>.generate(32, (_) => random.nextInt(256));
   return base64UrlEncode(bytes).replaceAll('=', '');
 }
 
+class _AuthWebViewSession {
+  _AuthWebViewSession({
+    required this.controller,
+    required this.codeVerifier,
+    required this.isLoading,
+  });
+
+  final WebViewController controller;
+  final String codeVerifier;
+  final ValueNotifier<bool> isLoading;
+
+  void dispose() {
+    isLoading.dispose();
+  }
+}
+
 class AuthWebViewScreen extends ConsumerStatefulWidget {
   const AuthWebViewScreen({super.key});
 
-  @override
-  ConsumerState<AuthWebViewScreen> createState() => _AuthWebViewScreenState();
-}
-
-class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
-  WebViewController? _controller;
-  String _codeVerifier = '';
-  bool _isLoading = true;
-  bool _isDisposed = false;
-
-  @override
-  void dispose() {
-    _isDisposed = true;
-    super.dispose();
+  static void preload() {
+    _cachedAuthSession ??= _createSession();
   }
 
-  @override
-  void initState() {
-    super.initState();
+  static void clearPreloadedSession() {
+    _cachedAuthSession?.dispose();
+    _cachedAuthSession = null;
+  }
 
+  static _AuthWebViewSession? _createSession() {
     final oauthBaseUrl = dotenv.env['OAUTH_BASE_URL'];
     final clientId = dotenv.env['OAUTH_CLIENT_ID'];
 
@@ -51,12 +59,11 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
         oauthBaseUrl.isEmpty ||
         clientId == null ||
         clientId.isEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _onError());
-      return;
+      return null;
     }
 
-    _codeVerifier = _generateCodeVerifier();
-
+    final codeVerifier = _generateCodeVerifier();
+    final isLoading = ValueNotifier<bool>(true);
     final uri = Uri.parse(oauthBaseUrl).replace(
       queryParameters: {
         'redirect_uri': _redirectUri,
@@ -64,34 +71,81 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
       },
     );
 
+    final controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(WasherColor.backgroundColor)
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageStarted: (_) => isLoading.value = true,
+          onPageFinished: (_) => isLoading.value = false,
+        ),
+      )
+      ..loadRequest(uri);
+
+    return _AuthWebViewSession(
+      controller: controller,
+      codeVerifier: codeVerifier,
+      isLoading: isLoading,
+    );
+  }
+
+  @override
+  ConsumerState<AuthWebViewScreen> createState() => _AuthWebViewScreenState();
+}
+
+class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
+  _AuthWebViewSession? _session;
+  bool _isDisposed = false;
+  bool _isHandlingAuthCode = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    final session = _cachedAuthSession ?? AuthWebViewScreen._createSession();
+    if (session == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _onError());
+      return;
+    }
+
+    _cachedAuthSession = session;
+    _session = session;
+
     try {
-      _controller = WebViewController()
-        ..setJavaScriptMode(JavaScriptMode.unrestricted)
-        ..setBackgroundColor(WasherColor.backgroundColor)
-        ..setNavigationDelegate(
-          NavigationDelegate(
-            onPageStarted: (_) {
-              if (!_isDisposed) setState(() => _isLoading = true);
-            },
-            onPageFinished: (_) {
-              if (!_isDisposed) setState(() => _isLoading = false);
-            },
-            onWebResourceError: (error) {
-              // 메인 프레임 로드 실패일 때만 에러 처리
-              if (error.isForMainFrame ?? true) {
-                if (!_isDisposed) setState(() => _isLoading = false);
-                _onError();
-              }
-            },
-            onNavigationRequest: _handleNavigationRequest,
-          ),
-        )
-        ..loadRequest(uri);
+      _attachNavigationDelegate(session);
     } catch (_) {
-      // 네이티브 WebView 채널 연결 실패 (Hot Restart 후 등)
-      // → 앱을 완전히 재시작하면 해결됨
       WidgetsBinding.instance.addPostFrameCallback((_) => _onError());
     }
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
+  }
+
+  void _attachNavigationDelegate(_AuthWebViewSession session) {
+    session.controller.setNavigationDelegate(
+      NavigationDelegate(
+        onPageStarted: (_) {
+          if (!_isDisposed) {
+            session.isLoading.value = true;
+          }
+        },
+        onPageFinished: (_) {
+          if (!_isDisposed) {
+            session.isLoading.value = false;
+          }
+        },
+        onWebResourceError: (error) {
+          if (error.isForMainFrame ?? true) {
+            session.isLoading.value = false;
+            _onError();
+          }
+        },
+        onNavigationRequest: _handleNavigationRequest,
+      ),
+    );
   }
 
   NavigationDecision _handleNavigationRequest(NavigationRequest request) {
@@ -101,7 +155,7 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
     if (uri.scheme == _callbackScheme) {
       final authCode = uri.queryParameters['code'];
       if (authCode != null && authCode.isNotEmpty) {
-        _onAuthCode(authCode);
+        unawaited(_onAuthCode(authCode));
       } else {
         _onError();
       }
@@ -112,10 +166,17 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
   }
 
   Future<void> _onAuthCode(String authCode) async {
-    if (_isDisposed || !mounted) return;
+    final session = _session;
+    if (_isDisposed || !mounted || _isHandlingAuthCode || session == null) {
+      return;
+    }
+
+    _isHandlingAuthCode = true;
+    session.isLoading.value = true;
+
     await ref
         .read(authCallbackViewModelProvider.notifier)
-        .handleAuthCode(authCode, _codeVerifier);
+        .handleAuthCode(authCode, session.codeVerifier);
 
     if (!mounted) return;
 
@@ -123,11 +184,13 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
     if (state.hasError) {
       _onError();
     } else {
+      AuthWebViewScreen.clearPreloadedSession();
       context.go(RoutePaths.splash);
     }
   }
 
   void _onError() {
+    AuthWebViewScreen.clearPreloadedSession();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('로그인에 실패했습니다. 다시 시도해주세요.')),
@@ -137,8 +200,8 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final controller = _controller;
-    if (controller == null) {
+    final session = _session;
+    if (session == null) {
       return const AuthBaseScaffold(body: SizedBox.shrink());
     }
 
@@ -147,19 +210,27 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
     return AuthBaseScaffold(
       body: Stack(
         children: [
-          WebViewWidget(controller: controller),
-          if (_isLoading || isProcessing)
-            const ColoredBox(
-              color: Colors.white54,
-              child: Center(child: CircularProgressIndicator()),
+          RepaintBoundary(
+            child: WebViewWidget(
+              key: ValueKey(session.codeVerifier),
+              controller: session.controller,
             ),
+          ),
+          ValueListenableBuilder<bool>(
+            valueListenable: session.isLoading,
+            builder: (context, isLoading, _) {
+              if (!isLoading && !isProcessing) {
+                return const SizedBox.shrink();
+              }
+
+              return const ColoredBox(
+                color: Colors.white54,
+                child: Center(child: CircularProgressIndicator()),
+              );
+            },
+          ),
         ],
       ),
     );
   }
 }
-
-
-
-
-

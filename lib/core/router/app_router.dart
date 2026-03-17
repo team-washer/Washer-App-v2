@@ -1,4 +1,4 @@
-﻿import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
 import 'package:washer/core/network/auth_notifier.dart';
@@ -59,7 +59,9 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: RoutePaths.authWebView,
-      builder: (context, state) => const AuthWebViewScreen(),
+      pageBuilder: (context, state) => const NoTransitionPage(
+        child: AuthWebViewScreen(),
+      ),
     ),
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {
@@ -98,7 +100,7 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: RoutePaths.alarm,
-      builder: (context, state) => AlarmScreen(),
+      builder: (context, state) => const AlarmScreen(),
     ),
   ],
 );

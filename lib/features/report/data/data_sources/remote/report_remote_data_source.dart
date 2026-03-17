@@ -9,21 +9,23 @@ abstract class ReportRemoteDataSource {
 }
 
 class ReportRemoteDataSourceImpl implements ReportRemoteDataSource {
-  final DioClient _client;
-
   const ReportRemoteDataSourceImpl(this._client);
+
+  final DioClient _client;
 
   @override
   Future<void> createMalfunctionReport({
     required int machineId,
     required String description,
   }) async {
+    final payload = {
+      'machineId': machineId,
+      'description': description,
+    };
+
     await _client.post(
       '/api/v2/malfunction-reports',
-      data: {
-        'machineId': machineId,
-        'description': description,
-      },
+      data: payload,
     );
   }
 }

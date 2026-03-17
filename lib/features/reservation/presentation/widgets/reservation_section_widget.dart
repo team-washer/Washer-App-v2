@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
@@ -33,6 +33,12 @@ class _ReservationSectionWidgetState
     extends ConsumerState<ReservationSectionWidget> {
   int? _selectedFloor;
 
+  List<MachineModel> _machinesForType(List<MachineModel> machines) {
+    return machines
+        .where((machine) => machine.type == widget.laundryMachineType.apiValue)
+        .toList(growable: false);
+  }
+
   List<int> _floorsFrom(List<MachineModel> machines) {
     return machines.map((m) => m.floorNumber).whereType<int>().toSet().toList()
       ..sort();
@@ -61,29 +67,61 @@ class _ReservationSectionWidgetState
     int floor,
   ) {
     return machines
-        .where(
-          (m) =>
-              m.type == widget.laundryMachineType.apiValue &&
-              m.floorNumber == floor,
-        )
-        .map((m) {
-          final state = _toReservationState(m, activeReservation);
+        .where((machine) => machine.floorNumber == floor)
+        .map((machine) {
+          final state = _toReservationState(machine, activeReservation);
           final isMyMachine =
               activeReservation != null &&
-              m.reservationId == activeReservation.id;
+              machine.reservationId == activeReservation.id;
 
           return _MachineData(
-            m.machineId,
-            m.name,
+            machine.machineId,
+            machine.name,
             state,
-            finishedAt: m.expectedCompletionTime,
+            finishedAt: machine.expectedCompletionTime,
             room: isMyMachine ? activeReservation.userRoomNumber : null,
             reservedAt: isMyMachine ? activeReservation.reservedAt : null,
             remainDuration: null,
-            reservationId: m.reservationId ?? 0,
+            reservationId: machine.reservationId ?? 0,
           );
         })
-        .toList();
+        .toList(growable: false);
+  }
+
+  Future<void> _reserveMachine(BuildContext context, _MachineData item) async {
+    try {
+      final reservationState = await ref
+          .read(reservationViewModelProvider.notifier)
+          .reserve(machineId: item.machineId);
+
+      if (reservationState.status == ReservationActionStatus.error) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('예약 실패: ${reservationState.errorMessage}'),
+            ),
+          );
+        }
+        return;
+      }
+
+      if (context.mounted) {
+        context.go(RoutePaths.home);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '${item.name} 예약이 완료되었습니다\n5분 이내에 기기를 켜주세요',
+            ),
+          ),
+        );
+      }
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('오류: $error')),
+        );
+      }
+    }
   }
 
   @override
@@ -91,7 +129,7 @@ class _ReservationSectionWidgetState
     final machineAsync = ref.watch(machineStatusProvider);
     final activeReservation = ref
         .watch(activeReservationProvider)
-        .whenOrNull(data: (r) => r);
+        .whenOrNull(data: (reservation) => reservation);
 
     return machineAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -102,93 +140,59 @@ class _ReservationSectionWidgetState
         ),
       ),
       data: (data) {
-        final floors = _floorsFrom(data.machines);
+        final typedMachines = _machinesForType(data.machines);
+        final floors = _floorsFrom(typedMachines);
         final currentFloor =
             _selectedFloor ?? (floors.isNotEmpty ? floors.first : 0);
         final items = _buildItems(
-          data.machines,
+          typedMachines,
           activeReservation,
           currentFloor,
         );
 
-        return SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _FloorSelectorRow(
-                floors: floors,
-                selectedFloor: currentFloor,
-                onFloorChanged: (floor) =>
-                    setState(() => _selectedFloor = floor),
-                onMapTap: widget.onMapTap,
-              ),
-              AppGap.v16,
-              ListView.separated(
-                padding: EdgeInsets.zero,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: items.length,
-                separatorBuilder: (_, __) => AppGap.v24,
-                itemBuilder: (_, index) {
-                  final item = items[index];
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _FloorSelectorRow(
+              floors: floors,
+              selectedFloor: currentFloor,
+              onFloorChanged: (floor) => setState(() => _selectedFloor = floor),
+              onMapTap: widget.onMapTap,
+            ),
+            AppGap.v16,
+            Expanded(
+              child: items.isEmpty
+                  ? Center(
+                      child: Text(
+                        '표시할 기기가 없습니다.',
+                        style: WasherTypography.body1(WasherColor.baseGray300),
+                      ),
+                    )
+                  : ListView.separated(
+                      padding: EdgeInsets.zero,
+                      itemCount: items.length,
+                      separatorBuilder: (_, __) => AppGap.v24,
+                      itemBuilder: (_, index) {
+                        final item = items[index];
 
-                  return ReservationWidget(
-                    laundryMachineType: widget.laundryMachineType,
-                    reservationState: item.state,
-                    machineId: item.machineId,
-                    machineName: item.name,
-                    finishedAt: item.finishedAt,
-                    room: item.room,
-                    reservedAt: item.reservedAt,
-                    remainDuration: item.remainDuration,
-                    reservationId: item.reservationId,
-                    onReserve: item.state == ReservationState.available
-                        ? () async {
-                            try {
-                              final reservationState = await ref
-                                  .read(reservationViewModelProvider.notifier)
-                                  .reserve(machineId: item.machineId);
-
-                              if (reservationState.status ==
-                                  ReservationActionStatus.error) {
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        '예약 실패: ${reservationState.errorMessage}',
-                                      ),
-                                    ),
-                                  );
-                                }
-                                return;
-                              }
-
-                              if (context.mounted) {
-                                context.go(RoutePaths.home);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      '${item.name} 예약이 완료되었습니다\n5분 이내에 기기를 켜주세요',
-                                    ),
-                                  ),
-                                );
-                              }
-                            } catch (e) {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('오류: $e'),
-                                  ),
-                                );
-                              }
-                            }
-                          }
-                        : null,
-                  );
-                },
-              ),
-            ],
-          ),
+                        return ReservationWidget(
+                          laundryMachineType: widget.laundryMachineType,
+                          reservationState: item.state,
+                          machineId: item.machineId,
+                          machineName: item.name,
+                          finishedAt: item.finishedAt,
+                          room: item.room,
+                          reservedAt: item.reservedAt,
+                          remainDuration: item.remainDuration,
+                          reservationId: item.reservationId,
+                          onReserve: item.state == ReservationState.available
+                              ? () => _reserveMachine(context, item)
+                              : null,
+                        );
+                      },
+                    ),
+            ),
+          ],
         );
       },
     );
@@ -285,7 +289,3 @@ class _MachineData {
   final String? remainDuration;
   final int reservationId;
 }
-
-
-
-

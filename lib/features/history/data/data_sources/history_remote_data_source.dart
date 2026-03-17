@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/network/dio_client.dart';
+import 'package:washer/core/utils/background_task.dart';
 import 'package:washer/features/history/data/models/machine_history_response.dart';
 
 abstract class HistoryRemoteDataSource {
@@ -13,9 +14,9 @@ abstract class HistoryRemoteDataSource {
 }
 
 class HistoryRemoteDataSourceImpl implements HistoryRemoteDataSource {
-  final DioClient _client;
-
   const HistoryRemoteDataSourceImpl(this._client);
+
+  final DioClient _client;
 
   @override
   Future<MachineHistoryResponse> getMachineHistory({
@@ -34,8 +35,9 @@ class HistoryRemoteDataSourceImpl implements HistoryRemoteDataSource {
         'size': size,
       },
     );
-    
-    return MachineHistoryResponse.fromJson(response.data['data'] as Map<String, dynamic>);
+    final data = Map<String, dynamic>.from(response.data['data'] as Map);
+
+    return runInBackground(() => MachineHistoryResponse.fromJson(data));
   }
 }
 

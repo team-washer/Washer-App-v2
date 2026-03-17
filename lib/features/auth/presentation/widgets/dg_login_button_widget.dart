@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:washer/core/router/route_paths.dart';
@@ -5,8 +7,8 @@ import 'package:washer/core/theme/color.dart';
 import 'package:washer/core/theme/icon.dart';
 import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
+import 'package:washer/features/auth/presentation/screens/auth_webview_screen.dart';
 
-/// DG 로그인 버튼 위젯 — 로그인 화면으로 이동
 class DgLoginButtonWidget extends StatelessWidget {
   const DgLoginButtonWidget({super.key});
 
@@ -16,7 +18,10 @@ class DgLoginButtonWidget extends StatelessWidget {
       width: double.infinity,
       height: 44,
       child: ElevatedButton(
-        onPressed: () => context.push(RoutePaths.authWebView),
+        onPressed: () {
+          unawaited(Future<void>.microtask(AuthWebViewScreen.preload));
+          context.push(RoutePaths.authWebView);
+        },
         style: ElevatedButton.styleFrom(
           backgroundColor: WasherColor.mainColor600,
           foregroundColor: Colors.white,
@@ -28,7 +33,7 @@ class DgLoginButtonWidget extends StatelessWidget {
           children: [
             WasherIcon(type: WasherIconType.dgWhite, size: 12),
             const SizedBox(width: 10),
-            Text('DG 로그인 하기', style: WasherTypography.body1(Colors.white)),
+            Text('DG 로그인하기', style: WasherTypography.body1(Colors.white)),
           ],
         ),
       ),

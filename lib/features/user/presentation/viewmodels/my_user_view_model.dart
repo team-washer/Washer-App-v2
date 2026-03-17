@@ -19,4 +19,12 @@ class MyUserNotifier extends AsyncNotifier<MyUserModel?> {
       () => ref.read(userRepositoryProvider).getMyUser(),
     );
   }
+
+  void setUser(MyUserModel? user) {
+    state = AsyncData(user);
+  }
+
+  void clear() {
+    state = const AsyncData(null);
+  }
 }

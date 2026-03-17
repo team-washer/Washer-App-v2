@@ -9,13 +9,14 @@ import 'package:washer/features/auth/presentation/screens/auth_webview_screen.da
 import 'package:washer/features/auth/presentation/screens/login_screen.dart';
 import 'package:washer/features/home/presentation/screens/home_screen.dart';
 import 'package:washer/features/reservation/presentation/screens/reservation_screen.dart';
+import 'package:washer/splash_screen.dart';
 
 import 'route_paths.dart';
 
 const _storage = FlutterSecureStorage();
 
 final appRouter = GoRouter(
-  initialLocation: RoutePaths.login,
+  initialLocation: RoutePaths.splash,
   refreshListenable: authNotifier,
   redirect: (context, state) async {
     final accessToken = await _storage.read(key: 'access_token');
@@ -27,8 +28,13 @@ final appRouter = GoRouter(
         !TokenUtils.isExpired(accessToken);
     final hasSession = hasValidAccessToken || hasRefreshToken;
     final location = state.matchedLocation;
+    final isSplashRoute = location == RoutePaths.splash;
     final isAuthRoute =
         location == RoutePaths.login || location == RoutePaths.authWebView;
+
+    if (isSplashRoute) {
+      return null;
+    }
 
     if (!hasSession && !isAuthRoute) {
       await _storage.delete(key: 'access_token');
@@ -37,12 +43,16 @@ final appRouter = GoRouter(
     }
 
     if (hasSession && isAuthRoute) {
-      return RoutePaths.home;
+      return RoutePaths.splash;
     }
 
     return null;
   },
   routes: [
+    GoRoute(
+      path: RoutePaths.splash,
+      builder: (context, state) => const SplashScreen(),
+    ),
     GoRoute(
       path: RoutePaths.login,
       builder: (context, state) => const LoginScreen(),

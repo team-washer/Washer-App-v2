@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/enums/laundry_action_type.dart';
 import 'package:washer/core/theme/color.dart';
@@ -10,11 +10,6 @@ import 'package:washer/features/report/presentation/viewmodels/report_view_model
 import 'package:washer/features/reservation/presentation/viewmodels/reservation_view_model.dart';
 
 class LaundryActionDialog extends ConsumerStatefulWidget {
-  final LaundryActionType actionType;
-  final int machineId;
-  final String deviceId;
-  final int reservationId;
-
   const LaundryActionDialog({
     super.key,
     required this.actionType,
@@ -22,6 +17,11 @@ class LaundryActionDialog extends ConsumerStatefulWidget {
     required this.deviceId,
     required this.reservationId,
   });
+
+  final LaundryActionType actionType;
+  final int machineId;
+  final String deviceId;
+  final int reservationId;
 
   @override
   ConsumerState<LaundryActionDialog> createState() =>
@@ -47,68 +47,71 @@ class _LaundryActionDialogState extends ConsumerState<LaundryActionDialog> {
   }
 
   Future<void> _handleConfirm() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    final reservationNotifier = ref.read(reservationViewModelProvider.notifier);
+    final reportNotifier = ref.read(reportViewModelProvider.notifier);
+
     try {
       switch (widget.actionType) {
         case LaundryActionType.reserve:
-          await ref
-              .read(reservationViewModelProvider.notifier)
-              .confirmAndWatch(reservationId: widget.reservationId);
-          if (!mounted) return;
-          Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('기기가 켜졌는지 확인 중입니다')),
+          navigator.pop();
+          final confirmState = await reservationNotifier.confirmAndWatch(
+            reservationId: widget.reservationId,
+          );
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text(
+                confirmState.status == ReservationActionStatus.success
+                    ? '기기 연결을 확인하고 있습니다.'
+                    : (confirmState.errorMessage ?? '시작 처리에 실패했습니다.'),
+              ),
+            ),
           );
           break;
         case LaundryActionType.cancelReservation:
-          await ref
-              .read(reservationViewModelProvider.notifier)
-              .cancel(reservationId: widget.reservationId);
-          if (!mounted) return;
-          Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('예약이 취소되었습니다')),
+          navigator.pop();
+          final cancelState = await reservationNotifier.cancel(
+            reservationId: widget.reservationId,
+          );
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text(
+                cancelState.status == ReservationActionStatus.success
+                    ? '예약이 취소되었습니다.'
+                    : (cancelState.errorMessage ?? '예약 취소에 실패했습니다.'),
+              ),
+            ),
           );
           break;
         case LaundryActionType.reportBroken:
           final description = textController.text.trim();
           if (description.isEmpty) {
             focusNode.requestFocus();
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('고장 내용을 입력해 주세요')),
+            messenger.showSnackBar(
+              const SnackBar(content: Text('고장 내용을 입력해주세요.')),
             );
             return;
           }
 
-          final success = await ref
-              .read(reportViewModelProvider.notifier)
-              .createMalfunctionReport(
-                machineId: widget.machineId,
-                description: description,
-              );
-
-          if (!success) {
-            final reportState = ref.read(reportViewModelProvider);
-            if (!mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  reportState.errorMessage ?? '고장 신고에 실패했습니다',
-                ),
+          navigator.pop();
+          final reportState = await reportNotifier.createMalfunctionReport(
+            machineId: widget.machineId,
+            description: description,
+          );
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text(
+                reportState.status == ReportActionStatus.success
+                    ? '신고가 완료되었습니다.'
+                    : (reportState.errorMessage ?? '고장 신고에 실패했습니다.'),
               ),
-            );
-            return;
-          }
-
-          if (!mounted) return;
-          Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('신고가 완료되었습니다')),
+            ),
           );
           break;
       }
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(content: Text('오류: $e')),
       );
     }
@@ -147,13 +150,13 @@ class _LaundryActionDialogState extends ConsumerState<LaundryActionDialog> {
 }
 
 class _ActionConfig {
-  final String confirmText;
-  final Color? confirmColor;
-
   const _ActionConfig({
     required this.confirmText,
     this.confirmColor,
   });
+
+  final String confirmText;
+  final Color? confirmColor;
 
   factory _ActionConfig.fromType(LaundryActionType type) {
     switch (type) {
@@ -171,25 +174,25 @@ class _ActionConfig {
 }
 
 class _ActionContentText extends StatelessWidget {
-  final LaundryActionType actionType;
-  final String deviceId;
-
   const _ActionContentText({
     required this.actionType,
     required this.deviceId,
   });
+
+  final LaundryActionType actionType;
+  final String deviceId;
 
   @override
   Widget build(BuildContext context) {
     switch (actionType) {
       case LaundryActionType.reserve:
         return Text(
-          '세탁을 시작하시겠습니까?',
+          '기기를 시작하시겠습니까?',
           style: WasherTypography.subTitle4(),
         );
       case LaundryActionType.cancelReservation:
         return Text(
-          '$deviceId의 예약을 취소하시겠습니까?',
+          '$deviceId 예약을 취소하시겠습니까?',
           style: WasherTypography.subTitle4(),
         );
       case LaundryActionType.reportBroken:
@@ -210,13 +213,13 @@ class _ActionContentText extends StatelessWidget {
 }
 
 class _ReportTextField extends StatelessWidget {
-  final TextEditingController controller;
-  final FocusNode focusNode;
-
   const _ReportTextField({
     required this.controller,
     required this.focusNode,
   });
+
+  final TextEditingController controller;
+  final FocusNode focusNode;
 
   @override
   Widget build(BuildContext context) {
@@ -249,13 +252,13 @@ class _FieldLabel extends StatelessWidget {
 }
 
 class _ReportInputField extends StatelessWidget {
-  final TextEditingController controller;
-  final FocusNode focusNode;
-
   const _ReportInputField({
     required this.controller,
     required this.focusNode,
   });
+
+  final TextEditingController controller;
+  final FocusNode focusNode;
 
   @override
   Widget build(BuildContext context) {
@@ -270,7 +273,7 @@ class _ReportInputField extends StatelessWidget {
       maxLines: 5,
       textInputAction: TextInputAction.done,
       decoration: InputDecoration(
-        hintText: '고장 증상을 자세히 설명해주세요',
+        hintText: '고장 증상이나 특이사항을 자세히 설명해주세요.',
         hintStyle: WasherTypography.body4(WasherColor.baseGray300),
         border: baseBorder,
         enabledBorder: baseBorder,

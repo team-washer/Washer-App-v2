@@ -2,23 +2,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
 import 'package:washer/core/enums/machine_state.dart';
-import 'package:washer/core/theme/color.dart';
 import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
 import 'package:washer/core/ui/dialog/washer_dialog.dart';
 import 'package:washer/features/reservation/presentation/viewmodels/reservation_view_model.dart';
 
 class LaundryStatusDialog extends ConsumerWidget {
-  final LaundryMachineType machineType;
-  final String machineName;
-  final int machineId;
-  final bool isUsed;
-  final bool isUnavailable;
-
-  final MachineState? machineState;
-  final String? roomNumber;
-  final String? expectedTime;
-
   const LaundryStatusDialog({
     super.key,
     required this.machineType,
@@ -31,15 +20,21 @@ class LaundryStatusDialog extends ConsumerWidget {
     this.expectedTime,
   });
 
+  final LaundryMachineType machineType;
+  final String machineName;
+  final int machineId;
+  final bool isUsed;
+  final bool isUnavailable;
+  final MachineState? machineState;
+  final String? roomNumber;
+  final String? expectedTime;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isAvailable = !isUsed && !isUnavailable;
-    final title = machineType == LaundryMachineType.washer
-        ? "세탁기 현황"
-        : "건조기 현황";
-
+    final title = machineType == LaundryMachineType.washer ? '세탁기 현황' : '건조기 현황';
     final statusText = _buildStatusText(isUnavailable, isUsed, machineState);
-    final roomText = roomNumber ?? "없음";
+    final roomText = roomNumber ?? '없음';
     final notesText = _buildNotesText(
       machineType: machineType,
       isUnavailable: isUnavailable,
@@ -50,54 +45,46 @@ class LaundryStatusDialog extends ConsumerWidget {
     return Dialog(
       child: WasherDialog(
         title: title,
-        confirmText: isAvailable ? "예약하기" : "확인",
-        backText: isAvailable ? "취소" : null,
+        confirmText: isAvailable ? '예약하기' : '확인',
+        backText: isAvailable ? '취소' : null,
         onConfirmPressed: isAvailable
             ? () async {
-                try {
-                  // reservationViewModel의 reserve 메서드 호출
-                  await ref
-                      .read(reservationViewModelProvider.notifier)
-                      .reserve(
-                        machineId: machineId,
-                      );
+                final messenger = ScaffoldMessenger.of(context);
+                final navigator = Navigator.of(context);
+                final reservationNotifier = ref.read(
+                  reservationViewModelProvider.notifier,
+                );
 
-                  // 예약 상태 확인
-                  final reservationState = ref.read(
-                    reservationViewModelProvider,
+                navigator.pop();
+
+                try {
+                  final reservationState = await reservationNotifier.reserve(
+                    machineId: machineId,
                   );
+
                   if (reservationState.status ==
                       ReservationActionStatus.error) {
-                    // 에러 발생한 경우
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            '예약 실패: ${reservationState.errorMessage}',
-                          ),
-                        ),
-                      );
-                    }
-                    return;
-                  }
-                  Navigator.pop(context);
-                  // 예약 성공한 경우
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    messenger.showSnackBar(
                       SnackBar(
                         content: Text(
-                          '$machineName 예약이 완료되었습니다\n5분 이내에 기기를 켜주세요',
+                          '예약 실패: ${reservationState.errorMessage}',
                         ),
                       ),
                     );
+                    return;
                   }
+
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        '$machineName 예약이 완료되었습니다\n5분 이내에 기기를 켜주세요',
+                      ),
+                    ),
+                  );
                 } catch (e) {
-                  if (context.mounted) {
-                    Navigator.pop(context); // 에러 시에도 다이얼로그 종료
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('예약 실패: $e')),
-                    );
-                  }
+                  messenger.showSnackBar(
+                    SnackBar(content: Text('예약 실패: $e')),
+                  );
                 }
               }
             : null,
@@ -106,13 +93,13 @@ class LaundryStatusDialog extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             AppGap.v10,
-            _InfoRow(label: "기기명", value: machineName),
+            _InfoRow(label: '기기명', value: machineName),
             AppGap.v8,
-            _InfoRow(label: "상태", value: statusText),
+            _InfoRow(label: '상태', value: statusText),
             AppGap.v10,
-            _InfoRow(label: "사용호실", value: roomText),
+            _InfoRow(label: '사용호실', value: roomText),
             AppGap.v10,
-            _InfoRow(label: "특이사항", value: notesText),
+            _InfoRow(label: '특이사항', value: notesText),
             AppGap.v10,
           ],
         ),
@@ -125,10 +112,10 @@ class LaundryStatusDialog extends ConsumerWidget {
     bool isUsed,
     MachineState? machineState,
   ) {
-    if (isUnavailable) return "사용 불가(기기고장)";
-    if (!isUsed) return "사용 가능";
-    if (machineState != null) return "사용중 (${machineState.text})";
-    return "사용중";
+    if (isUnavailable) return '사용 불가(기기고장)';
+    if (!isUsed) return '사용 가능';
+    if (machineState != null) return '사용중 (${machineState.text})';
+    return '사용중';
   }
 
   static String _buildNotesText({
@@ -138,29 +125,28 @@ class LaundryStatusDialog extends ConsumerWidget {
     required String? expectedTime,
   }) {
     if (isUnavailable) {
-      final machineTypeText = machineType == LaundryMachineType.washer
-          ? "세탁기"
-          : "건조기";
-      return "$machineTypeText 사용 불가";
+      final machineTypeText =
+          machineType == LaundryMachineType.washer ? '세탁기' : '건조기';
+      return '$machineTypeText 사용 불가';
     }
 
-    if (expectedTime == null) return "없음";
+    if (expectedTime == null) return '없음';
 
     if (machineState == MachineState.delayWash) {
-      return "예약 만료까지: $expectedTime";
+      return '예약 만료까지: $expectedTime';
     }
     if (machineType == LaundryMachineType.dryer) {
-      return "건조 완료 예정시간: $expectedTime";
+      return '건조 완료 예정시간: $expectedTime';
     }
-    return "세탁 완료 예정시간: $expectedTime";
+    return '세탁 완료 예정시간: $expectedTime';
   }
 }
 
 class _InfoRow extends StatelessWidget {
+  const _InfoRow({required this.label, required this.value});
+
   final String label;
   final String value;
-
-  const _InfoRow({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -175,7 +161,7 @@ class _InfoRow extends StatelessWidget {
         Expanded(
           child: Text(
             value,
-            style: WasherTypography.body1(WasherColor.baseGray400),
+            style: WasherTypography.body1(),
           ),
         ),
       ],

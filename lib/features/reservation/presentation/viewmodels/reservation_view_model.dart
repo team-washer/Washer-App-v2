@@ -22,6 +22,10 @@ class ReservationActionState {
 }
 
 class ReservationViewModel extends Notifier<ReservationActionState> {
+  static const Duration _confirmPollingInterval = Duration(seconds: 10);
+  static const Duration _confirmPollingDuration = Duration(minutes: 3);
+  static const Duration _finalSyncDelay = Duration(seconds: 1);
+
   Timer? _pollingTimer;
   Timer? _expiryTimer;
 
@@ -158,29 +162,39 @@ class ReservationViewModel extends Notifier<ReservationActionState> {
   void _startPollingReservation() {
     _stopPolling();
 
-    _expiryTimer = Timer(const Duration(minutes: 3), () {
-      _stopPolling();
+    _pollingTimer = Timer.periodic(_confirmPollingInterval, (_) {
+      unawaited(_syncActiveReservation());
     });
 
-    _pollingTimer = Timer.periodic(const Duration(seconds: 10), (_) async {
-      try {
-        final ActiveReservationModel? current = ref
-            .read(activeReservationProvider)
-            .maybeWhen(
-              data: (value) => value,
-              orElse: () => null,
-            );
+    _expiryTimer = Timer(
+      _confirmPollingDuration + _finalSyncDelay,
+      () {
+        _stopPolling();
+        unawaited(_syncActiveReservation(forceMachineRefresh: true));
+      },
+    );
+  }
 
-        final ActiveReservationModel? latest = await ref
-            .read(homeRepositoryProvider)
-            .getActiveReservation();
+  Future<void> _syncActiveReservation({
+    bool forceMachineRefresh = false,
+  }) async {
+    try {
+      final current = ref.read(activeReservationProvider).maybeWhen(
+            data: (value) => value,
+            orElse: () => null,
+          );
 
-        if (current != latest) {
-          ref.read(activeReservationProvider.notifier).setReservation(latest);
-          await ref.read(machineStatusProvider.notifier).refresh();
-        }
-      } catch (_) {}
-    });
+      final latest = await ref.read(homeRepositoryProvider).getActiveReservation();
+      final hasChanged = current != latest;
+
+      if (hasChanged) {
+        ref.read(activeReservationProvider.notifier).setReservation(latest);
+      }
+
+      if (hasChanged || forceMachineRefresh) {
+        await ref.read(machineStatusProvider.notifier).refresh();
+      }
+    } catch (_) {}
   }
 
   void _stopPolling() {
@@ -195,3 +209,4 @@ final reservationViewModelProvider =
     NotifierProvider<ReservationViewModel, ReservationActionState>(
       ReservationViewModel.new,
     );
+

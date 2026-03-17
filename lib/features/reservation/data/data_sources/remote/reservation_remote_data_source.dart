@@ -30,12 +30,10 @@ class ReservationRemoteDataSourceImpl implements ReservationRemoteDataSource {
     required int machineId,
     required String startTime,
   }) async {
-    final payload = await runInBackground(
-      () => <String, dynamic>{
-        'machineId': machineId,
-        'startTime': startTime,
-      },
-    );
+    final payload = {
+      'machineId': machineId,
+      'startTime': startTime,
+    };
     final response = await _client.post(
       '/api/v2/reservations',
       data: payload,

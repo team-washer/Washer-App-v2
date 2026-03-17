@@ -17,9 +17,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<LoginResponse> login(LoginRequest request, String codeVerifier) async {
-    final payload = await runInBackground(
-      () => <String, dynamic>{'authCode': request.code},
-    );
+    final payload = {
+      'authCode': request.code,
+    };
     final response = await _client.post(
       '/api/v2/auth/login',
       data: payload,

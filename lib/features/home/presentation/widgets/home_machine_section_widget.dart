@@ -10,16 +10,7 @@ import 'package:washer/core/theme/typography.dart';
 import 'package:washer/core/ui/dialog/laundry_status_dialog.dart';
 import 'package:washer/features/reservation/data/models/local/laundry_machine_model.dart';
 
-/// 세탁기/건조기 기계 상태를 그리드로 표시하는 위젯
-///
-/// 기능:
-/// - 기계 상태에 따른 색상 변경 (가용/예약/사용중)
-/// - 2열 그리드 레이아웃으로 기계 표시
-/// - 전체보기 링크 제공
 class HomeMachineSectionWidget extends StatelessWidget {
-  final List<MachineModel> machines;
-  final LaundryMachineType machineType;
-
   const HomeMachineSectionWidget({
     super.key,
     required this.machines,
@@ -28,18 +19,15 @@ class HomeMachineSectionWidget extends StatelessWidget {
 
   static const double _itemRatio = 170 / 52;
 
-  /// 기계 유형별 섹션 제목 반환
-  String get _title =>
-      machineType == LaundryMachineType.washer ? '세탁기 예약 현황' : '건조기 예약 현황';
+  final List<MachineModel> machines;
+  final LaundryMachineType machineType;
 
-  /// 기계 유형에 따라 필터링된 기계 목록 반환
-  List<MachineModel> get _filtered =>
-      machines.where((m) => m.type == machineType.apiValue).toList();
+  String get _title => machineType == LaundryMachineType.washer
+      ? '세탁기 예약 현황'
+      : '건조기 예약 현황';
 
   @override
   Widget build(BuildContext context) {
-    final items = _filtered;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -47,9 +35,7 @@ class HomeMachineSectionWidget extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _SectionTitle(
-              title: _title,
-            ),
+            _SectionTitle(title: _title),
             _ViewAll(
               onTap: () {
                 final route = machineType == LaundryMachineType.washer
@@ -61,8 +47,7 @@ class HomeMachineSectionWidget extends StatelessWidget {
           ],
         ),
         AppGap.v16,
-        // 세탁기 및 건조기가 없을때
-        if (items.isEmpty)
+        if (machines.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.v16),
             child: Center(
@@ -72,7 +57,6 @@ class HomeMachineSectionWidget extends StatelessWidget {
               ),
             ),
           )
-        // 아닐 경우
         else
           GridView.builder(
             shrinkWrap: true,
@@ -83,11 +67,9 @@ class HomeMachineSectionWidget extends StatelessWidget {
               mainAxisSpacing: AppSpacing.h8,
               childAspectRatio: _itemRatio,
             ),
-            itemCount: items.length,
+            itemCount: machines.length,
             itemBuilder: (context, index) {
-              return _StatusItem(
-                machine: items[index],
-              );
+              return _StatusItem(machine: machines[index]);
             },
           ),
       ],
@@ -96,26 +78,23 @@ class HomeMachineSectionWidget extends StatelessWidget {
 }
 
 class _SectionTitle extends StatelessWidget {
-  final String title;
-
   const _SectionTitle({required this.title});
+
+  final String title;
 
   @override
   Widget build(BuildContext context) {
     return Text(
       title,
-      style: WasherTypography.h2(
-        WasherColor.baseGray700,
-      ),
+      style: WasherTypography.h2(WasherColor.baseGray700),
     );
   }
 }
 
-/// 전체보기 링크 버튼
 class _ViewAll extends StatelessWidget {
-  final VoidCallback? onTap;
-
   const _ViewAll({this.onTap});
+
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -127,12 +106,10 @@ class _ViewAll extends StatelessWidget {
         children: [
           Text(
             '전체보기',
-            style: WasherTypography.body2(
-              WasherColor.baseGray300,
-            ),
+            style: WasherTypography.body2(WasherColor.baseGray300),
           ),
           AppGap.h4,
-          WasherIcon(
+          const WasherIcon(
             type: WasherIconType.back,
             size: 16,
             color: WasherColor.baseGray300,
@@ -143,13 +120,11 @@ class _ViewAll extends StatelessWidget {
   }
 }
 
-/// 세탁기/건조기 상태 아이템 (이름 및 아이콘)
 class _StatusItem extends StatelessWidget {
-  final MachineModel machine;
-
   const _StatusItem({required this.machine});
 
-  /// 상태에 따른 MachineState 매핑
+  final MachineModel machine;
+
   MachineState? _toMachineState() {
     final operatingState = machine.operatingState?.toLowerCase();
     if (operatingState == 'running') return MachineState.run;

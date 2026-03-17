@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
 import 'package:washer/core/theme/color.dart';
@@ -54,37 +54,54 @@ class _HomeBodyWidgetState extends ConsumerState<HomeBodyWidget>
     });
 
     final machineAsync = ref.watch(machineStatusProvider);
-    ref.watch(activeReservationProvider);
-    ref.watch(myUserProvider);
 
     return machineAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => _HomeErrorView(
         onRetry: () => ref.read(machineStatusProvider.notifier).refresh(),
       ),
-      data: (data) => RefreshIndicator(
-        onRefresh: () async {
-          await Future.wait([
-            ref.read(machineStatusProvider.notifier).refresh(),
-            ref.read(activeReservationProvider.notifier).refresh(),
-            ref.read(myUserProvider.notifier).refresh(),
-          ]);
-        },
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: HomeBaseScaffold(
-            myReservation: const HomeMyReservationWidget(),
-            washerSection: HomeMachineSectionWidget(
-              machines: data.machines,
-              machineType: LaundryMachineType.washer,
-            ),
-            dryerSection: HomeMachineSectionWidget(
-              machines: data.machines,
-              machineType: LaundryMachineType.dryer,
+      data: (data) {
+        final washerMachines = data.machines
+            .where(
+              (machine) => machine.type == LaundryMachineType.washer.apiValue,
+            )
+            .toList(growable: false);
+        final dryerMachines = data.machines
+            .where(
+              (machine) => machine.type == LaundryMachineType.dryer.apiValue,
+            )
+            .toList(growable: false);
+
+        return RefreshIndicator(
+          onRefresh: () async {
+            await Future.wait([
+              ref.read(machineStatusProvider.notifier).refresh(),
+              ref.read(activeReservationProvider.notifier).refresh(),
+              ref.read(myUserProvider.notifier).refresh(),
+            ]);
+          },
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: HomeBaseScaffold(
+              myReservation: const RepaintBoundary(
+                child: HomeMyReservationWidget(),
+              ),
+              washerSection: RepaintBoundary(
+                child: HomeMachineSectionWidget(
+                  machines: washerMachines,
+                  machineType: LaundryMachineType.washer,
+                ),
+              ),
+              dryerSection: RepaintBoundary(
+                child: HomeMachineSectionWidget(
+                  machines: dryerMachines,
+                  machineType: LaundryMachineType.dryer,
+                ),
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -114,6 +131,3 @@ class _HomeErrorView extends StatelessWidget {
     );
   }
 }
-
-
-

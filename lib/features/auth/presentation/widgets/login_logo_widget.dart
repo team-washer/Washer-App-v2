@@ -15,7 +15,14 @@ class LoginLogoWidget extends StatelessWidget {
       children: [
         WasherIcon(type: WasherIconType.logo, size: 40),
         const SizedBox(width: AppSpacing.v12),
-        Text('로그인', style: WasherTypography.h1(WasherColor.baseGray700)),
+        Flexible(
+          child: Text(
+            '로그인',
+            style: WasherTypography.h1(WasherColor.baseGray700),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
       ],
     );
   }

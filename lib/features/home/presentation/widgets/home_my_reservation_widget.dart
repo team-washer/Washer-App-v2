@@ -128,8 +128,15 @@ class _MyReservationCard extends StatelessWidget {
             children: [
               laundryMachineType.icon(),
               AppGap.h8,
-              Text(machine, style: WasherTypography.body1()),
-              const Spacer(),
+              // Ensure long machine names don't overflow the row
+              Expanded(
+                child: Text(
+                  machine,
+                  style: WasherTypography.body1(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
               ReservationStateWidget(
                 label: laundryStatus.label,
                 color: laundryStatus.color,
@@ -378,7 +385,9 @@ class _BottomSection extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    return Row(
+    return Wrap(
+      spacing: AppSpacing.h4,
+      runSpacing: AppSpacing.v8,
       children: [
         CustomSmallButton(
           text: '예약 취소',
@@ -399,7 +408,6 @@ class _BottomSection extends StatelessWidget {
           },
           color: WasherColor.baseGray200,
         ),
-        AppGap.h4,
         CustomSmallButton(
           text: '${laundryMachineType.text} 시작',
           onPressed: () {

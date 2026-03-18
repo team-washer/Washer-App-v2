@@ -67,7 +67,7 @@ class AppSpacing {
   static const double h8 = 8;
 
   /// 기본 가로 간격 (10px)
-  static const double h10 = 8;
+  static const double h10 = 10;
 
   /// 중간 가로 간격 (12px)
   static const double h12 = 12;

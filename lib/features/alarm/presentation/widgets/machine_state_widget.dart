@@ -60,7 +60,7 @@ class _HeaderRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        _TitleWithStatus(laundryStatus: laundryStatus),
+        Expanded(child: _TitleWithStatus(laundryStatus: laundryStatus)),
         AppGap.h4,
         _DateText(date: date),
       ],

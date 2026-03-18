@@ -385,9 +385,7 @@ class _BottomSection extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    return Wrap(
-      spacing: AppSpacing.h4,
-      runSpacing: AppSpacing.v8,
+    return Row(
       children: [
         CustomSmallButton(
           text: '예약 취소',
@@ -408,6 +406,7 @@ class _BottomSection extends StatelessWidget {
           },
           color: WasherColor.baseGray200,
         ),
+        AppGap.h4,
         CustomSmallButton(
           text: '${laundryMachineType.text} 시작',
           onPressed: () {

@@ -11,7 +11,7 @@ import 'package:washer/features/auth/data/models/response/login_response.dart';
 part 'auth_remote_data_source.g.dart';
 
 abstract class AuthRemoteDataSource {
-  Future<LoginResponse> login(LoginRequest request, String codeVerifier);
+  Future<LoginResponse> login(LoginRequest request);
   Future<LoginResponse> refresh(RefreshRequest request);
 }
 
@@ -32,7 +32,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final AuthApiService _api;
 
   @override
-  Future<LoginResponse> login(LoginRequest request, String codeVerifier) async {
+  Future<LoginResponse> login(LoginRequest request) async {
     final payload = {
       'authCode': request.code,
     };

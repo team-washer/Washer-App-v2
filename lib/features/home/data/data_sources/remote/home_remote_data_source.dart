@@ -42,6 +42,10 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
   Future<ActiveReservationModel?> getActiveReservation() async {
     try {
       final response = await _api.getActiveReservation();
+      if (response.response.statusCode == 204 || response.data == null) {
+        return null;
+      }
+
       final data = extractNullableDataMap(castJsonMap(response.data));
       if (data == null) {
         return null;
@@ -49,7 +53,7 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
 
       return runInBackground(() => ActiveReservationModel.fromJson(data));
     } on DioException catch (e) {
-      if (e.response?.statusCode == 404) {
+      if (e.response?.statusCode == 404 || e.response?.statusCode == 204) {
         return null;
       }
       rethrow;

@@ -1,5 +1,4 @@
 ﻿import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:washer/core/theme/color.dart';
 import 'package:washer/core/theme/icon.dart';
 import 'package:washer/core/theme/spacing.dart';
@@ -32,7 +31,9 @@ class WasherAppbar extends StatelessWidget implements PreferredSizeWidget {
             ),
             _NotificationIcon(
               hasNotification: hasNotification,
-              onTap: () => context.push('/alarm'),
+              onTap: () {
+                // context.push('/alarm'), 임시 차단
+              },
             ),
           ],
         ),

@@ -32,8 +32,15 @@ class DgLoginButtonWidget extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             WasherIcon(type: WasherIconType.dgWhite, size: 12),
-            const SizedBox(width: 10),
-            Text('DG 로그인하기', style: WasherTypography.body1(Colors.white)),
+            AppGap.h10,
+            Flexible(
+              child: Text(
+                'DG 로그인하기',
+                style: WasherTypography.body1(Colors.white),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
       ),

@@ -66,6 +66,9 @@ class AppSpacing {
   /// 기본 가로 간격 (8px)
   static const double h8 = 8;
 
+  /// 기본 가로 간격 (10px)
+  static const double h10 = 8;
+
   /// 중간 가로 간격 (12px)
   static const double h12 = 12;
 
@@ -123,6 +126,7 @@ class AppGap {
   static const Widget h2 = SizedBox(width: AppSpacing.h2);
   static const Widget h4 = SizedBox(width: AppSpacing.h4);
   static const Widget h8 = SizedBox(width: AppSpacing.h8);
+  static const Widget h10 = SizedBox(width: AppSpacing.h10);
   static const Widget h12 = SizedBox(width: AppSpacing.h12);
   static const Widget h16 = SizedBox(width: AppSpacing.h16);
   static const Widget h24 = SizedBox(width: AppSpacing.h24);

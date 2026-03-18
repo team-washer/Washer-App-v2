@@ -1,4 +1,4 @@
-﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/features/auth/data/repositories/auth_repository.dart';
 
 class LoginViewModel extends AsyncNotifier<void> {
@@ -9,10 +9,10 @@ class LoginViewModel extends AsyncNotifier<void> {
     _authRepository = ref.watch(authRepositoryProvider);
   }
 
-  Future<void> loginWithCode(String authCode, String codeVerifier) async {
+  Future<void> loginWithCode(String authCode) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(
-      () => _authRepository.login(authCode, codeVerifier),
+      () => _authRepository.login(authCode),
     );
   }
 }

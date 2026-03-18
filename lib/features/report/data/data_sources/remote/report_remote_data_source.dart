@@ -1,5 +1,9 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:retrofit/retrofit.dart';
 import 'package:washer/core/network/dio_client.dart';
+
+part 'report_remote_data_source.g.dart';
 
 abstract class ReportRemoteDataSource {
   Future<void> createMalfunctionReport({
@@ -8,10 +12,20 @@ abstract class ReportRemoteDataSource {
   });
 }
 
-class ReportRemoteDataSourceImpl implements ReportRemoteDataSource {
-  const ReportRemoteDataSourceImpl(this._client);
+@RestApi()
+abstract class ReportApiService {
+  factory ReportApiService(Dio dio, {String baseUrl}) = _ReportApiService;
 
-  final DioClient _client;
+  @POST('/api/v2/malfunction-reports')
+  Future<void> createMalfunctionReport(
+    @Body() Map<String, dynamic> payload,
+  );
+}
+
+class ReportRemoteDataSourceImpl implements ReportRemoteDataSource {
+  const ReportRemoteDataSourceImpl(this._api);
+
+  final ReportApiService _api;
 
   @override
   Future<void> createMalfunctionReport({
@@ -23,13 +37,10 @@ class ReportRemoteDataSourceImpl implements ReportRemoteDataSource {
       'description': description,
     };
 
-    await _client.post(
-      '/api/v2/malfunction-reports',
-      data: payload,
-    );
+    await _api.createMalfunctionReport(payload);
   }
 }
 
 final reportRemoteDataSourceProvider = Provider<ReportRemoteDataSource>((ref) {
-  return ReportRemoteDataSourceImpl(ref.watch(dioClientProvider));
+  return ReportRemoteDataSourceImpl(ReportApiService(ref.watch(dioProvider)));
 });

@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -14,24 +12,17 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 const _redirectUri = 'com.washer://auth/callback';
 const _callbackScheme = 'com.washer';
+const _webViewKey = ValueKey('auth-webview');
 
 _AuthWebViewSession? _cachedAuthSession;
-
-String _generateCodeVerifier() {
-  final random = Random.secure();
-  final bytes = List<int>.generate(32, (_) => random.nextInt(256));
-  return base64UrlEncode(bytes).replaceAll('=', '');
-}
 
 class _AuthWebViewSession {
   _AuthWebViewSession({
     required this.controller,
-    required this.codeVerifier,
     required this.isLoading,
   });
 
   final WebViewController controller;
-  final String codeVerifier;
   final ValueNotifier<bool> isLoading;
 
   void dispose() {
@@ -62,7 +53,6 @@ class AuthWebViewScreen extends ConsumerStatefulWidget {
       return null;
     }
 
-    final codeVerifier = _generateCodeVerifier();
     final isLoading = ValueNotifier<bool>(true);
     final uri = Uri.parse(oauthBaseUrl).replace(
       queryParameters: {
@@ -84,7 +74,6 @@ class AuthWebViewScreen extends ConsumerStatefulWidget {
 
     return _AuthWebViewSession(
       controller: controller,
-      codeVerifier: codeVerifier,
       isLoading: isLoading,
     );
   }
@@ -176,7 +165,7 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
 
     await ref
         .read(authCallbackViewModelProvider.notifier)
-        .handleAuthCode(authCode, session.codeVerifier);
+        .handleAuthCode(authCode);
 
     if (!mounted) return;
 
@@ -212,7 +201,7 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
         children: [
           RepaintBoundary(
             child: WebViewWidget(
-              key: ValueKey(session.codeVerifier),
+              key: _webViewKey,
               controller: session.controller,
             ),
           ),

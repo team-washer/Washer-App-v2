@@ -1,4 +1,4 @@
-﻿name: washer
+name: washer
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -53,6 +53,7 @@ dependencies:
   timezone: 0.10.1
   webview_flutter: ^4.13.0
   crypto: ^3.0.3
+  flutter_launcher_icons: ^0.14.4
 
 dev_dependencies:
   flutter_test:
@@ -74,6 +75,12 @@ dev_dependencies:
 # following page: https://dart.dev/tools/pub/pubspec
 
 # The following section is specific to Flutter packages.
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icons/app_logo.png"
+  remove_alpha_ios: true
+
 flutter:
 
   # The following line ensures that the Material Icons fonts is

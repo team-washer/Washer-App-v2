@@ -1,9 +1,14 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:retrofit/retrofit.dart';
+import 'package:washer/core/network/api_response_parser.dart';
 import 'package:washer/core/network/dio_client.dart';
 import 'package:washer/core/utils/background_task.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/data/models/remote/cancel_reservation_response.dart';
 import 'package:washer/features/reservation/data/models/remote/confirm_reservation_response.dart';
+
+part 'reservation_remote_data_source.g.dart';
 
 abstract class ReservationRemoteDataSource {
   Future<ActiveReservationModel> createReservation({
@@ -20,10 +25,27 @@ abstract class ReservationRemoteDataSource {
   });
 }
 
-class ReservationRemoteDataSourceImpl implements ReservationRemoteDataSource {
-  const ReservationRemoteDataSourceImpl(this._client);
+@RestApi()
+abstract class ReservationApiService {
+  factory ReservationApiService(Dio dio, {String baseUrl}) =
+      _ReservationApiService;
 
-  final DioClient _client;
+  @POST('/api/v2/reservations')
+  Future<HttpResponse<dynamic>> createReservation(
+    @Body() Map<String, dynamic> payload,
+  );
+
+  @DELETE('/api/v2/reservations/{id}')
+  Future<HttpResponse<dynamic>> cancelReservation(@Path('id') int id);
+
+  @PUT('/api/v2/reservations/{id}/confirm')
+  Future<HttpResponse<dynamic>> confirmReservation(@Path('id') int id);
+}
+
+class ReservationRemoteDataSourceImpl implements ReservationRemoteDataSource {
+  const ReservationRemoteDataSourceImpl(this._api);
+
+  final ReservationApiService _api;
 
   @override
   Future<ActiveReservationModel> createReservation({
@@ -34,11 +56,8 @@ class ReservationRemoteDataSourceImpl implements ReservationRemoteDataSource {
       'machineId': machineId,
       'startTime': startTime,
     };
-    final response = await _client.post(
-      '/api/v2/reservations',
-      data: payload,
-    );
-    final data = Map<String, dynamic>.from(response.data['data'] as Map);
+    final response = await _api.createReservation(payload);
+    final data = extractDataMap(castJsonMap(response.data));
 
     return runInBackground(() => ActiveReservationModel.fromJson(data));
   }
@@ -47,8 +66,8 @@ class ReservationRemoteDataSourceImpl implements ReservationRemoteDataSource {
   Future<CancelReservationResponse> cancelReservation({
     required int id,
   }) async {
-    final response = await _client.delete('/api/v2/reservations/$id');
-    final data = Map<String, dynamic>.from(response.data['data'] as Map);
+    final response = await _api.cancelReservation(id);
+    final data = extractDataMap(castJsonMap(response.data));
 
     return runInBackground(() => CancelReservationResponse.fromJson(data));
   }
@@ -57,8 +76,8 @@ class ReservationRemoteDataSourceImpl implements ReservationRemoteDataSource {
   Future<ConfirmReservationResponse> confirmReservation({
     required int id,
   }) async {
-    final response = await _client.put('/api/v2/reservations/$id/confirm');
-    final data = Map<String, dynamic>.from(response.data as Map);
+    final response = await _api.confirmReservation(id);
+    final data = castJsonMap(response.data);
 
     return runInBackground(() => ConfirmReservationResponse.fromJson(data));
   }
@@ -66,5 +85,7 @@ class ReservationRemoteDataSourceImpl implements ReservationRemoteDataSource {
 
 final reservationRemoteDataSourceProvider =
     Provider<ReservationRemoteDataSource>((ref) {
-      return ReservationRemoteDataSourceImpl(ref.watch(dioClientProvider));
+      return ReservationRemoteDataSourceImpl(
+        ReservationApiService(ref.watch(dioProvider)),
+      );
     });

@@ -142,9 +142,13 @@ class _HistoryCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                machineName,
-                style: WasherTypography.body1(WasherColor.baseGray700),
+              Expanded(
+                child: Text(
+                  machineName,
+                  style: WasherTypography.body1(WasherColor.baseGray700),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
               ReservationStateWidget(
                 label: status.label,
@@ -176,9 +180,15 @@ class _HistoryCard extends StatelessWidget {
           label,
           style: WasherTypography.body2(WasherColor.baseGray600),
         ),
-        Text(
-          value,
-          style: WasherTypography.body2(WasherColor.baseGray500),
+        AppGap.h8,
+        Expanded(
+          child: Text(
+            value,
+            style: WasherTypography.body2(WasherColor.baseGray500),
+            textAlign: TextAlign.right,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
       ],
     );

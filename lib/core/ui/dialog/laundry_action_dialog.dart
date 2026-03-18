@@ -244,7 +244,14 @@ class _FieldLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Text('고장 내용', style: WasherTypography.subTitle4()),
+        Flexible(
+          child: Text(
+            '고장 내용',
+            style: WasherTypography.subTitle4(),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
         const CircleWidget(color: CircleColor.red),
       ],
     );

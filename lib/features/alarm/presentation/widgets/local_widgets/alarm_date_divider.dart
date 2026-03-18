@@ -13,11 +13,15 @@ class _DateDivider extends StatelessWidget {
         const Expanded(
           child: Divider(color: WasherColor.baseGray200, thickness: 1),
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Text(
-            date,
-            style: WasherTypography.body4(WasherColor.baseGray200),
+        Flexible(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text(
+              date,
+              style: WasherTypography.body4(WasherColor.baseGray200),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ),
         const Expanded(

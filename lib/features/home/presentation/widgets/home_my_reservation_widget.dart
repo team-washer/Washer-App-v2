@@ -128,8 +128,15 @@ class _MyReservationCard extends StatelessWidget {
             children: [
               laundryMachineType.icon(),
               AppGap.h8,
-              Text(machine, style: WasherTypography.body1()),
-              const Spacer(),
+              // Ensure long machine names don't overflow the row
+              Expanded(
+                child: Text(
+                  machine,
+                  style: WasherTypography.body1(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
               ReservationStateWidget(
                 label: laundryStatus.label,
                 color: laundryStatus.color,

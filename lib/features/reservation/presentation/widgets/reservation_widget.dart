@@ -55,18 +55,24 @@ class ReservationWidget extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  laundryMachineType.icon(color: reservationState.color),
-                  AppGap.h8,
-                  Text(
-                    machineName,
-                    style: WasherTypography.subTitle3(
-                      WasherColor.baseGray700,
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    laundryMachineType.icon(color: reservationState.color),
+                    AppGap.h8,
+                    Expanded(
+                      child: Text(
+                        machineName,
+                        style: WasherTypography.subTitle3(
+                          WasherColor.baseGray700,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               ReservationStateWidget(
                 label: reservationState.label,

@@ -60,7 +60,7 @@ class _HeaderRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        _TitleWithStatus(laundryStatus: laundryStatus),
+        Expanded(child: _TitleWithStatus(laundryStatus: laundryStatus)),
         AppGap.h4,
         _DateText(date: date),
       ],
@@ -79,10 +79,14 @@ class _TitleWithStatus extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          laundryStatus.text,
-          style: WasherTypography.subTitle3(
-            WasherColor.baseGray700,
+        Flexible(
+          child: Text(
+            laundryStatus.text,
+            style: WasherTypography.subTitle3(
+              WasherColor.baseGray700,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
         if (laundryStatus == LaundryAlarmStatus.washComplete ||

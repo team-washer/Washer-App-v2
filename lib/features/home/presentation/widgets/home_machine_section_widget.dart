@@ -49,7 +49,7 @@ class HomeMachineSectionWidget extends StatelessWidget {
         AppGap.v16,
         if (machines.isEmpty)
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: AppSpacing.v16),
+            padding: EdgeInsets.symmetric(vertical: AppSpacing.v16),
             child: Center(
               child: Text(
                 '기기 정보가 없습니다.',
@@ -61,7 +61,7 @@ class HomeMachineSectionWidget extends StatelessWidget {
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               crossAxisSpacing: AppSpacing.v8,
               mainAxisSpacing: AppSpacing.h8,
@@ -158,7 +158,7 @@ class _StatusItem extends StatelessWidget {
       },
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(
+        padding: EdgeInsets.symmetric(
           horizontal: 17.5,
           vertical: AppSpacing.v12,
         ),

@@ -3,6 +3,20 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'laundry_machine_model.freezed.dart';
 part 'laundry_machine_model.g.dart';
 
+enum MachineSide { left, right }
+
+class MachinePlacement {
+  const MachinePlacement({
+    required this.floor,
+    required this.side,
+    required this.number,
+  });
+
+  final String floor;
+  final MachineSide side;
+  final int number;
+}
+
 @freezed
 abstract class MachineModel with _$MachineModel {
   const MachineModel._();
@@ -27,9 +41,37 @@ abstract class MachineModel with _$MachineModel {
       _$MachineModelFromJson(json);
 
   /// "Washer-3F-L1" → 3
+  static final RegExp _placementPattern = RegExp(
+    r'^.+-(\d+F)-([LR])(\d+)$',
+    caseSensitive: false,
+  );
+
+  MachinePlacement? get placement {
+    final match = _placementPattern.firstMatch(name.trim());
+    if (match == null) {
+      return null;
+    }
+
+    final sideValue = match.group(2)?.toUpperCase();
+    final number = int.tryParse(match.group(3) ?? '');
+    if (sideValue == null || number == null) {
+      return null;
+    }
+
+    return MachinePlacement(
+      floor: match.group(1)!.toUpperCase(),
+      side: sideValue == 'L' ? MachineSide.left : MachineSide.right,
+      number: number,
+    );
+  }
+
   int? get floorNumber {
-    final match = RegExp(r'(\d+)F').firstMatch(name);
-    return match != null ? int.tryParse(match.group(1)!) : null;
+    final floor = placement?.floor;
+    if (floor == null) {
+      return null;
+    }
+
+    return int.tryParse(floor.replaceAll('F', ''));
   }
 
   bool get isAvailable => availability == 'AVAILABLE';

@@ -54,6 +54,7 @@ dependencies:
   webview_flutter: ^4.13.0
   crypto: ^3.0.3
   flutter_launcher_icons: ^0.14.4
+  flutter_screenutil: 5.9.3
 
 dev_dependencies:
   flutter_test:

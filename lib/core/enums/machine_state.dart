@@ -106,7 +106,7 @@ extension MachineStateExt on MachineState {
     'pause': MachineState.pause,
     'run': MachineState.run,
     'stop': MachineState.stop,
-    
+
     // 세탁 관련
     'wash': MachineState.wash,
     'aiwash': MachineState.aIWash,
@@ -116,27 +116,27 @@ extension MachineStateExt on MachineState {
     'spin': MachineState.spin,
     'aispin': MachineState.aISpin,
     'delaywash': MachineState.delayWash,
-    
+
     // 건조 관련
     'drying': MachineState.drying,
     'aidrying': MachineState.aIDrying,
-    
+
     // 완료/후처리
     'finished': MachineState.finished,
     'finish': MachineState.finished,
     'cooling': MachineState.cooling,
     'wrinkleprevent': MachineState.wrinklePrevent,
-    
+
     // 특수 기능
     'weightsensing': MachineState.weightSensing,
     'refreshing': MachineState.refreshing,
     'airwash': MachineState.airWash,
     'sanitizing': MachineState.sanitizing,
-    
+
     // 제습 관련
     'dehumidifying': MachineState.dehumidifying,
     'continuousdehumidifying': MachineState.continuousDehumidifying,
-    
+
     // 유지보수
     'internalcare': MachineState.internalCare,
     'freezeprotection': MachineState.freezeProtection,

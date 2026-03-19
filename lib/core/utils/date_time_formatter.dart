@@ -17,4 +17,3 @@ class DateTimeFormatter {
     return '$year.$month.$day. $hour:$minute:$second';
   }
 }
-

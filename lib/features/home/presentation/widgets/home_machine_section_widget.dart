@@ -22,9 +22,8 @@ class HomeMachineSectionWidget extends StatelessWidget {
   final List<MachineModel> machines;
   final LaundryMachineType machineType;
 
-  String get _title => machineType == LaundryMachineType.washer
-      ? '세탁기 예약 현황'
-      : '건조기 예약 현황';
+  String get _title =>
+      machineType == LaundryMachineType.washer ? '세탁기 예약 현황' : '건조기 예약 현황';
 
   @override
   Widget build(BuildContext context) {

@@ -102,7 +102,8 @@ class AppPadding {
     horizontal: 32.w,
   );
 
-  static EdgeInsets get screenHPadding => EdgeInsets.symmetric(horizontal: 32.w);
+  static EdgeInsets get screenHPadding =>
+      EdgeInsets.symmetric(horizontal: 32.w);
 }
 
 class AppGap {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:washer/core/enums/laundry_action_type.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
 import 'package:washer/core/enums/reservation_state.dart';
@@ -44,22 +45,26 @@ class ReservationWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
+      height: 137.h,
       padding: AppPadding.card,
       decoration: BoxDecoration(
         borderRadius: AppRadius.card,
         color: Colors.white,
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
                 child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    laundryMachineType.icon(color: reservationState.color),
+                    laundryMachineType.icon(
+                      color: reservationState.color,
+                      size: 28,
+                    ),
                     AppGap.h8,
                     Expanded(
                       child: Text(
@@ -313,7 +318,9 @@ class _ReservedByMeBottom extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final now = ref.watch(clockProvider).asData?.value ?? DateTime.now();
-    final reservedTime = reservedAt != null ? DateTime.tryParse(reservedAt!) : null;
+    final reservedTime = reservedAt != null
+        ? DateTime.tryParse(reservedAt!)
+        : null;
     final expireAt = reservedTime?.add(const Duration(minutes: 5));
 
     return Column(
@@ -402,12 +409,14 @@ class _ConfirmedByMeBottom extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final now = ref.watch(clockProvider).asData?.value ?? DateTime.now();
-    final reservedTime = reservedAt != null ? DateTime.tryParse(reservedAt!) : null;
+    final reservedTime = reservedAt != null
+        ? DateTime.tryParse(reservedAt!)
+        : null;
     final countdown = reservedTime != null
         ? _formatCountdown(reservedTime, now)
         : (finishedAt != null
-        ? _formatCountdown(DateTime.tryParse(finishedAt!), now)
-        : '');
+              ? _formatCountdown(DateTime.tryParse(finishedAt!), now)
+              : '');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

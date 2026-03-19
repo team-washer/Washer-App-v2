@@ -33,7 +33,7 @@ class WasherDialog extends StatelessWidget {
     return SingleChildScrollView(
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(AppSpacing.cardPadding),
+        padding: AppPadding.card,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
           color: Colors.white,

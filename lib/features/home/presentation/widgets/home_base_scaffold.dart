@@ -29,6 +29,7 @@ class HomeBaseScaffold extends StatelessWidget {
         washerSection,
         AppGap.v24,
         dryerSection,
+        AppGap.v24,
       ],
     );
   }

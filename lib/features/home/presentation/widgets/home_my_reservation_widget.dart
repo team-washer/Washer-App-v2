@@ -86,7 +86,7 @@ class _ReservationTitle extends StatelessWidget {
 
     return Text(
       title,
-      style: WasherTypography.h2(),
+      style: WasherTypography.subTitle1(),
     );
   }
 }

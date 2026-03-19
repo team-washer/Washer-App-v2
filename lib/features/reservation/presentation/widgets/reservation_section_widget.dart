@@ -171,7 +171,7 @@ class _ReservationSectionWidgetState
                   : ListView.separated(
                       padding: EdgeInsets.zero,
                       itemCount: items.length,
-                      separatorBuilder: (_, __) => AppGap.v24,
+                      separatorBuilder: (_, __) => AppGap.v12,
                       itemBuilder: (_, index) {
                         final item = items[index];
 

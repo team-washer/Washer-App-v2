@@ -2,6 +2,7 @@
 import 'package:washer/core/theme/color.dart';
 import 'package:washer/core/theme/icon.dart';
 import 'package:washer/core/theme/typography.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 enum NavTabType {
   dryer,
@@ -58,7 +59,7 @@ class WasherBottomNavigationBar extends StatelessWidget {
       items: NavTabType.values.map((tab) {
         return BottomNavigationBarItem(
           icon: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
+            padding: EdgeInsets.only(top: 12.h),
             child: WasherIcon(
               type: tab.iconType,
               color: currentTab == tab

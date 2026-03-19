@@ -25,8 +25,47 @@ class HomeMachineSectionWidget extends StatelessWidget {
   String get _title =>
       machineType == LaundryMachineType.washer ? '세탁기 예약 현황' : '건조기 예약 현황';
 
+  int _sideOrder(MachineSide? side) {
+    return switch (side) {
+      MachineSide.left => 0,
+      MachineSide.right => 1,
+      null => 2,
+    };
+  }
+
+  List<MachineModel> get _sortedMachines {
+    final sorted = List<MachineModel>.from(machines);
+    sorted.sort((a, b) {
+      final floorCompare = (a.floorNumber ?? 999).compareTo(
+        b.floorNumber ?? 999,
+      );
+      if (floorCompare != 0) {
+        return floorCompare;
+      }
+
+      final orderCompare = (a.placement?.number ?? 999).compareTo(
+        b.placement?.number ?? 999,
+      );
+      if (orderCompare != 0) {
+        return orderCompare;
+      }
+
+      final sideCompare = _sideOrder(a.placement?.side).compareTo(
+        _sideOrder(b.placement?.side),
+      );
+      if (sideCompare != 0) {
+        return sideCompare;
+      }
+
+      return a.name.compareTo(b.name);
+    });
+    return sorted;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final sortedMachines = _sortedMachines;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -46,7 +85,7 @@ class HomeMachineSectionWidget extends StatelessWidget {
           ],
         ),
         AppGap.v16,
-        if (machines.isEmpty)
+        if (sortedMachines.isEmpty)
           Padding(
             padding: EdgeInsets.symmetric(vertical: AppSpacing.v16),
             child: Center(
@@ -66,9 +105,9 @@ class HomeMachineSectionWidget extends StatelessWidget {
               mainAxisSpacing: AppSpacing.h8,
               childAspectRatio: _itemRatio,
             ),
-            itemCount: machines.length,
+            itemCount: sortedMachines.length,
             itemBuilder: (context, index) {
-              return _StatusItem(machine: machines[index]);
+              return _StatusItem(machine: sortedMachines[index]);
             },
           ),
       ],

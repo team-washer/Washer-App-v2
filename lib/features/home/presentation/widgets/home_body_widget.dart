@@ -19,6 +19,28 @@ class HomeBodyWidget extends ConsumerStatefulWidget {
 
 class _HomeBodyWidgetState extends ConsumerState<HomeBodyWidget>
     with WidgetsBindingObserver {
+  int? _targetFloorFromRoomNumber(String? roomNumber) {
+    if (roomNumber == null) {
+      return null;
+    }
+
+    final normalized = roomNumber.trim();
+    if (normalized.isEmpty) {
+      return null;
+    }
+
+    final digitsOnly = normalized.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digitsOnly.length < 3) {
+      final floor = int.tryParse(digitsOnly);
+      if (floor != null && (floor == 3 || floor == 4)) {
+        return floor;
+      }
+      return null;
+    }
+
+    return int.tryParse(digitsOnly.substring(0, digitsOnly.length - 2));
+  }
+
   @override
   void initState() {
     super.initState();
@@ -54,6 +76,8 @@ class _HomeBodyWidgetState extends ConsumerState<HomeBodyWidget>
     });
 
     final machineAsync = ref.watch(machineStatusProvider);
+    final myUserAsync = ref.watch(myUserProvider);
+    final activeReservationAsync = ref.watch(activeReservationProvider);
 
     return machineAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -61,12 +85,24 @@ class _HomeBodyWidgetState extends ConsumerState<HomeBodyWidget>
         onRetry: () => ref.read(machineStatusProvider.notifier).refresh(),
       ),
       data: (data) {
-        final washerMachines = data.machines
+        final roomNumber =
+            myUserAsync.whenOrNull(data: (user) => user?.roomNumber) ??
+            activeReservationAsync.whenOrNull(
+              data: (reservation) => reservation?.userRoomNumber,
+            );
+        final targetFloor = _targetFloorFromRoomNumber(roomNumber);
+        final visibleMachines = targetFloor == null
+            ? data.machines
+            : data.machines
+                  .where((machine) => machine.floorNumber == targetFloor)
+                  .toList(growable: false);
+
+        final washerMachines = visibleMachines
             .where(
               (machine) => machine.type == LaundryMachineType.washer.apiValue,
             )
             .toList(growable: false);
-        final dryerMachines = data.machines
+        final dryerMachines = visibleMachines
             .where(
               (machine) => machine.type == LaundryMachineType.dryer.apiValue,
             )

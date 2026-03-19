@@ -18,7 +18,9 @@ class CustomBigButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return WasherTextButton(
       text: text,
-      typography: WasherTypography.body4(Colors.white),
+      typography: WasherTypography.body1(
+        Colors.white,
+      ),
       color: color,
       onPressed: onPressed,
     );

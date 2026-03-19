@@ -31,7 +31,11 @@ class _HomeBodyWidgetState extends ConsumerState<HomeBodyWidget>
 
     final digitsOnly = normalized.replaceAll(RegExp(r'[^0-9]'), '');
     if (digitsOnly.length < 3) {
-      return int.tryParse(digitsOnly);
+      final floor = int.tryParse(digitsOnly);
+      if (floor != null && (floor == 3 || floor == 4)) {
+        return floor;
+      }
+      return null;
     }
 
     return int.tryParse(digitsOnly.substring(0, digitsOnly.length - 2));

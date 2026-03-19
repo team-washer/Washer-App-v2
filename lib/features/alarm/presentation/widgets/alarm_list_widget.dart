@@ -110,7 +110,7 @@ class AlarmListWidget extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('알람', style: WasherTypography.subTitle3()),
-        const SizedBox(height: AppSpacing.v16),
+        AppGap.v16,
         Expanded(
           child: ListView.builder(
             itemCount: _mockDateSections.length,

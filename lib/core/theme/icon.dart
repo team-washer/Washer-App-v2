@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 enum WasherIconType {
@@ -78,8 +79,8 @@ class WasherIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     final iconWidget = SvgPicture.asset(
       type.assetPath,
-      width: size,
-      height: size,
+      width: size.w,
+      height: size.h,
       colorFilter: _buildColorFilter(),
     );
     return iconWidget;
@@ -115,7 +116,7 @@ class WasherIconButton extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(size / 2 + 8),
+        borderRadius: BorderRadius.circular(size.w / 2 + 8.r),
         child: Padding(
           padding: padding,
           child: WasherIcon(

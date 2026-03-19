@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:washer/core/theme/color.dart';
 import 'package:washer/core/theme/icon.dart';
+import 'package:washer/core/theme/typography.dart';
 
 enum NavTabType {
   dryer,
@@ -46,6 +47,8 @@ class WasherBottomNavigationBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BottomNavigationBar(
+      selectedLabelStyle: WasherTypography.body2(),
+      unselectedLabelStyle: WasherTypography.body2(),
       currentIndex: NavTabType.values.indexOf(currentTab),
       onTap: (index) => onTabChanged(NavTabType.values[index]),
       backgroundColor: Colors.white,
@@ -54,11 +57,14 @@ class WasherBottomNavigationBar extends StatelessWidget {
       type: BottomNavigationBarType.fixed,
       items: NavTabType.values.map((tab) {
         return BottomNavigationBarItem(
-          icon: WasherIcon(
-            type: tab.iconType,
-            color: currentTab == tab
-                ? WasherColor.baseGray400
-                : WasherColor.baseGray200,
+          icon: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: WasherIcon(
+              type: tab.iconType,
+              color: currentTab == tab
+                  ? WasherColor.baseGray400
+                  : WasherColor.baseGray200,
+            ),
           ),
           label: tab.label,
         );

@@ -178,7 +178,7 @@ class _StatusItem extends StatelessWidget {
               AppGap.h12,
               Text(
                 machine.name,
-                style: WasherTypography.body3(
+                style: WasherTypography.body1(
                   isAvailable
                       ? WasherColor.baseGray700
                       : WasherColor.baseGray200,

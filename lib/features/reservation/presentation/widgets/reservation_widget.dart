@@ -63,7 +63,6 @@ class ReservationWidget extends StatelessWidget {
                   children: [
                     laundryMachineType.icon(
                       color: reservationState.color,
-                      size: 28,
                     ),
                     AppGap.h8,
                     Expanded(

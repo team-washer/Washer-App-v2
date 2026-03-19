@@ -22,9 +22,8 @@ class HomeMachineSectionWidget extends StatelessWidget {
   final List<MachineModel> machines;
   final LaundryMachineType machineType;
 
-  String get _title => machineType == LaundryMachineType.washer
-      ? '세탁기 예약 현황'
-      : '건조기 예약 현황';
+  String get _title =>
+      machineType == LaundryMachineType.washer ? '세탁기 예약 현황' : '건조기 예약 현황';
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +48,7 @@ class HomeMachineSectionWidget extends StatelessWidget {
         AppGap.v16,
         if (machines.isEmpty)
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: AppSpacing.v16),
+            padding: EdgeInsets.symmetric(vertical: AppSpacing.v16),
             child: Center(
               child: Text(
                 '기기 정보가 없습니다.',
@@ -61,7 +60,7 @@ class HomeMachineSectionWidget extends StatelessWidget {
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               crossAxisSpacing: AppSpacing.v8,
               mainAxisSpacing: AppSpacing.h8,
@@ -158,7 +157,7 @@ class _StatusItem extends StatelessWidget {
       },
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(
+        padding: EdgeInsets.symmetric(
           horizontal: 17.5,
           vertical: AppSpacing.v12,
         ),
@@ -179,7 +178,7 @@ class _StatusItem extends StatelessWidget {
               AppGap.h12,
               Text(
                 machine.name,
-                style: WasherTypography.body3(
+                style: WasherTypography.body1(
                   isAvailable
                       ? WasherColor.baseGray700
                       : WasherColor.baseGray200,

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/theme/color.dart';
 import 'package:washer/core/theme/spacing.dart';
@@ -194,4 +194,3 @@ class _HistoryCard extends StatelessWidget {
     );
   }
 }
-

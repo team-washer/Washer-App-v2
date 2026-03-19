@@ -14,7 +14,7 @@ class LoginLogoWidget extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         WasherIcon(type: WasherIconType.logo, size: 40),
-        const SizedBox(width: AppSpacing.v12),
+        AppGap.v12,
         Flexible(
           child: Text(
             '로그인',

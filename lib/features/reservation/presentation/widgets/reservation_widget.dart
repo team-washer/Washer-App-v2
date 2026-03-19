@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/enums/laundry_action_type.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
@@ -406,8 +406,8 @@ class _ConfirmedByMeBottom extends ConsumerWidget {
     final countdown = reservedTime != null
         ? _formatCountdown(reservedTime, now)
         : (finishedAt != null
-              ? _formatCountdown(DateTime.tryParse(finishedAt!), now)
-              : '');
+        ? _formatCountdown(DateTime.tryParse(finishedAt!), now)
+        : '');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

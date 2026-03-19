@@ -25,10 +25,11 @@ class HomeBaseScaffold extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         myReservation,
-        const SizedBox(height: AppSpacing.v8),
+        AppGap.v8,
         washerSection,
-        const SizedBox(height: AppSpacing.v24),
+        AppGap.v24,
         dryerSection,
+        AppGap.v24,
       ],
     );
   }

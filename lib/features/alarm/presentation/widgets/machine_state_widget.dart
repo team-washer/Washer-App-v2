@@ -1,11 +1,11 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:washer/core/enums/laundry_alarm_status.dart';
 import 'package:washer/core/theme/color.dart';
 import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
 
 /// 기계 상태 알람을 카드 형태로 표시하는 위젯
-/// 
+///
 /// 기능:
 /// - 알람 상태별 아이콘 표시 (완료, 에러, 경고)
 /// - 날짜 및 설명 표시

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:washer/features/alarm/presentation/widgets/alarm_base_scaffold.dart';
 import 'package:washer/features/alarm/presentation/widgets/alarm_list_widget.dart';
 

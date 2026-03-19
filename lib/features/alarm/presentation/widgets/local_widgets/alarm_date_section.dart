@@ -28,10 +28,10 @@ class _DateSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _DateDivider(date: date),
-        const SizedBox(height: AppSpacing.v8),
+        AppGap.v8,
         ...alarms.map(
           (alarm) => Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.v12),
+            padding: EdgeInsets.only(bottom: AppSpacing.contentPadding),
             child: MachineStateWidget(
               laundryStatus: alarm.status,
               date: alarm.time,

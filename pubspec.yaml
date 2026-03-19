@@ -49,11 +49,12 @@ dependencies:
   get_it: 9.2.0
   injectable: 2.7.1+2
   flutter_secure_storage: 10.0.0
-  flutter_dotenv: ^5.2.1
+  flutter_dotenv: 5.2.1
   timezone: 0.10.1
-  webview_flutter: ^4.13.0
-  crypto: ^3.0.3
+  webview_flutter: 4.13.0
+  crypto: 3.0.3
   flutter_launcher_icons: ^0.14.4
+  flutter_screenutil: 5.9.3
 
 dev_dependencies:
   flutter_test:

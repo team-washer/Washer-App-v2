@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 /// 앱 전체에서 사용되는 간격 및 여백 상수
 ///
@@ -16,67 +17,67 @@ class AppSpacing {
   // ============================================
 
   /// 카드 컴포넌트 기본 패딩
-  static const double cardPadding = 16;
+  static double get cardPadding => 16.w;
 
   /// 콘텐츠 영역 기본 패딩
-  static const double contentPadding = 12;
+  static double get contentPadding => 12.w;
 
   // ============================================
   // Border Radius - 모서리 둥글기
   // ============================================
 
   /// 카드 컴포넌트 기본 radius
-  static const double cardRadius = 12;
+  static double get cardRadius => 12.r;
 
   // ============================================
   // Vertical Gap - 세로 간격
   // ============================================
 
   /// 매우 작은 세로 간격 (2px)
-  static const double v2 = 2;
+  static double get v2 => 2.h;
 
   /// 작은 세로 간격 (4px)
-  static const double v4 = 4;
+  static double get v4 => 4.h;
 
   /// 기본 세로 간격 (8px)
-  static const double v8 = 8;
+  static double get v8 => 8.h;
 
   /// 중간 세로 간격 (10px)
-  static const double v10 = 10;
+  static double get v10 => 10.h;
 
   /// 중간 세로 간격 (12px)
-  static const double v12 = 12;
+  static double get v12 => 12.h;
 
   /// 큰 세로 간격 (16px)
-  static const double v16 = 16;
+  static double get v16 => 16.h;
 
   /// 매우 큰 세로 간격 (24px)
-  static const double v24 = 24;
+  static double get v24 => 24.h;
 
   // ============================================
   // Horizontal Gap - 가로 간격
   // ============================================
 
   /// 매우 작은 가로 간격 (2px)
-  static const double h2 = 2;
+  static double get h2 => 2.w;
 
   /// 작은 가로 간격 (4px)
-  static const double h4 = 4;
+  static double get h4 => 4.w;
 
   /// 기본 가로 간격 (8px)
-  static const double h8 = 8;
+  static double get h8 => 8.w;
 
   /// 기본 가로 간격 (10px)
-  static const double h10 = 10;
+  static double get h10 => 10.w;
 
   /// 중간 가로 간격 (12px)
-  static const double h12 = 12;
+  static double get h12 => 12.w;
 
   /// 큰 가로 간격 (16px)
-  static const double h16 = 16;
+  static double get h16 => 16.w;
 
   /// 매우 큰 가로 간격 (24px)
-  static const double h24 = 24;
+  static double get h24 => 24.w;
 }
 
 class AppPadding {
@@ -87,21 +88,22 @@ class AppPadding {
   // ============================================
 
   /// 카드 컴포넌트용 패딩 (16px all)
-  static const EdgeInsets card = EdgeInsets.all(AppSpacing.cardPadding);
+  static EdgeInsets get card => EdgeInsets.all(AppSpacing.cardPadding);
 
   /// 콘텐츠 영역용 패딩 (12px all)
-  static const EdgeInsets content = EdgeInsets.all(AppSpacing.contentPadding);
+  static EdgeInsets get content => EdgeInsets.all(AppSpacing.contentPadding);
 
-  static const EdgeInsets button = EdgeInsets.symmetric(
-    vertical: 8,
-    horizontal: 33.5,
+  static EdgeInsets get button => EdgeInsets.symmetric(
+    vertical: 8.h,
+    horizontal: 33.5.w,
   );
-  static const EdgeInsets appBarPadding = EdgeInsets.symmetric(
-    vertical: 12,
-    horizontal: 32,
+  static EdgeInsets get appBarPadding => EdgeInsets.symmetric(
+    vertical: 12.h,
+    horizontal: 32.w,
   );
 
-  static const EdgeInsets screenHPadding = EdgeInsets.symmetric(horizontal: 32);
+  static EdgeInsets get screenHPadding =>
+      EdgeInsets.symmetric(horizontal: 32.w);
 }
 
 class AppGap {
@@ -111,42 +113,42 @@ class AppGap {
   // Vertical Gaps - 세로 간격
   // ============================================
 
-  static const Widget v2 = SizedBox(height: AppSpacing.v2);
-  static const Widget v4 = SizedBox(height: AppSpacing.v4);
-  static const Widget v8 = SizedBox(height: AppSpacing.v8);
-  static const Widget v10 = SizedBox(height: AppSpacing.v10);
-  static const Widget v12 = SizedBox(height: AppSpacing.v12);
-  static const Widget v16 = SizedBox(height: AppSpacing.v16);
-  static const Widget v24 = SizedBox(height: AppSpacing.v24);
+  static Widget get v2 => SizedBox(height: AppSpacing.v2);
+  static Widget get v4 => SizedBox(height: AppSpacing.v4);
+  static Widget get v8 => SizedBox(height: AppSpacing.v8);
+  static Widget get v10 => SizedBox(height: AppSpacing.v10);
+  static Widget get v12 => SizedBox(height: AppSpacing.v12);
+  static Widget get v16 => SizedBox(height: AppSpacing.v16);
+  static Widget get v24 => SizedBox(height: AppSpacing.v24);
 
   // ============================================
   // Horizontal Gaps - 가로 간격
   // ============================================
 
-  static const Widget h2 = SizedBox(width: AppSpacing.h2);
-  static const Widget h4 = SizedBox(width: AppSpacing.h4);
-  static const Widget h8 = SizedBox(width: AppSpacing.h8);
-  static const Widget h10 = SizedBox(width: AppSpacing.h10);
-  static const Widget h12 = SizedBox(width: AppSpacing.h12);
-  static const Widget h16 = SizedBox(width: AppSpacing.h16);
-  static const Widget h24 = SizedBox(width: AppSpacing.h24);
+  static Widget get h2 => SizedBox(width: AppSpacing.h2);
+  static Widget get h4 => SizedBox(width: AppSpacing.h4);
+  static Widget get h8 => SizedBox(width: AppSpacing.h8);
+  static Widget get h10 => SizedBox(width: AppSpacing.h10);
+  static Widget get h12 => SizedBox(width: AppSpacing.h12);
+  static Widget get h16 => SizedBox(width: AppSpacing.h16);
+  static Widget get h24 => SizedBox(width: AppSpacing.h24);
 }
 
 class AppRadius {
   AppRadius._();
 
   /// 카드 모서리 둥글기
-  static final BorderRadius card = BorderRadius.circular(AppSpacing.cardRadius);
+  static BorderRadius get card => BorderRadius.circular(AppSpacing.cardRadius);
 
   /// 작은 모서리 둥글기 (8px)
-  static final BorderRadius small = BorderRadius.circular(8);
+  static BorderRadius get small => BorderRadius.circular(8.r);
 
   /// 중간 모서리 둥글기 (12px)
-  static final BorderRadius medium = BorderRadius.circular(12);
+  static BorderRadius get medium => BorderRadius.circular(12.r);
 
   /// 큰 모서리 둥글기 (16px)
-  static final BorderRadius large = BorderRadius.circular(16);
+  static BorderRadius get large => BorderRadius.circular(16.r);
 
   /// 완전히 둥근 모서리
-  static final BorderRadius circular = BorderRadius.circular(999);
+  static BorderRadius get circular => BorderRadius.circular(999.r);
 }

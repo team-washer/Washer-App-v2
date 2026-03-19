@@ -1,24 +1,13 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:washer/core/theme/color.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class WasherTypography {
   WasherTypography._();
 
-  // ============================================
-  // Font Configuration - 폰트 설정
-  // ============================================
-
-  /// 앱 기본 폰트 패밀리
   static const String _fontFamily = 'SUIT';
-
-  /// 기본 텍스트 색상
   static const Color _defaultColor = WasherColor.baseGray700;
 
-  // ============================================
-  // Private Helper - 내부 헬퍼 메서드
-  // ============================================
-
-  /// SUIT 폰트 기반 TextStyle 생성
   static TextStyle _suitBase({
     required double fontSize,
     required FontWeight fontWeight,
@@ -28,91 +17,72 @@ class WasherTypography {
     return TextStyle(
       fontFamily: _fontFamily,
       fontWeight: fontWeight,
-      fontSize: fontSize,
+      fontSize: fontSize.sp,
       height: height,
-      color: color,
+      color: color ?? _defaultColor,
     );
   }
 
-  // ============================================
-  // Headline Styles - 헤드라인 스타일
-  // ============================================
-
+  // Headline Styles
   static TextStyle h1([Color? color]) => _suitBase(
     fontSize: 24,
     fontWeight: FontWeight.w600,
-    color: color ?? _defaultColor,
+    color: color,
   );
-
   static TextStyle h2([Color? color]) => _suitBase(
     fontSize: 20,
     fontWeight: FontWeight.w600,
-    color: color ?? _defaultColor,
+    color: color,
   );
 
-  // ============================================
-  // Subtitle Styles - 서브타이틀 스타일
-  // ============================================
-
+  // Subtitle Styles
   static TextStyle subTitle1([Color? color]) => _suitBase(
     fontSize: 20,
     fontWeight: FontWeight.normal,
-    color: color ?? _defaultColor,
+    color: color,
   );
-
   static TextStyle subTitle2([Color? color]) => _suitBase(
     fontSize: 18,
     fontWeight: FontWeight.bold,
-    color: color ?? _defaultColor,
+    color: color,
   );
-
   static TextStyle subTitle3([Color? color]) => _suitBase(
     fontSize: 18,
     fontWeight: FontWeight.normal,
-    color: color ?? _defaultColor,
+    color: color,
   );
-
   static TextStyle subTitle4([Color? color]) => _suitBase(
     fontSize: 16,
     fontWeight: FontWeight.w600,
-    color: color ?? _defaultColor,
+    color: color,
   );
 
-  // ============================================
-  // Body Styles - 본문 스타일
-  // ============================================
-
+  // Body Styles
   static TextStyle body1([Color? color]) => _suitBase(
     fontSize: 16,
     fontWeight: FontWeight.normal,
-    color: color ?? _defaultColor,
+    color: color,
   );
-
   static TextStyle body2([Color? color]) => _suitBase(
     fontSize: 15,
     fontWeight: FontWeight.normal,
-    color: color ?? _defaultColor,
+    color: color,
   );
-
   static TextStyle body3([Color? color]) => _suitBase(
     fontSize: 14,
     fontWeight: FontWeight.w600,
-    color: color ?? _defaultColor,
+    color: color,
   );
-
   static TextStyle body4([Color? color]) => _suitBase(
     fontSize: 14,
     fontWeight: FontWeight.normal,
-    color: color ?? _defaultColor,
+    color: color,
   );
 
-  // ============================================
-  // Caption Style - 캡션 스타일
-  // ============================================
-
+  // Caption Style
   static TextStyle caption([Color? color]) => _suitBase(
     fontSize: 12,
     fontWeight: FontWeight.normal,
-    color: color ?? _defaultColor,
+    color: color,
   );
 }

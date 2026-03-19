@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -179,12 +179,16 @@ class ReservationViewModel extends Notifier<ReservationActionState> {
     bool forceMachineRefresh = false,
   }) async {
     try {
-      final current = ref.read(activeReservationProvider).maybeWhen(
+      final current = ref
+          .read(activeReservationProvider)
+          .maybeWhen(
             data: (value) => value,
             orElse: () => null,
           );
 
-      final latest = await ref.read(homeRepositoryProvider).getActiveReservation();
+      final latest = await ref
+          .read(homeRepositoryProvider)
+          .getActiveReservation();
       final hasChanged = current != latest;
 
       if (hasChanged) {
@@ -209,4 +213,3 @@ final reservationViewModelProvider =
     NotifierProvider<ReservationViewModel, ReservationActionState>(
       ReservationViewModel.new,
     );
-

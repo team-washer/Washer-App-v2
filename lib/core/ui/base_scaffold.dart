@@ -26,13 +26,10 @@ class BaseScaffold extends StatelessWidget {
           : null,
       body: SafeArea(
         child: Padding(
-          padding: AppPadding.screenHPadding,
-          child: Padding(
-            padding: EdgeInsets.only(
-              top: showAppBar ? AppSpacing.v12 : 0,
-            ),
-            child: body,
+          padding: AppPadding.screenHPadding.copyWith(
+            top: showAppBar ? AppSpacing.v12 : 0,
           ),
+          child: body,
         ),
       ),
       bottomNavigationBar: bottomNavigationBar,

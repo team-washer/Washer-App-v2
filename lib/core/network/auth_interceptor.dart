@@ -6,6 +6,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:washer/core/network/token_utils.dart';
 
+import 'insecure_http_client_adapter.dart';
+
 class AuthInterceptor extends Interceptor {
   AuthInterceptor(this._dio, this._storage, {this.onLogout}) {
     _refreshDio = Dio(
@@ -19,6 +21,7 @@ class AuthInterceptor extends Interceptor {
         },
       ),
     );
+    allowAllCertificates(_refreshDio);
   }
 
   final Dio _dio;

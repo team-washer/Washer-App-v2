@@ -6,6 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'auth_interceptor.dart';
 import 'auth_notifier.dart';
+import 'insecure_http_client_adapter.dart';
 
 class DioClient {
   static const Duration _connectTimeout = Duration(seconds: 30);
@@ -16,6 +17,8 @@ class DioClient {
 
   DioClient(this._storage) : _dio = Dio() {
     final baseUrl = dotenv.env['API_BASE_URL'] ?? '';
+
+    allowAllCertificates(_dio);
 
     _dio
       ..options.baseUrl = baseUrl

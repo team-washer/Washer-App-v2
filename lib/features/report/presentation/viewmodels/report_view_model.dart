@@ -1,4 +1,4 @@
-﻿import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/features/home/presentation/viewmodels/home_view_model.dart';
 import 'package:washer/features/report/data/repositories/report_repository.dart';
@@ -26,7 +26,9 @@ class ReportViewModel extends Notifier<ReportActionState> {
     state = const ReportActionState(status: ReportActionStatus.loading);
 
     try {
-      await ref.read(reportRepositoryProvider).createMalfunctionReport(
+      await ref
+          .read(reportRepositoryProvider)
+          .createMalfunctionReport(
             machineId: machineId,
             description: description,
           );

@@ -31,12 +31,12 @@ class HomeMyReservationWidget extends ConsumerWidget {
       children: [
         _ReservationTitle(roomNumber: roomNumber),
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: AppSpacing.v16),
+          padding: EdgeInsets.symmetric(vertical: AppSpacing.v16),
           child: reservationAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (_, __) => Center(
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: AppSpacing.v24),
+                padding: EdgeInsets.symmetric(vertical: AppSpacing.v24),
                 child: Text(
                   '예약 정보를 불러오지 못했습니다.',
                   style: WasherTypography.body1(WasherColor.baseGray300),
@@ -56,7 +56,7 @@ class HomeMyReservationWidget extends ConsumerWidget {
                   )
                 : Center(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(
+                      padding: EdgeInsets.symmetric(
                         vertical: AppSpacing.v24,
                       ),
                       child: Text(
@@ -118,7 +118,7 @@ class _MyReservationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.cardPadding),
+      padding: AppPadding.card,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: AppRadius.card,

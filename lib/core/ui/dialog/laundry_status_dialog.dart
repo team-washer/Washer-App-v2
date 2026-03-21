@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
 import 'package:washer/core/enums/machine_state.dart';
@@ -32,7 +32,9 @@ class LaundryStatusDialog extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isAvailable = !isUsed && !isUnavailable;
-    final title = machineType == LaundryMachineType.washer ? '세탁기 현황' : '건조기 현황';
+    final title = machineType == LaundryMachineType.washer
+        ? '세탁기 현황'
+        : '건조기 현황';
     final statusText = _buildStatusText(isUnavailable, isUsed, machineState);
     final roomText = roomNumber ?? '없음';
     final notesText = _buildNotesText(
@@ -125,8 +127,9 @@ class LaundryStatusDialog extends ConsumerWidget {
     required String? expectedTime,
   }) {
     if (isUnavailable) {
-      final machineTypeText =
-          machineType == LaundryMachineType.washer ? '세탁기' : '건조기';
+      final machineTypeText = machineType == LaundryMachineType.washer
+          ? '세탁기'
+          : '건조기';
       return '$machineTypeText 사용 불가';
     }
 

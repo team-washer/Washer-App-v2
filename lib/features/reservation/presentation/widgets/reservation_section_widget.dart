@@ -6,6 +6,7 @@ import 'package:washer/core/enums/laundry_status.dart';
 import 'package:washer/core/enums/reservation_state.dart';
 import 'package:washer/core/router/route_paths.dart';
 import 'package:washer/core/theme/color.dart';
+import 'package:washer/core/theme/icon.dart';
 import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
 import 'package:washer/features/home/presentation/viewmodels/home_view_model.dart';
@@ -171,7 +172,7 @@ class _ReservationSectionWidgetState
                   : ListView.separated(
                       padding: const EdgeInsets.only(bottom: AppSpacing.v12),
                       itemCount: items.length,
-                      separatorBuilder: (_, __) => AppGap.v24,
+                      separatorBuilder: (_, __) => AppGap.v12,
                       itemBuilder: (_, index) {
                         final item = items[index];
 
@@ -260,6 +261,11 @@ class _FloorSelectorRow extends StatelessWidget {
                 style: WasherTypography.body4(WasherColor.baseGray300),
               ),
               AppGap.h4,
+              const WasherIcon(
+                type: WasherIconType.map,
+                size: 20,
+                color: WasherColor.baseGray300,
+              ),
             ],
           ),
         ),

@@ -27,7 +27,9 @@ class BaseScaffold extends StatelessWidget {
       body: SafeArea(
         bottom: false,
         child: Padding(
-          padding: AppPadding.screenHPadding,
+          padding: AppPadding.screenHPadding.copyWith(
+            top: showAppBar ? AppSpacing.v12 : 0,
+          ),
           child: body,
         ),
       ),

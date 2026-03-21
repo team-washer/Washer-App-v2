@@ -170,7 +170,7 @@ class _ReservationSectionWidgetState
                       ),
                     )
                   : ListView.separated(
-                      padding: const EdgeInsets.only(bottom: AppSpacing.v12),
+                      padding: EdgeInsets.only(bottom: AppSpacing.v12),
                       itemCount: items.length,
                       separatorBuilder: (_, __) => AppGap.v12,
                       itemBuilder: (_, index) {

@@ -11,7 +11,10 @@ class AuthBaseScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: WasherColor.backgroundColor,
-      body: SafeArea(child: body),
+      body: SafeArea(
+        bottom: false,
+        child: body,
+      ),
     );
   }
 }

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/enums/laundry_action_type.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
@@ -86,7 +86,9 @@ class _ReservationTitle extends StatelessWidget {
 
     return Text(
       title,
-      style: WasherTypography.h2(),
+      style: normalizedRoomNumber == null || normalizedRoomNumber.isEmpty
+          ? WasherTypography.h2()
+          : WasherTypography.body2(),
     );
   }
 }
@@ -132,7 +134,7 @@ class _MyReservationCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   machine,
-                  style: WasherTypography.body1(),
+                  style: WasherTypography.subTitle3(),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -222,7 +224,9 @@ class _WaitingBody extends ConsumerWidget {
     final now = ref.watch(clockProvider).asData?.value ?? DateTime.now();
     var countdown = remainDuration ?? '만료됨';
 
-    final reservedTime = reservedAt != null ? DateTime.tryParse(reservedAt!) : null;
+    final reservedTime = reservedAt != null
+        ? DateTime.tryParse(reservedAt!)
+        : null;
     if (reservedTime != null) {
       countdown = _formatDuration(
         reservedTime.add(const Duration(minutes: 5)).difference(now),
@@ -310,7 +314,9 @@ class _InUseBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final now = ref.watch(clockProvider).asData?.value ?? DateTime.now();
-    final finishTime = finishedAt != null ? DateTime.tryParse(finishedAt!) : null;
+    final finishTime = finishedAt != null
+        ? DateTime.tryParse(finishedAt!)
+        : null;
     final countdown = finishTime == null
         ? ''
         : _formatDuration(
@@ -404,7 +410,7 @@ class _BottomSection extends StatelessWidget {
               );
             }
           },
-          color: WasherColor.baseGray200,
+          color: WasherColor.baseGray300,
         ),
         AppGap.h4,
         CustomSmallButton(
@@ -425,8 +431,8 @@ class _BottomSection extends StatelessWidget {
             }
           },
           color: laundryStatus == LaundryStatus.reserved
-              ? WasherColor.mainColor500
-              : WasherColor.mainColor200,
+              ? WasherColor.mainColor400
+              : WasherColor.mainColor300,
         ),
       ],
     );
@@ -452,6 +458,3 @@ String _formatDuration(
 
   return '${duration.inMinutes.toString().padLeft(2, '0')}분 ${seconds.toString().padLeft(2, '0')}초';
 }
-
-
-

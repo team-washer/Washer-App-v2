@@ -31,13 +31,13 @@ extension LaundryStatusExt on LaundryStatus {
       case LaundryStatus.needConfirm:
         return WasherColor.errorColor;
       case LaundryStatus.reserved:
-        return WasherColor.mainColor200;
+        return WasherColor.mainColor300;
       case LaundryStatus.inUse:
-        return WasherColor.mainColor500;
+        return WasherColor.mainColor400;
       case LaundryStatus.confirmed:
-        return WasherColor.mainColor500;
+        return WasherColor.mainColor400;
       case LaundryStatus.completed:
-        return WasherColor.mainColor500;
+        return WasherColor.mainColor400;
     }
   }
 

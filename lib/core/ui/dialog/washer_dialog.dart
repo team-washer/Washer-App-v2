@@ -47,8 +47,8 @@ class WasherDialog extends StatelessWidget {
             _WasherDialogActions(
               backText: backText ?? "뒤로가기",
               confirmText: confirmText ?? "확인",
-              backColor: backColor ?? WasherColor.baseGray200,
-              confirmColor: confirmColor ?? WasherColor.mainColor500,
+              backColor: backColor ?? WasherColor.baseGray300,
+              confirmColor: confirmColor ?? WasherColor.mainColor400,
               onBackPressed: onBackPressed ?? () => _pop(context),
               onConfirmPressed: onConfirmPressed ?? () => _pop(context),
             ),
@@ -94,7 +94,7 @@ class _WasherDialogActions extends StatelessWidget {
   Widget build(BuildContext context) {
     if (confirmText.isEmpty) {
       // confirmText가 빈 문자열이면 단일 버튼(backButton)만 표시.
-      // CustomBigButton 내부에 Expanded가 있으므로 반드시 Row 내부에 배치해야 
+      // CustomBigButton 내부에 Expanded가 있으므로 반드시 Row 내부에 배치해야
       // 세로 방향(Column)의 unbounded height 에러가 발생하지 않습니다.
       return Row(
         children: [
@@ -106,7 +106,7 @@ class _WasherDialogActions extends StatelessWidget {
         ],
       );
     }
-    
+
     return Row(
       children: [
         CustomBigButton(

@@ -45,24 +45,32 @@ class WasherBottomNavigationBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BottomNavigationBar(
-      currentIndex: NavTabType.values.indexOf(currentTab),
-      onTap: (index) => onTabChanged(NavTabType.values[index]),
-      backgroundColor: Colors.white,
-      selectedItemColor: WasherColor.baseGray400,
-      unselectedItemColor: WasherColor.baseGray200,
-      type: BottomNavigationBarType.fixed,
-      items: NavTabType.values.map((tab) {
-        return BottomNavigationBarItem(
-          icon: WasherIcon(
-            type: tab.iconType,
-            color: currentTab == tab
-                ? WasherColor.baseGray400
-                : WasherColor.baseGray200,
-          ),
-          label: tab.label,
-        );
-      }).toList(),
+    return Theme(
+      data: Theme.of(context).copyWith(
+        splashFactory: NoSplash.splashFactory,
+        highlightColor: Colors.transparent,
+        splashColor: Colors.transparent,
+        hoverColor: Colors.transparent,
+      ),
+      child: BottomNavigationBar(
+        currentIndex: NavTabType.values.indexOf(currentTab),
+        onTap: (index) => onTabChanged(NavTabType.values[index]),
+        backgroundColor: Colors.white,
+        selectedItemColor: WasherColor.baseGray400,
+        unselectedItemColor: WasherColor.baseGray300,
+        type: BottomNavigationBarType.fixed,
+        items: NavTabType.values.map((tab) {
+          return BottomNavigationBarItem(
+            icon: WasherIcon(
+              type: tab.iconType,
+              color: currentTab == tab
+                  ? WasherColor.baseGray400
+                  : WasherColor.baseGray300,
+            ),
+            label: tab.label,
+          );
+        }).toList(),
+      ),
     );
   }
 }

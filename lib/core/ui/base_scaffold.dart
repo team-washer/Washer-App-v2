@@ -25,6 +25,7 @@ class BaseScaffold extends StatelessWidget {
           ? WasherAppbar(hasNotification: hasNotification)
           : null,
       body: SafeArea(
+        bottom: false,
         child: Padding(
           padding: AppPadding.screenHPadding,
           child: body,

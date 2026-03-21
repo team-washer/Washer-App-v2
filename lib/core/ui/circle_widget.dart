@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:washer/core/theme/color.dart';
 
 enum CircleColor { red, blue }
@@ -9,7 +9,7 @@ extension CircleColorX on CircleColor {
       case CircleColor.red:
         return WasherColor.errorColor;
       case CircleColor.blue:
-        return WasherColor.mainColor600;
+        return WasherColor.mainColor500;
     }
   }
 }
@@ -25,10 +25,7 @@ class CircleWidget extends StatelessWidget {
     return Container(
       width: _size,
       height: _size,
-      decoration: BoxDecoration(
-        color: color.toColor,
-        shape: BoxShape.circle
-      ),
+      decoration: BoxDecoration(color: color.toColor, shape: BoxShape.circle),
     );
   }
 }

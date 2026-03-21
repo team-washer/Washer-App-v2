@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/enums/laundry_action_type.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
@@ -232,7 +232,7 @@ class _AvailableBottom extends StatelessWidget {
             CustomBigButton(
               text: '예약',
               onPressed: onReserve ?? () {},
-              color: WasherColor.mainColor500,
+              color: WasherColor.mainColor400,
             ),
             AppGap.h8,
             WasherIconButton(
@@ -257,7 +257,7 @@ class _AvailableBottom extends StatelessWidget {
             AppGap.h8,
             WasherIconButton(
               type: WasherIconType.historyCircle,
-              color: WasherColor.baseGray200,
+              color: WasherColor.baseGray300,
               size: 33,
               padding: EdgeInsets.zero,
               onTap: () {
@@ -313,7 +313,9 @@ class _ReservedByMeBottom extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final now = ref.watch(clockProvider).asData?.value ?? DateTime.now();
-    final reservedTime = reservedAt != null ? DateTime.tryParse(reservedAt!) : null;
+    final reservedTime = reservedAt != null
+        ? DateTime.tryParse(reservedAt!)
+        : null;
     final expireAt = reservedTime?.add(const Duration(minutes: 5));
 
     return Column(
@@ -348,7 +350,7 @@ class _ReservedByMeBottom extends ConsumerWidget {
                   );
                 }
               },
-              color: WasherColor.baseGray200,
+              color: WasherColor.baseGray300,
             ),
             AppGap.h8,
             CustomBigButton(
@@ -368,7 +370,7 @@ class _ReservedByMeBottom extends ConsumerWidget {
                   );
                 }
               },
-              color: WasherColor.mainColor500,
+              color: WasherColor.mainColor400,
             ),
           ],
         ),
@@ -402,7 +404,9 @@ class _ConfirmedByMeBottom extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final now = ref.watch(clockProvider).asData?.value ?? DateTime.now();
-    final reservedTime = reservedAt != null ? DateTime.tryParse(reservedAt!) : null;
+    final reservedTime = reservedAt != null
+        ? DateTime.tryParse(reservedAt!)
+        : null;
     final countdown = reservedTime != null
         ? _formatCountdown(reservedTime, now)
         : (finishedAt != null

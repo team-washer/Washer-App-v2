@@ -169,7 +169,7 @@ class _ReservationSectionWidgetState
                       ),
                     )
                   : ListView.separated(
-                      padding: EdgeInsets.zero,
+                      padding: const EdgeInsets.only(bottom: AppSpacing.v12),
                       itemCount: items.length,
                       separatorBuilder: (_, __) => AppGap.v24,
                       itemBuilder: (_, index) {
@@ -233,7 +233,7 @@ class _FloorSelectorRow extends StatelessWidget {
                       ),
                       decoration: BoxDecoration(
                         color: selectedFloor == floor
-                            ? WasherColor.mainColor600
+                            ? WasherColor.mainColor500
                             : WasherColor.baseGray100,
                         borderRadius: BorderRadius.circular(20),
                       ),

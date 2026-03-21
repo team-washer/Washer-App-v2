@@ -9,7 +9,7 @@ extension LaundryMachineTypeExt on LaundryMachineType {
     Color? color,
     double size = 28,
   }) {
-    final iconColor = color ?? WasherColor.mainColor400;
+    final iconColor = color ?? WasherColor.mainColor300;
 
     switch (this) {
       case LaundryMachineType.washer:

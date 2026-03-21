@@ -22,9 +22,8 @@ class HomeMachineSectionWidget extends StatelessWidget {
   final List<MachineModel> machines;
   final LaundryMachineType machineType;
 
-  String get _title => machineType == LaundryMachineType.washer
-      ? '세탁기 예약 현황'
-      : '건조기 예약 현황';
+  String get _title =>
+      machineType == LaundryMachineType.washer ? '세탁기 예약 현황' : '건조기 예약 현황';
 
   @override
   Widget build(BuildContext context) {
@@ -173,8 +172,8 @@ class _StatusItem extends StatelessWidget {
             children: [
               machineType.icon(
                 color: isAvailable
-                    ? WasherColor.mainColor400
-                    : WasherColor.baseGray200,
+                    ? WasherColor.mainColor300
+                    : WasherColor.baseGray300,
               ),
               AppGap.h12,
               Text(
@@ -182,7 +181,7 @@ class _StatusItem extends StatelessWidget {
                 style: WasherTypography.body3(
                   isAvailable
                       ? WasherColor.baseGray700
-                      : WasherColor.baseGray200,
+                      : WasherColor.baseGray300,
                 ),
               ),
             ],

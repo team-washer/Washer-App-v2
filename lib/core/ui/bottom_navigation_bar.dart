@@ -47,29 +47,37 @@ class WasherBottomNavigationBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BottomNavigationBar(
-      selectedLabelStyle: WasherTypography.body2(),
-      unselectedLabelStyle: WasherTypography.body2(),
-      currentIndex: NavTabType.values.indexOf(currentTab),
-      onTap: (index) => onTabChanged(NavTabType.values[index]),
-      backgroundColor: Colors.white,
-      selectedItemColor: WasherColor.baseGray400,
-      unselectedItemColor: WasherColor.baseGray200,
-      type: BottomNavigationBarType.fixed,
-      items: NavTabType.values.map((tab) {
-        return BottomNavigationBarItem(
-          icon: Padding(
-            padding: EdgeInsets.only(top: 12.h),
-            child: WasherIcon(
-              type: tab.iconType,
-              color: currentTab == tab
-                  ? WasherColor.baseGray400
-                  : WasherColor.baseGray200,
+    return Theme(
+      data: Theme.of(context).copyWith(
+        splashFactory: NoSplash.splashFactory,
+        highlightColor: Colors.transparent,
+        splashColor: Colors.transparent,
+        hoverColor: Colors.transparent,
+      ),
+      child: BottomNavigationBar(
+        selectedLabelStyle: WasherTypography.body2(),
+        unselectedLabelStyle: WasherTypography.body2(),
+        currentIndex: NavTabType.values.indexOf(currentTab),
+        onTap: (index) => onTabChanged(NavTabType.values[index]),
+        backgroundColor: Colors.white,
+        selectedItemColor: WasherColor.baseGray400,
+        unselectedItemColor: WasherColor.baseGray200,
+        type: BottomNavigationBarType.fixed,
+        items: NavTabType.values.map((tab) {
+          return BottomNavigationBarItem(
+            icon: Padding(
+              padding: EdgeInsets.only(top: 12.h),
+              child: WasherIcon(
+                type: tab.iconType,
+                color: currentTab == tab
+                    ? WasherColor.baseGray400
+                    : WasherColor.baseGray200,
+              ),
             ),
-          ),
-          label: tab.label,
-        );
-      }).toList(),
+            label: tab.label,
+          );
+        }).toList(),
+      ),
     );
   }
 }

@@ -134,7 +134,7 @@ class _HistoryCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: WasherColor.baseGray200),
+        border: Border.all(color: WasherColor.baseGray300),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -157,7 +157,7 @@ class _HistoryCard extends StatelessWidget {
             ],
           ),
           AppGap.v8,
-          Divider(color: WasherColor.baseGray200, height: 1),
+          Divider(color: WasherColor.baseGray300, height: 1),
           AppGap.v8,
           _buildInfoRow('예약 호실', '${item.userRoomNumber}호'),
           AppGap.v8,

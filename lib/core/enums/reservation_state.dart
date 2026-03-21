@@ -32,12 +32,12 @@ extension ReservationStateText on ReservationState {
   Color get color {
     switch (this) {
       case ReservationState.available:
-        return WasherColor.baseGray200;
+        return WasherColor.baseGray300;
       case ReservationState.inUse:
       case ReservationState.reservedByMe:
       case ReservationState.reservedByOther:
       case ReservationState.confirmed:
-        return WasherColor.mainColor500;
+        return WasherColor.mainColor400;
       case ReservationState.unavailable:
         return WasherColor.errorColor;
     }

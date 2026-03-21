@@ -30,16 +30,16 @@ extension HistoryStatusX on HistoryStatus {
   Color get color {
     switch (this) {
       case HistoryStatus.completed:
-        return WasherColor.mainColor500;
+        return WasherColor.mainColor400;
 
       case HistoryStatus.cancelled:
         return WasherColor.errorColor;
 
       case HistoryStatus.running:
-        return WasherColor.mainColor600;
+        return WasherColor.mainColor500;
 
       case HistoryStatus.confirmed:
-        return WasherColor.mainColor400;
+        return WasherColor.mainColor300;
 
       case HistoryStatus.reserved:
         return WasherColor.baseGray500;

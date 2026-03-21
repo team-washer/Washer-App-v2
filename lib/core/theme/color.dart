@@ -9,13 +9,13 @@ class WasherColor {
 
   static const mainColor100 = Color(0xFFDBE7FF);
   static const mainColor200 = Color(0xFFB6D0FF);
-  static const mainColor400 = Color(0xFF85B0FF);
-  static const mainColor500 = Color(0xFF699DFF);
-  static const mainColor600 = Color(0xFF4486FF);
-  static const mainColor700 = Color(0xFF2370FF);
-  static const mainColor800 = Color(0xFF1768FF);
-  static const mainColor900 = Color(0xFF0E62FF);
-  static const mainColor1000 = Color(0xFF0059FF);
+  static const mainColor300 = Color(0xFF85B0FF);
+  static const mainColor400 = Color(0xFF699DFF);
+  static const mainColor500 = Color(0xFF4486FF);
+  static const mainColor600 = Color(0xFF2370FF);
+  static const mainColor700 = Color(0xFF1768FF);
+  static const mainColor800 = Color(0xFF0E62FF);
+  static const mainColor900 = Color(0xFF0059FF);
 
   // ============================================
   // Base Gray Colors - 기본 회색 팔레트

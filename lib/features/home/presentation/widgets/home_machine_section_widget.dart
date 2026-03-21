@@ -211,8 +211,8 @@ class _StatusItem extends StatelessWidget {
             children: [
               machineType.icon(
                 color: isAvailable
-                    ? WasherColor.mainColor400
-                    : WasherColor.baseGray200,
+                    ? WasherColor.mainColor300
+                    : WasherColor.baseGray300,
               ),
               AppGap.h12,
               Text(
@@ -220,7 +220,7 @@ class _StatusItem extends StatelessWidget {
                 style: WasherTypography.body1(
                   isAvailable
                       ? WasherColor.baseGray700
-                      : WasherColor.baseGray200,
+                      : WasherColor.baseGray300,
                 ),
               ),
             ],

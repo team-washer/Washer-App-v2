@@ -23,7 +23,7 @@ class DgLoginButtonWidget extends StatelessWidget {
           context.push(RoutePaths.authWebView);
         },
         style: ElevatedButton.styleFrom(
-          backgroundColor: WasherColor.mainColor600,
+          backgroundColor: WasherColor.mainColor500,
           foregroundColor: Colors.white,
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: AppRadius.small),

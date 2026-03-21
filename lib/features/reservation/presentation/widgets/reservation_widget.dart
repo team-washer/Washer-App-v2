@@ -236,7 +236,7 @@ class _AvailableBottom extends StatelessWidget {
             CustomBigButton(
               text: '예약',
               onPressed: onReserve ?? () {},
-              color: WasherColor.mainColor500,
+              color: WasherColor.mainColor400,
             ),
             AppGap.h8,
             WasherIconButton(
@@ -261,7 +261,7 @@ class _AvailableBottom extends StatelessWidget {
             AppGap.h8,
             WasherIconButton(
               type: WasherIconType.historyCircle,
-              color: WasherColor.baseGray200,
+              color: WasherColor.baseGray300,
               size: 33,
               padding: EdgeInsets.zero,
               onTap: () {
@@ -354,7 +354,7 @@ class _ReservedByMeBottom extends ConsumerWidget {
                   );
                 }
               },
-              color: WasherColor.baseGray200,
+              color: WasherColor.baseGray300,
             ),
             AppGap.h8,
             CustomBigButton(
@@ -374,7 +374,7 @@ class _ReservedByMeBottom extends ConsumerWidget {
                   );
                 }
               },
-              color: WasherColor.mainColor500,
+              color: WasherColor.mainColor400,
             ),
           ],
         ),

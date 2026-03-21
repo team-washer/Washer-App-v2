@@ -9,7 +9,7 @@ extension CircleColorX on CircleColor {
       case CircleColor.red:
         return WasherColor.errorColor;
       case CircleColor.blue:
-        return WasherColor.mainColor600;
+        return WasherColor.mainColor500;
     }
   }
 }

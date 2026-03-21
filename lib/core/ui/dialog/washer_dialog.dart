@@ -47,8 +47,8 @@ class WasherDialog extends StatelessWidget {
             _WasherDialogActions(
               backText: backText ?? "뒤로가기",
               confirmText: confirmText ?? "확인",
-              backColor: backColor ?? WasherColor.baseGray200,
-              confirmColor: confirmColor ?? WasherColor.mainColor500,
+              backColor: backColor ?? WasherColor.baseGray300,
+              confirmColor: confirmColor ?? WasherColor.mainColor400,
               onBackPressed: onBackPressed ?? () => _pop(context),
               onConfirmPressed: onConfirmPressed ?? () => _pop(context),
             ),

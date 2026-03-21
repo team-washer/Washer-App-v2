@@ -33,9 +33,9 @@ class AppEnvironment {
       flavor: flavor,
       apiBaseUrl: dotenv.get('API_BASE_URL'),
       refreshTokenEndpoint:
-          dotenv.maybeGet('REFRESH_TOKEN_ENDPOINT') ?? '/auth/refresh',
-      oauthBaseUrl: dotenv.maybeGet('OAUTH_BASE_URL') ?? '',
-      oauthClientId: dotenv.maybeGet('OAUTH_CLIENT_ID') ?? '',
+          dotenv.get('REFRESH_TOKEN_ENDPOINT'),
+      oauthBaseUrl: dotenv.get('OAUTH_BASE_URL'),
+      oauthClientId: dotenv.get('OAUTH_CLIENT_ID'),
     );
   }
 

@@ -1,8 +1,8 @@
 ﻿import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:washer/core/env/app_environment.dart';
 import 'package:washer/core/notifications/notification_bootstrapper.dart';
 import 'package:washer/firebase_options.dart';
 
@@ -11,7 +11,7 @@ import 'core/router/app_router.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await dotenv.load(fileName: '.env');
+  await AppEnvironment.initialize();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );

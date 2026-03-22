@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:washer/core/env/app_environment.dart';
 import 'package:washer/core/router/route_paths.dart';
 import 'package:washer/core/theme/color.dart';
 import 'package:washer/features/auth/presentation/viewmodels/auth_callback_view_model.dart';
@@ -43,13 +43,11 @@ class AuthWebViewScreen extends ConsumerStatefulWidget {
   }
 
   static _AuthWebViewSession? _createSession() {
-    final oauthBaseUrl = dotenv.env['OAUTH_BASE_URL'];
-    final clientId = dotenv.env['OAUTH_CLIENT_ID'];
+    final environment = AppEnvironment.instance;
+    final oauthBaseUrl = environment.oauthBaseUrl;
+    final clientId = environment.oauthClientId;
 
-    if (oauthBaseUrl == null ||
-        oauthBaseUrl.isEmpty ||
-        clientId == null ||
-        clientId.isEmpty) {
+    if (oauthBaseUrl.isEmpty || clientId.isEmpty) {
       return null;
     }
 

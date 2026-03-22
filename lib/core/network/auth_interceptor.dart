@@ -1,18 +1,23 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:washer/core/env/app_environment.dart';
 import 'package:washer/core/network/token_utils.dart';
 
 import 'insecure_http_client_adapter.dart';
 
 class AuthInterceptor extends Interceptor {
-  AuthInterceptor(this._dio, this._storage, {this.onLogout}) {
+  AuthInterceptor(
+    this._dio,
+    this._storage,
+    this._environment, {
+    this.onLogout,
+  }) {
     _refreshDio = Dio(
       BaseOptions(
-        baseUrl: dotenv.env['API_BASE_URL'] ?? '',
+        baseUrl: _environment.apiBaseUrl,
         connectTimeout: const Duration(seconds: 30),
         receiveTimeout: const Duration(seconds: 30),
         headers: {
@@ -21,11 +26,15 @@ class AuthInterceptor extends Interceptor {
         },
       ),
     );
-    allowAllCertificates(_refreshDio);
+    configureHttpClientAdapter(
+      _refreshDio,
+      allowBadCertificates: _environment.allowBadCertificates,
+    );
   }
 
   final Dio _dio;
   final FlutterSecureStorage _storage;
+  final AppEnvironment _environment;
   final VoidCallback? onLogout;
 
   late final Dio _refreshDio;
@@ -122,8 +131,7 @@ class AuthInterceptor extends Interceptor {
       return null;
     }
 
-    final refreshEndpoint =
-        dotenv.env['REFRESH_TOKEN_ENDPOINT'] ?? '/auth/refresh';
+    final refreshEndpoint = _environment.refreshTokenEndpoint;
     final response = await _refreshDio.post(
       refreshEndpoint,
       options: Options(

@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:washer/core/env/app_environment.dart';
 
 import 'auth_interceptor.dart';
 import 'auth_notifier.dart';
@@ -14,14 +14,16 @@ class DioClient {
 
   final Dio _dio;
   final FlutterSecureStorage _storage;
+  final AppEnvironment _environment;
 
-  DioClient(this._storage) : _dio = Dio() {
-    final baseUrl = dotenv.env['API_BASE_URL'] ?? '';
-
-    allowAllCertificates(_dio);
+  DioClient(this._storage, this._environment) : _dio = Dio() {
+    configureHttpClientAdapter(
+      _dio,
+      allowBadCertificates: _environment.allowBadCertificates,
+    );
 
     _dio
-      ..options.baseUrl = baseUrl
+      ..options.baseUrl = _environment.apiBaseUrl
       ..options.connectTimeout = _connectTimeout
       ..options.receiveTimeout = _receiveTimeout
       ..options.headers = {
@@ -30,7 +32,12 @@ class DioClient {
       };
 
     _dio.interceptors.add(
-      AuthInterceptor(_dio, _storage, onLogout: authNotifier.logout),
+      AuthInterceptor(
+        _dio,
+        _storage,
+        _environment,
+        onLogout: authNotifier.logout,
+      ),
     );
 
     if (kDebugMode) {
@@ -54,7 +61,10 @@ final secureStorageProvider = Provider<FlutterSecureStorage>(
 );
 
 final dioClientProvider = Provider<DioClient>(
-  (ref) => DioClient(ref.watch(secureStorageProvider)),
+  (ref) => DioClient(
+    ref.watch(secureStorageProvider),
+    ref.watch(appEnvironmentProvider),
+  ),
 );
 
 final dioProvider = Provider<Dio>((ref) {

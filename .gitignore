@@ -49,6 +49,8 @@ app.*.map.json
 
 # Environment variables
 .env
+.env.development
+.env.production
 
 # FVM Version Cache
 .fvm/
@@ -56,4 +58,3 @@ app.*.map.json
 #Firebase files
 google-services.json
 GoogleService-Info.plist
-

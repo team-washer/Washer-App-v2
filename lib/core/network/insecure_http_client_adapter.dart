@@ -3,7 +3,14 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 
-void allowAllCertificates(Dio dio) {
+void configureHttpClientAdapter(
+  Dio dio, {
+  required bool allowBadCertificates,
+}) {
+  if (!allowBadCertificates) {
+    return;
+  }
+
   dio.httpClientAdapter = IOHttpClientAdapter(
     createHttpClient: () {
       final client = HttpClient();

@@ -86,9 +86,7 @@ class _ReservationTitle extends StatelessWidget {
 
     return Text(
       title,
-      style: normalizedRoomNumber == null || normalizedRoomNumber.isEmpty
-          ? WasherTypography.h2()
-          : WasherTypography.body2(),
+      style: WasherTypography.h2(),
     );
   }
 }

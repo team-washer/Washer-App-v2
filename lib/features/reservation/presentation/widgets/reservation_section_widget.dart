@@ -37,7 +37,8 @@ class _ReservationSectionWidgetState
   @override
   void initState() {
     super.initState();
-    Future.microtask(() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       ref.read(activeReservationProvider.notifier).ensureLoaded();
     });
   }
@@ -57,16 +58,26 @@ class _ReservationSectionWidgetState
     MachineModel machine,
     ActiveReservationModel? activeReservation,
   ) {
+    final isMyMachine =
+        activeReservation != null &&
+        (machine.machineId == activeReservation.machineId ||
+            machine.reservationId == activeReservation.id);
+
     if (machine.isUnavailable) return ReservationState.unavailable;
-    if (machine.isAvailable) return ReservationState.available;
-    if (activeReservation != null &&
-        machine.reservationId == activeReservation.id) {
+
+    if (isMyMachine) {
       if (activeReservation.laundryStatus == LaundryStatus.confirmed) {
         return ReservationState.confirmed;
       }
+      if (activeReservation.laundryStatus == LaundryStatus.inUse ||
+          activeReservation.laundryStatus == LaundryStatus.completed) {
+        return ReservationState.inUse;
+      }
       return ReservationState.reservedByMe;
     }
-    if (machine.operatingState == 'running') return ReservationState.inUse;
+
+    if (machine.isAvailable) return ReservationState.available;
+    if (machine.isInUse) return ReservationState.inUse;
     return ReservationState.reservedByOther;
   }
 
@@ -81,14 +92,17 @@ class _ReservationSectionWidgetState
           final state = _toReservationState(machine, activeReservation);
           final isMyMachine =
               activeReservation != null &&
-              machine.reservationId == activeReservation.id;
+              (machine.machineId == activeReservation.machineId ||
+                  machine.reservationId == activeReservation.id);
 
           return _MachineData(
             machine.machineId,
             machine.name,
             state,
             finishedAt: machine.expectedCompletionTime,
-            room: isMyMachine ? activeReservation.userRoomNumber : null,
+            room: isMyMachine
+                ? activeReservation.userRoomNumber
+                : machine.roomNumber,
             reservedAt: isMyMachine ? activeReservation.reservedAt : null,
             remainDuration: null,
             reservationId: machine.reservationId ?? 0,

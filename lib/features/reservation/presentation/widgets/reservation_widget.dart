@@ -45,14 +45,15 @@ class ReservationWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      height: 137.h,
+      constraints: BoxConstraints(minHeight: 137.h),
       padding: AppPadding.card,
       decoration: BoxDecoration(
         borderRadius: AppRadius.card,
         color: Colors.white,
       ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -78,6 +79,7 @@ class ReservationWidget extends StatelessWidget {
                   ],
                 ),
               ),
+              AppGap.h8,
               ReservationStateWidget(
                 label: reservationState.label,
                 color: reservationState.color,
@@ -281,7 +283,7 @@ class _AvailableBottom extends StatelessWidget {
   }
 }
 
-class _ReservedByMeBottom extends ConsumerWidget {
+class _ReservedByMeBottom extends StatelessWidget {
   const _ReservedByMeBottom({
     required this.laundryMachineType,
     this.reservedAt,
@@ -315,13 +317,7 @@ class _ReservedByMeBottom extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final now = ref.watch(clockProvider).asData?.value ?? DateTime.now();
-    final reservedTime = reservedAt != null
-        ? DateTime.tryParse(reservedAt!)
-        : null;
-    final expireAt = reservedTime?.add(const Duration(minutes: 5));
-
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -330,9 +326,9 @@ class _ReservedByMeBottom extends ConsumerWidget {
           style: WasherTypography.body2(WasherColor.baseGray500),
         ),
         AppGap.v4,
-        Text(
-          '예약 만료까지: ${expireAt != null ? _formatCountdown(expireAt, now) : ''}',
-          style: WasherTypography.body2(WasherColor.errorColor),
+        _ReservedByMeCountdownText(
+          reservedAt: reservedAt,
+          formatCountdown: _formatCountdown,
         ),
         AppGap.v12,
         Row(
@@ -383,7 +379,7 @@ class _ReservedByMeBottom extends ConsumerWidget {
   }
 }
 
-class _ConfirmedByMeBottom extends ConsumerWidget {
+class _ConfirmedByMeBottom extends StatelessWidget {
   const _ConfirmedByMeBottom({
     required this.laundryMachineType,
     this.reservedAt,
@@ -406,17 +402,7 @@ class _ConfirmedByMeBottom extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final now = ref.watch(clockProvider).asData?.value ?? DateTime.now();
-    final reservedTime = reservedAt != null
-        ? DateTime.tryParse(reservedAt!)
-        : null;
-    final countdown = reservedTime != null
-        ? _formatCountdown(reservedTime, now)
-        : (finishedAt != null
-              ? _formatCountdown(DateTime.tryParse(finishedAt!), now)
-              : '');
-
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -425,12 +411,67 @@ class _ConfirmedByMeBottom extends ConsumerWidget {
           style: WasherTypography.body2(WasherColor.baseGray500),
         ),
         AppGap.v4,
-        Text(
-          '예정 완료 시간: $countdown',
-          style: WasherTypography.body2(WasherColor.baseGray500),
+        _ConfirmedByMeCountdownText(
+          reservedAt: reservedAt,
+          finishedAt: finishedAt,
+          formatCountdown: _formatCountdown,
         ),
         AppGap.v12,
       ],
+    );
+  }
+}
+
+class _ReservedByMeCountdownText extends ConsumerWidget {
+  const _ReservedByMeCountdownText({
+    required this.reservedAt,
+    required this.formatCountdown,
+  });
+
+  final String? reservedAt;
+  final String Function(DateTime expireAt, DateTime now) formatCountdown;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final now = ref.watch(clockProvider).asData?.value ?? DateTime.now();
+    final reservedTime = reservedAt != null
+        ? DateTime.tryParse(reservedAt!)
+        : null;
+    final expireAt = reservedTime?.add(const Duration(minutes: 5));
+
+    return Text(
+      '예약 만료까지: ${expireAt != null ? formatCountdown(expireAt, now) : ''}',
+      style: WasherTypography.body2(WasherColor.errorColor),
+    );
+  }
+}
+
+class _ConfirmedByMeCountdownText extends ConsumerWidget {
+  const _ConfirmedByMeCountdownText({
+    required this.reservedAt,
+    required this.finishedAt,
+    required this.formatCountdown,
+  });
+
+  final String? reservedAt;
+  final String? finishedAt;
+  final String Function(DateTime? baseTime, DateTime now) formatCountdown;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final now = ref.watch(clockProvider).asData?.value ?? DateTime.now();
+    final reservedTime = reservedAt != null
+        ? DateTime.tryParse(reservedAt!)
+        : null;
+    final countdown = reservedTime != null
+        ? formatCountdown(reservedTime, now)
+        : (finishedAt != null
+              ? formatCountdown(DateTime.tryParse(finishedAt!), now)
+              : '');
+
+    return Text(
+      '예정 완료 시간: $countdown',
+      style: WasherTypography.body2(WasherColor.baseGray500),
     );
   }
 }
@@ -448,23 +489,29 @@ class _ReservedBottom extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final formattedReservedAt = DateTimeFormatter.formatToShortWithTime(
+      reservedAt,
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '예약 시간: ${DateTimeFormatter.formatToShortWithTime(reservedAt)}',
+          '예약 시간: ${formattedReservedAt.isEmpty ? '확인 중' : formattedReservedAt}',
           style: WasherTypography.body2(WasherColor.baseGray500),
         ),
         AppGap.v4,
         Text(
-          '예약 만료까지: ${remainDuration ?? ''}',
+          '예약 상태: 사용 대기 중',
           style: WasherTypography.body2(WasherColor.errorColor),
         ),
-        AppGap.v4,
-        Text(
-          '사용 호실: ${room ?? ''}',
-          style: WasherTypography.body2(WasherColor.baseGray500),
-        ),
+        if (room != null && room!.trim().isNotEmpty) ...[
+          AppGap.v4,
+          Text(
+            '사용 호실: $room',
+            style: WasherTypography.body2(WasherColor.baseGray500),
+          ),
+        ],
       ],
     );
   }

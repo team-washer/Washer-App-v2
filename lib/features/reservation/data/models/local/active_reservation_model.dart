@@ -26,6 +26,8 @@ abstract class ActiveReservationModel with _$ActiveReservationModel {
   factory ActiveReservationModel.fromJson(Map<String, dynamic> json) =>
       _$ActiveReservationModelFromJson(json);
 
+  String get normalizedStatus => status.trim().toUpperCase();
+
   LaundryMachineType get machineType {
     final normalizedName = machineName.toLowerCase();
 
@@ -41,17 +43,18 @@ abstract class ActiveReservationModel with _$ActiveReservationModel {
   }
 
   LaundryStatus get laundryStatus {
-    switch (status) {
+    switch (normalizedStatus) {
       case 'RESERVED':
         return LaundryStatus.reserved;
       case 'CONFIRMED':
         return LaundryStatus.confirmed;
       case 'IN_USE':
+      case 'RUNNING':
         return LaundryStatus.inUse;
       case 'COMPLETED':
         return LaundryStatus.completed;
       default:
-        return LaundryStatus.inUse;
+        return LaundryStatus.reserved;
     }
   }
 }

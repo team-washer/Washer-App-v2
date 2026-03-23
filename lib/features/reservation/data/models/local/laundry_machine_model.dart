@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:washer/core/enums/machine_state.dart';
 
 part 'laundry_machine_model.freezed.dart';
 part 'laundry_machine_model.g.dart';
@@ -74,8 +75,46 @@ abstract class MachineModel with _$MachineModel {
     return int.tryParse(floor.replaceAll('F', ''));
   }
 
-  bool get isAvailable => availability == 'AVAILABLE';
-  bool get isUnavailable => status != 'NORMAL';
+  String get normalizedAvailability => availability.trim().toUpperCase();
+
+  String get normalizedStatus => status.trim().toUpperCase();
+
+  String? get normalizedOperatingState {
+    final value = operatingState?.trim();
+    if (value == null || value.isEmpty) {
+      return null;
+    }
+
+    return value.toLowerCase().replaceAll('_', '');
+  }
+
+  MachineState? get machineState =>
+      MachineStateExt.fromString(normalizedOperatingState);
+
+  bool get hasReservation => (reservationId ?? 0) > 0;
+
+  bool get isAvailable =>
+      normalizedAvailability == 'AVAILABLE' && !hasReservation;
+
+  bool get isUnavailable => normalizedStatus != 'NORMAL';
+
+  bool get isReserved => hasReservation || normalizedAvailability == 'RESERVED';
+
+  bool get isInUse {
+    if (isUnavailable || isAvailable) {
+      return false;
+    }
+
+    final currentState = machineState;
+    if (currentState != null) {
+      return currentState != MachineState.delayWash &&
+          currentState != MachineState.none &&
+          currentState != MachineState.stop &&
+          currentState != MachineState.finished;
+    }
+
+    return !hasReservation;
+  }
 }
 
 @freezed

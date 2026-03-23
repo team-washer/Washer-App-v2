@@ -2,15 +2,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:washer/core/env/app_environment.dart';
 import 'package:washer/core/notifications/notification_bootstrapper.dart';
+import 'package:washer/core/theme/theme.dart';
 import 'package:washer/firebase_options.dart';
 
 import 'core/router/app_router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
+  final _storage = FlutterSecureStorage();
+  await _storage.deleteAll();
   await AppEnvironment.initialize();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
@@ -38,6 +41,7 @@ class MyApp extends StatelessWidget {
         return MaterialApp.router(
           routerConfig: appRouter,
           debugShowCheckedModeBanner: false,
+          theme: WasherTheme.themeData,
         );
       },
     );

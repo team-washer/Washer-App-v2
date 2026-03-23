@@ -5,7 +5,6 @@ import 'package:washer/core/theme/color.dart';
 import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
 import 'package:washer/features/home/presentation/viewmodels/home_view_model.dart';
-import 'package:washer/features/home/presentation/widgets/home_base_scaffold.dart';
 import 'package:washer/features/home/presentation/widgets/home_machine_section_widget.dart';
 import 'package:washer/features/home/presentation/widgets/home_my_reservation_widget.dart';
 import 'package:washer/features/user/presentation/viewmodels/my_user_view_model.dart';
@@ -19,6 +18,11 @@ class HomeBodyWidget extends ConsumerStatefulWidget {
 
 class _HomeBodyWidgetState extends ConsumerState<HomeBodyWidget>
     with WidgetsBindingObserver {
+  static const Duration _resumeRefreshThrottle = Duration(seconds: 5);
+
+  AppLifecycleState? _lastLifecycleState;
+  DateTime? _lastResumeRefreshAt;
+
   int? _targetFloorFromRoomNumber(String? roomNumber) {
     if (roomNumber == null) {
       return null;
@@ -45,6 +49,10 @@ class _HomeBodyWidgetState extends ConsumerState<HomeBodyWidget>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(activeReservationProvider.notifier).ensureLoaded();
+    });
   }
 
   @override
@@ -55,9 +63,23 @@ class _HomeBodyWidgetState extends ConsumerState<HomeBodyWidget>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
+    final previousState = _lastLifecycleState;
+    _lastLifecycleState = state;
+
+    if (state == AppLifecycleState.resumed &&
+        previousState != AppLifecycleState.resumed) {
+      final now = DateTime.now();
+      final lastRefreshAt = _lastResumeRefreshAt;
+      final shouldSkipRefresh =
+          lastRefreshAt != null &&
+          now.difference(lastRefreshAt) < _resumeRefreshThrottle;
+
+      if (shouldSkipRefresh) {
+        return;
+      }
+
+      _lastResumeRefreshAt = now;
       ref.invalidate(machineStatusProvider);
-      ref.invalidate(activeReservationProvider);
       ref.invalidate(myUserProvider);
     }
   }
@@ -116,25 +138,26 @@ class _HomeBodyWidgetState extends ConsumerState<HomeBodyWidget>
               ref.read(myUserProvider.notifier).refresh(),
             ]);
           },
-          child: SingleChildScrollView(
+          child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            child: HomeBaseScaffold(
-              myReservation: const RepaintBoundary(
-                child: HomeMyReservationWidget(),
-              ),
-              washerSection: RepaintBoundary(
-                child: HomeMachineSectionWidget(
-                  machines: washerMachines,
-                  machineType: LaundryMachineType.washer,
+            slivers: [
+              const SliverToBoxAdapter(
+                child: RepaintBoundary(
+                  child: HomeMyReservationWidget(),
                 ),
               ),
-              dryerSection: RepaintBoundary(
-                child: HomeMachineSectionWidget(
-                  machines: dryerMachines,
-                  machineType: LaundryMachineType.dryer,
-                ),
+              SliverToBoxAdapter(child: AppGap.v8),
+              HomeMachineSectionSliver(
+                machines: washerMachines,
+                machineType: LaundryMachineType.washer,
               ),
-            ),
+              SliverToBoxAdapter(child: AppGap.v24),
+              HomeMachineSectionSliver(
+                machines: dryerMachines,
+                machineType: LaundryMachineType.dryer,
+              ),
+              SliverToBoxAdapter(child: AppGap.v24),
+            ],
           ),
         );
       },

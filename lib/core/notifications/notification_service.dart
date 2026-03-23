@@ -1,4 +1,5 @@
-﻿import 'dart:async';
+import 'dart:async';
+import 'dart:io';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -19,6 +20,8 @@ const _completionChannelName = 'Laundry Completion';
 const _completionNotificationId = 1001;
 const _scheduledReservationKey = 'scheduled_completion_reservation_key';
 const _fcmTokenKey = 'fcm_token';
+const _apnsTokenRetryDelay = Duration(seconds: 1);
+const _apnsTokenMaxRetries = 10;
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -108,7 +111,7 @@ class NotificationService {
 
     await _initializeLocalNotifications();
     await _requestPermissions();
-    await _saveFcmToken();
+    await _saveFcmTokenWhenReady();
 
     _tokenRefreshSubscription ??= _messaging.onTokenRefresh.listen((token) {
       unawaited(_storage.write(key: _fcmTokenKey, value: token));
@@ -261,6 +264,59 @@ class NotificationService {
     if (kDebugMode) {
       debugPrint('FCM token: $token');
     }
+  }
+
+  Future<void> _saveFcmTokenWhenReady() async {
+    if (Platform.isIOS) {
+      final apnsTokenReady = await _waitForApnsToken();
+      if (!apnsTokenReady) {
+        if (kDebugMode) {
+          debugPrint(
+            'APNS token is not ready yet. Skipping initial FCM token save.',
+          );
+        }
+        return;
+      }
+    }
+
+    try {
+      await _saveFcmToken();
+    } on FirebaseException catch (e) {
+      if (_isApnsTokenNotSetError(e)) {
+        if (kDebugMode) {
+          debugPrint('FCM token skipped until APNS token is available.');
+        }
+        return;
+      }
+      rethrow;
+    }
+  }
+
+  Future<bool> _waitForApnsToken() async {
+    for (var attempt = 0; attempt < _apnsTokenMaxRetries; attempt++) {
+      try {
+        final token = await _messaging.getAPNSToken();
+        if (token != null && token.isNotEmpty) {
+          if (kDebugMode) {
+            debugPrint('APNS token received.');
+          }
+          return true;
+        }
+      } on FirebaseException catch (e) {
+        if (!_isApnsTokenNotSetError(e)) {
+          rethrow;
+        }
+      }
+
+      await Future<void>.delayed(_apnsTokenRetryDelay);
+    }
+
+    return false;
+  }
+
+  bool _isApnsTokenNotSetError(FirebaseException error) {
+    return error.plugin == 'firebase_messaging' &&
+        error.code == 'apns-token-not-set';
   }
 
   NotificationDetails _notificationDetails() {

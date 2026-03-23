@@ -1,4 +1,5 @@
-﻿import 'dart:async';
+import 'dart:async';
+import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,6 +15,43 @@ final clockProvider = StreamProvider<DateTime>((ref) {
 
 final pollingErrorProvider = StateProvider<String?>((ref) => null);
 
+ActiveReservationModel? _activeReservationValue(
+  AsyncValue<ActiveReservationModel?> value,
+) {
+  return value.whenOrNull(data: (reservation) => reservation);
+}
+
+String? _pollingErrorMessageFor(DioException error) {
+  final statusCode = error.response?.statusCode;
+  if (statusCode != null && statusCode >= 500) {
+    return '서버 오류가 발생했습니다. ($statusCode)';
+  }
+
+  if (error.type == DioExceptionType.connectionTimeout ||
+      error.type == DioExceptionType.sendTimeout ||
+      error.type == DioExceptionType.receiveTimeout) {
+    return '서버 응답 시간이 초과되었습니다.';
+  }
+
+  if (error.type == DioExceptionType.connectionError) {
+    final rawError = error.error;
+    if (rawError is SocketException) {
+      if (rawError.message.contains('Connection refused')) {
+        return '서버 연결이 거부되었습니다. 서버 상태를 확인해주세요.';
+      }
+      return '네트워크 연결에 실패했습니다. 인터넷 또는 서버 상태를 확인해주세요.';
+    }
+
+    return '네트워크 연결에 실패했습니다.';
+  }
+
+  if (error.response == null) {
+    return '네트워크 오류가 발생했습니다.';
+  }
+
+  return null;
+}
+
 final machineStatusProvider =
     AsyncNotifierProvider<MachineStatusNotifier, MachineStatusResponse>(
       MachineStatusNotifier.new,
@@ -26,12 +64,9 @@ class MachineStatusNotifier extends AsyncNotifier<MachineStatusResponse> {
     try {
       return await ref.read(homeRepositoryProvider).getMachineStatus();
     } on DioException catch (e) {
-      final statusCode = e.response?.statusCode ?? 0;
-      if (statusCode >= 500) {
-        ref.read(pollingErrorProvider.notifier).state =
-            '서버 오류가 발생했습니다. ($statusCode)';
-      } else if (e.response == null) {
-        ref.read(pollingErrorProvider.notifier).state = '네트워크 오류가 발생했습니다.';
+      final message = _pollingErrorMessageFor(e);
+      if (message != null) {
+        ref.read(pollingErrorProvider.notifier).state = message;
       }
       rethrow;
     }
@@ -39,9 +74,20 @@ class MachineStatusNotifier extends AsyncNotifier<MachineStatusResponse> {
 
   Future<void> refresh() async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(
-      () => ref.read(homeRepositoryProvider).getMachineStatus(),
-    );
+    try {
+      final machineStatus = await ref
+          .read(homeRepositoryProvider)
+          .getMachineStatus();
+      state = AsyncData(machineStatus);
+    } on DioException catch (e, st) {
+      final message = _pollingErrorMessageFor(e);
+      if (message != null) {
+        ref.read(pollingErrorProvider.notifier).state = message;
+      }
+      state = AsyncError(e, st);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+    }
   }
 }
 
@@ -51,39 +97,44 @@ final activeReservationProvider =
     );
 
 class ActiveReservationNotifier extends AsyncNotifier<ActiveReservationModel?> {
+  bool _hasFetched = false;
+
   @override
   Future<ActiveReservationModel?> build() async {
     ref.keepAlive();
-    try {
-      final reservation = await ref
-          .read(homeRepositoryProvider)
-          .getActiveReservation();
-      await _syncReservationNotification(reservation);
-      return reservation;
-    } on DioException catch (e) {
-      final statusCode = e.response?.statusCode ?? 0;
-      if (statusCode >= 500) {
-        ref.read(pollingErrorProvider.notifier).state =
-            '서버 오류가 발생했습니다. ($statusCode)';
-      } else if (e.response == null) {
-        ref.read(pollingErrorProvider.notifier).state = '네트워크 오류가 발생했습니다.';
-      }
-      rethrow;
+    return _activeReservationValue(state);
+  }
+
+  Future<void> ensureLoaded() async {
+    if (_hasFetched || state.isLoading) {
+      return;
     }
+
+    await refresh();
   }
 
   Future<void> refresh() async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
+    try {
+      _hasFetched = true;
       final reservation = await ref
           .read(homeRepositoryProvider)
           .getActiveReservation();
       await _syncReservationNotification(reservation);
-      return reservation;
-    });
+      state = AsyncData(reservation);
+    } on DioException catch (e, st) {
+      final message = _pollingErrorMessageFor(e);
+      if (message != null) {
+        ref.read(pollingErrorProvider.notifier).state = message;
+      }
+      state = AsyncError(e, st);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+    }
   }
 
   void setReservation(ActiveReservationModel? reservation) {
+    _hasFetched = true;
     state = AsyncData(reservation);
     unawaited(_syncReservationNotification(reservation));
   }

@@ -34,6 +34,14 @@ class _ReservationSectionWidgetState
     extends ConsumerState<ReservationSectionWidget> {
   int? _selectedFloor;
 
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      ref.read(activeReservationProvider.notifier).ensureLoaded();
+    });
+  }
+
   List<MachineModel> _machinesForType(List<MachineModel> machines) {
     return machines
         .where((machine) => machine.type == widget.laundryMachineType.apiValue)

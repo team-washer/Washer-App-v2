@@ -113,6 +113,8 @@ abstract class MachineModel with _$MachineModel {
           currentState != MachineState.finished;
     }
 
+    // 서버가 operatingState 없이 예약 불가 상태만 내려주는 경우가 있습니다.
+    // 이때 reservationId도 없으면 "예약 중"이 아니라 실제 "사용 중"으로 간주합니다.
     return !hasReservation;
   }
 }

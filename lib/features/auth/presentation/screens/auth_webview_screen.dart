@@ -52,23 +52,10 @@ class AuthWebViewScreen extends ConsumerStatefulWidget {
     }
 
     final isLoading = ValueNotifier<bool>(true);
-    final uri = Uri.parse(oauthBaseUrl).replace(
-      queryParameters: {
-        'redirect_uri': _redirectUri,
-        'client_id': clientId,
-      },
-    );
 
     final controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(WasherColor.backgroundColor)
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onPageStarted: (_) => isLoading.value = true,
-          onPageFinished: (_) => isLoading.value = false,
-        ),
-      )
-      ..loadRequest(uri);
+      ..setBackgroundColor(WasherColor.backgroundColor);
 
     return _AuthWebViewSession(
       controller: controller,
@@ -100,6 +87,7 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
 
     try {
       _attachNavigationDelegate(session);
+      session.controller.loadRequest(_buildAuthUri());
     } catch (_) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _onError());
     }
@@ -132,6 +120,16 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
         },
         onNavigationRequest: _handleNavigationRequest,
       ),
+    );
+  }
+
+  Uri _buildAuthUri() {
+    final environment = AppEnvironment.instance;
+    return Uri.parse(environment.oauthBaseUrl).replace(
+      queryParameters: {
+        'redirect_uri': _redirectUri,
+        'client_id': environment.oauthClientId,
+      },
     );
   }
 
@@ -211,7 +209,7 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
               }
 
               return const ColoredBox(
-                color: Colors.white54,
+                color: WasherColor.backgroundColor,
                 child: Center(child: CircularProgressIndicator()),
               );
             },

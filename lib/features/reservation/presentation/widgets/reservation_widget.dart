@@ -503,7 +503,7 @@ class _ReservedBottom extends StatelessWidget {
         AppGap.v4,
         Text(
           '예약 상태: 사용 대기 중',
-          style: WasherTypography.body2(WasherColor.errorColor),
+          style: WasherTypography.body2(WasherColor.baseGray500),
         ),
         if (room != null && room!.trim().isNotEmpty) ...[
           AppGap.v4,

@@ -10,6 +10,19 @@ import 'package:washer/core/ui/dialog/laundry_status_dialog.dart';
 import 'package:washer/features/reservation/data/models/local/laundry_machine_model.dart';
 
 List<MachineModel> _sortMachinesByPlacement(List<MachineModel> machines) {
+  int compareNullableInt(int? a, int? b) {
+    if (a == null && b == null) {
+      return 0;
+    }
+    if (a == null) {
+      return 1;
+    }
+    if (b == null) {
+      return -1;
+    }
+    return a.compareTo(b);
+  }
+
   int sideOrder(MachineSide? side) {
     return switch (side) {
       MachineSide.left => 0,
@@ -20,15 +33,14 @@ List<MachineModel> _sortMachinesByPlacement(List<MachineModel> machines) {
 
   final sorted = List<MachineModel>.from(machines);
   sorted.sort((a, b) {
-    final floorCompare = (a.floorNumber ?? 999).compareTo(
-      b.floorNumber ?? 999,
-    );
+    final floorCompare = compareNullableInt(a.floorNumber, b.floorNumber);
     if (floorCompare != 0) {
       return floorCompare;
     }
 
-    final orderCompare = (a.placement?.number ?? 999).compareTo(
-      b.placement?.number ?? 999,
+    final orderCompare = compareNullableInt(
+      a.placement?.number,
+      b.placement?.number,
     );
     if (orderCompare != 0) {
       return orderCompare;

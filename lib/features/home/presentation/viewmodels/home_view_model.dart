@@ -15,12 +15,6 @@ final clockProvider = StreamProvider<DateTime>((ref) {
 
 final pollingErrorProvider = StateProvider<String?>((ref) => null);
 
-ActiveReservationModel? _activeReservationValue(
-  AsyncValue<ActiveReservationModel?> value,
-) {
-  return value.whenOrNull(data: (reservation) => reservation);
-}
-
 String? _pollingErrorMessageFor(DioException error) {
   final statusCode = error.response?.statusCode;
   if (statusCode != null && statusCode >= 500) {
@@ -102,7 +96,20 @@ class ActiveReservationNotifier extends AsyncNotifier<ActiveReservationModel?> {
   @override
   Future<ActiveReservationModel?> build() async {
     ref.keepAlive();
-    return _activeReservationValue(state);
+    try {
+      _hasFetched = true;
+      final reservation = await ref
+          .read(homeRepositoryProvider)
+          .getActiveReservation();
+      unawaited(_syncReservationNotification(reservation));
+      return reservation;
+    } on DioException catch (e) {
+      final message = _pollingErrorMessageFor(e);
+      if (message != null) {
+        ref.read(pollingErrorProvider.notifier).state = message;
+      }
+      rethrow;
+    }
   }
 
   Future<void> ensureLoaded() async {

@@ -22,7 +22,7 @@ class AppEnvironment {
   final String oauthClientId;
 
   bool get isDevelopment => flavor == AppFlavor.development;
-  bool get allowBadCertificates => isDevelopment;
+  bool get allowBadCertificates => true;
 
   static Future<void> initialize() async {
     final flavor = _resolveFlavor();

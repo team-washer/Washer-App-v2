@@ -6,7 +6,9 @@ import 'package:washer/core/router/route_paths.dart';
 import 'package:washer/core/theme/color.dart';
 import 'package:washer/core/theme/icon.dart';
 import 'package:washer/core/theme/spacing.dart';
+import 'package:washer/core/theme/typography.dart';
 import 'package:washer/core/ui/circle_widget.dart';
+import 'package:washer/core/ui/dialog/washer_dialog.dart';
 import 'package:washer/features/auth/presentation/viewmodels/logout_view_model.dart';
 
 class WasherAppbar extends ConsumerWidget implements PreferredSizeWidget {
@@ -45,6 +47,14 @@ class WasherAppbar extends ConsumerWidget implements PreferredSizeWidget {
                       hasNotification: hasNotification,
                       maxHeight: constraints.maxHeight,
                       onLogout: () async {
+                        final shouldLogout = await showDialog<bool>(
+                          context: context,
+                          builder: (dialogContext) => const _LogoutDialog(),
+                        );
+                        if (shouldLogout != true) {
+                          return;
+                        }
+
                         await ref
                             .read(logoutViewModelProvider.notifier)
                             .logout();
@@ -116,6 +126,33 @@ class _ActionContainer extends StatelessWidget {
               onTap: onNotificationTap,
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LogoutDialog extends StatelessWidget {
+  const _LogoutDialog();
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      child: WasherDialog(
+        title: '로그아웃',
+        backText: '취소',
+        confirmText: '로그아웃',
+        confirmColor: WasherColor.errorColor,
+        onBackPressed: () => Navigator.of(context).pop(false),
+        onConfirmPressed: () => Navigator.of(context).pop(true),
+        content: Padding(
+          padding: EdgeInsets.symmetric(vertical: AppSpacing.v16),
+          child: Text(
+            '로그아웃 하시겠습니까?',
+            style: WasherTypography.subTitle4(),
+          ),
         ),
       ),
     );

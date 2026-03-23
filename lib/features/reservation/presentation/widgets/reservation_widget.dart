@@ -225,6 +225,8 @@ class _AvailableBottom extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isReserveEnabled = onReserve != null;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -237,8 +239,10 @@ class _AvailableBottom extends StatelessWidget {
           children: [
             CustomBigButton(
               text: '예약',
-              onPressed: onReserve ?? () {},
-              color: WasherColor.mainColor400,
+              onPressed: onReserve,
+              color: isReserveEnabled
+                  ? WasherColor.mainColor400
+                  : WasherColor.baseGray300,
             ),
             AppGap.h8,
             WasherIconButton(

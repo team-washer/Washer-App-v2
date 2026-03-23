@@ -5,7 +5,7 @@ import 'package:washer/core/ui/buttons/washer_text_button.dart';
 class CustomBigButton extends StatelessWidget {
   final String text;
   final Color color;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   const CustomBigButton({
     super.key,

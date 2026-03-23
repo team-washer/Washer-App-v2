@@ -28,11 +28,32 @@ class ReservationViewModel extends Notifier<ReservationActionState> {
 
   Timer? _pollingTimer;
   Timer? _expiryTimer;
+  Future<ReservationActionState>? _reserveRequest;
+  Future<ReservationActionState>? _cancelRequest;
+  Future<ReservationActionState>? _confirmRequest;
 
   @override
   ReservationActionState build() => const ReservationActionState();
 
   Future<ReservationActionState> reserve({required int machineId}) async {
+    final inFlightRequest = _reserveRequest;
+    if (inFlightRequest != null) {
+      return inFlightRequest;
+    }
+
+    final request = _reserveInternal(machineId: machineId);
+    _reserveRequest = request;
+    request.whenComplete(() {
+      if (identical(_reserveRequest, request)) {
+        _reserveRequest = null;
+      }
+    });
+    return request;
+  }
+
+  Future<ReservationActionState> _reserveInternal({
+    required int machineId,
+  }) async {
     state = const ReservationActionState(
       status: ReservationActionStatus.loading,
     );
@@ -75,6 +96,24 @@ class ReservationViewModel extends Notifier<ReservationActionState> {
   }
 
   Future<ReservationActionState> cancel({required int reservationId}) async {
+    final inFlightRequest = _cancelRequest;
+    if (inFlightRequest != null) {
+      return inFlightRequest;
+    }
+
+    final request = _cancelInternal(reservationId: reservationId);
+    _cancelRequest = request;
+    request.whenComplete(() {
+      if (identical(_cancelRequest, request)) {
+        _cancelRequest = null;
+      }
+    });
+    return request;
+  }
+
+  Future<ReservationActionState> _cancelInternal({
+    required int reservationId,
+  }) async {
     state = const ReservationActionState(
       status: ReservationActionStatus.loading,
     );
@@ -121,6 +160,24 @@ class ReservationViewModel extends Notifier<ReservationActionState> {
   }
 
   Future<ReservationActionState> confirmAndWatch({
+    required int reservationId,
+  }) async {
+    final inFlightRequest = _confirmRequest;
+    if (inFlightRequest != null) {
+      return inFlightRequest;
+    }
+
+    final request = _confirmAndWatchInternal(reservationId: reservationId);
+    _confirmRequest = request;
+    request.whenComplete(() {
+      if (identical(_confirmRequest, request)) {
+        _confirmRequest = null;
+      }
+    });
+    return request;
+  }
+
+  Future<ReservationActionState> _confirmAndWatchInternal({
     required int reservationId,
   }) async {
     state = const ReservationActionState(

@@ -12,5 +12,8 @@ class WasherTheme {
       elevation: 0,
       centerTitle: true,
     ),
+    progressIndicatorTheme: const ProgressIndicatorThemeData(
+      color: WasherColor.mainColor500,
+    ),
   );
 }

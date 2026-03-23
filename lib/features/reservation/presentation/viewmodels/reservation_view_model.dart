@@ -189,6 +189,19 @@ class ReservationViewModel extends Notifier<ReservationActionState> {
       final latest = await ref
           .read(homeRepositoryProvider)
           .getActiveReservation();
+      if (latest == null) {
+        _stopPolling();
+
+        if (current != null) {
+          ref.read(activeReservationProvider.notifier).setReservation(null);
+        }
+
+        if (current != null || forceMachineRefresh) {
+          await ref.read(machineStatusProvider.notifier).refresh();
+        }
+        return;
+      }
+
       final hasChanged = current != latest;
 
       if (hasChanged) {

@@ -19,6 +19,11 @@ class HomeBodyWidget extends ConsumerStatefulWidget {
 
 class _HomeBodyWidgetState extends ConsumerState<HomeBodyWidget>
     with WidgetsBindingObserver {
+  static const Duration _resumeRefreshThrottle = Duration(seconds: 5);
+
+  AppLifecycleState? _lastLifecycleState;
+  DateTime? _lastResumeRefreshAt;
+
   int? _targetFloorFromRoomNumber(String? roomNumber) {
     if (roomNumber == null) {
       return null;
@@ -45,6 +50,9 @@ class _HomeBodyWidgetState extends ConsumerState<HomeBodyWidget>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    Future.microtask(() {
+      ref.read(activeReservationProvider.notifier).ensureLoaded();
+    });
   }
 
   @override
@@ -55,9 +63,23 @@ class _HomeBodyWidgetState extends ConsumerState<HomeBodyWidget>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
+    final previousState = _lastLifecycleState;
+    _lastLifecycleState = state;
+
+    if (state == AppLifecycleState.resumed &&
+        previousState != AppLifecycleState.resumed) {
+      final now = DateTime.now();
+      final lastRefreshAt = _lastResumeRefreshAt;
+      final shouldSkipRefresh =
+          lastRefreshAt != null &&
+          now.difference(lastRefreshAt) < _resumeRefreshThrottle;
+
+      if (shouldSkipRefresh) {
+        return;
+      }
+
+      _lastResumeRefreshAt = now;
       ref.invalidate(machineStatusProvider);
-      ref.invalidate(activeReservationProvider);
       ref.invalidate(myUserProvider);
     }
   }

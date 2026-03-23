@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:washer/core/network/dio_client.dart';
@@ -38,12 +39,27 @@ class AuthRepositoryImpl implements AuthRepository {
       return;
     }
 
-    await _dataSource.registerFcmToken(fcmToken);
+    try {
+      await _dataSource.registerFcmToken(fcmToken);
+    } catch (error, stackTrace) {
+      if (kDebugMode) {
+        debugPrint('Failed to register FCM token: $error');
+        debugPrintStack(stackTrace: stackTrace);
+      }
+    }
   }
 
   @override
   Future<void> logout() async {
-    await _dataSource.deleteFcmToken();
+    try {
+      await _dataSource.deleteFcmToken();
+    } catch (error, stackTrace) {
+      if (kDebugMode) {
+        debugPrint('Failed to delete FCM token: $error');
+        debugPrintStack(stackTrace: stackTrace);
+      }
+    }
+
     await Future.wait([
       _storage.delete(key: 'access_token'),
       _storage.delete(key: 'refresh_token'),

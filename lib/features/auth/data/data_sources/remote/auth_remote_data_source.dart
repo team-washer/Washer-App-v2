@@ -13,6 +13,8 @@ part 'auth_remote_data_source.g.dart';
 abstract class AuthRemoteDataSource {
   Future<LoginResponse> login(LoginRequest request);
   Future<LoginResponse> refresh(RefreshRequest request);
+  Future<void> registerFcmToken(String token);
+  Future<void> deleteFcmToken();
 }
 
 @RestApi()
@@ -24,6 +26,12 @@ abstract class AuthApiService {
 
   @POST('/api/v2/auth/refresh')
   Future<HttpResponse<dynamic>> refresh(@Body() Map<String, dynamic> payload);
+
+  @POST('/api/v2/notifications/fcm-token')
+  Future<void> registerFcmToken(@Body() Map<String, dynamic> payload);
+
+  @DELETE('/api/v2/notifications/fcm-token')
+  Future<void> deleteFcmToken();
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -49,6 +57,16 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     final data = extractDataMap(castJsonMap(response.data));
 
     return runInBackground(() => LoginResponse.fromJson(data));
+  }
+
+  @override
+  Future<void> registerFcmToken(String token) {
+    return _api.registerFcmToken({'token': token});
+  }
+
+  @override
+  Future<void> deleteFcmToken() {
+    return _api.deleteFcmToken();
   }
 }
 

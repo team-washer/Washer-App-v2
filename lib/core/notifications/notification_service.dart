@@ -19,7 +19,7 @@ const _completionChannelId = 'laundry_completion';
 const _completionChannelName = 'Laundry Completion';
 const _completionNotificationId = 1001;
 const _scheduledReservationKey = 'scheduled_completion_reservation_key';
-const _fcmTokenKey = 'fcm_token';
+const fcmTokenStorageKey = 'fcm_token';
 const _apnsTokenRetryDelay = Duration(seconds: 1);
 const _apnsTokenMaxRetries = 10;
 
@@ -114,7 +114,7 @@ class NotificationService {
     await _saveFcmTokenWhenReady();
 
     _tokenRefreshSubscription ??= _messaging.onTokenRefresh.listen((token) {
-      unawaited(_storage.write(key: _fcmTokenKey, value: token));
+      unawaited(_storage.write(key: fcmTokenStorageKey, value: token));
       if (kDebugMode) {
         debugPrint('FCM token refreshed: $token');
       }
@@ -199,7 +199,23 @@ class NotificationService {
   }
 
   Future<String?> getStoredFcmToken() {
-    return _storage.read(key: _fcmTokenKey);
+    return _storage.read(key: fcmTokenStorageKey);
+  }
+
+  Future<String?> ensureFcmToken() async {
+    await initialize();
+
+    final storedToken = await getStoredFcmToken();
+    if (storedToken != null && storedToken.isNotEmpty) {
+      return storedToken;
+    }
+
+    await _saveFcmTokenWhenReady();
+    return getStoredFcmToken();
+  }
+
+  Future<void> deleteStoredFcmToken() {
+    return _storage.delete(key: fcmTokenStorageKey);
   }
 
   void dispose() {
@@ -260,7 +276,7 @@ class NotificationService {
     final token = await _messaging.getToken();
     if (token == null || token.isEmpty) return;
 
-    await _storage.write(key: _fcmTokenKey, value: token);
+    await _storage.write(key: fcmTokenStorageKey, value: token);
     if (kDebugMode) {
       debugPrint('FCM token: $token');
     }

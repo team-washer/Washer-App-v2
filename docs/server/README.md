@@ -41,7 +41,7 @@ keytool -list -v \
 `appID` 의 `TEAMID` 를 Apple Developer에서 발급받은 Team ID로 교체하세요.
 
 - Apple Developer Console → Membership → Team ID 확인
-- 예: `A1B2C3D4E5.com.washer`
+- 예: `A1B2C3D4E5.com.washer.v2`
 
 ---
 

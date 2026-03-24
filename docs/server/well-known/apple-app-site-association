@@ -3,7 +3,7 @@
     "apps": [],
     "details": [
       {
-        "appID": "TEAMID.com.washer",
+        "appID": "TEAMID.com.washer.v2",
         "paths": ["*"]
       }
     ]

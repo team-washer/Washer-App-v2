@@ -12,8 +12,9 @@ plugins {
 
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("key.properties")
+val hasKeystore = keystorePropertiesFile.exists()
 
-if (keystorePropertiesFile.exists()) {
+if (hasKeystore) {
     keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
 }
 
@@ -44,7 +45,7 @@ android {
 
     signingConfigs {
         create("release") {
-            if (keystorePropertiesFile.exists()) {
+            if (hasKeystore) {
                 keyAlias = keystoreProperties.getProperty("keyAlias")
                 keyPassword = keystoreProperties.getProperty("keyPassword")
                 storeFile = file(keystoreProperties.getProperty("storeFile"))
@@ -55,7 +56,7 @@ android {
 
     buildTypes {
         release {
-            if (!keystorePropertiesFile.exists()) {
+            if (!hasKeystore) {
                 throw GradleException(
                     "Release signing requires android/key.properties. " +
                         "Copy android/key.properties.example and set your keystore values.",

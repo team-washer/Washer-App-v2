@@ -7,5 +7,14 @@
 # CI 설정
 유지적인 정기보수를 위해 CI를 설정해뒀습니다.
 
+# CD 설정
+`develop -> main` PR이 열리면 GitHub Actions에서 Android release `AAB`와 `APK`를 생성하도록 설정했습니다.
+실행 전 아래 GitHub Actions secrets가 필요합니다.
+
+- `ANDROID_KEY_PROPERTIES`
+- `ANDROID_KEYSTORE_BASE64`
+- `ANDROID_GOOGLE_SERVICES_JSON`
+- `ENV_PRODUCTION`
+
 # FVM
 FVM을 통해 플러터 버전을 불러와 설정하도록 해뒀습니다.

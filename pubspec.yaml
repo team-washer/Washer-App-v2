@@ -72,6 +72,10 @@ dev_dependencies:
   retrofit_generator: 10.2.0
   injectable_generator: 2.9.1
 
+dependency_overrides:
+  flutter_local_notifications:
+    path: third_party/flutter_local_notifications
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
@@ -136,4 +140,3 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
-

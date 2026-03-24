@@ -18,3 +18,7 @@
 
 # FVM
 FVM을 통해 플러터 버전을 불러와 설정하도록 해뒀습니다.
+
+# iOS Xcode Cloud
+Xcode Cloud 빌드를 사용하는 경우 `ios/ci_scripts/ci_post_clone.sh`가 클론 직후 자동 실행되어 Flutter SDK 설치, `flutter pub get`, `pod install`을 수행합니다.
+이 단계가 빠지면 `ios/Flutter/Generated.xcconfig`와 `ios/Pods/Target Support Files/...xcfilelist`가 없어져 iOS Release 빌드가 실패합니다.

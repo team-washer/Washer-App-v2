@@ -38,6 +38,9 @@ jobs:
           fvm install
           fvm use --force
 
+      - name: Ensure env files
+        run: bash scripts/ensure_env_files.sh
+
       - name: Install dependencies
         run: fvm flutter pub get
 
@@ -53,8 +56,13 @@ jobs:
             exit 1
           fi
 
+          KEYSTORE_BASE64_CLEAN=$(printf '%s' "$ANDROID_KEYSTORE_BASE64" | tr -d '\r\n\t ')
+
           printf '%s' "$ANDROID_KEY_PROPERTIES" > android/key.properties
-          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > upload-keystore.jks
+          if ! printf '%s' "$KEYSTORE_BASE64_CLEAN" | base64 --decode > upload-keystore.jks; then
+            echo "::error::ANDROID_KEYSTORE_BASE64 is not valid base64."
+            exit 1
+          fi
           printf '%s' "$ANDROID_GOOGLE_SERVICES_JSON" > android/app/google-services.json
           printf '%s' "$ENV_PRODUCTION" > .env.production
 

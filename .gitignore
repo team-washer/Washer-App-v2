@@ -58,3 +58,8 @@ app.*.map.json
 #Firebase files
 google-services.json
 GoogleService-Info.plist
+
+# Android release signing
+android/key.properties
+*.jks
+*.keystore

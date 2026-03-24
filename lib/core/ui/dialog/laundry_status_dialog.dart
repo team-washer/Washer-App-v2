@@ -5,6 +5,9 @@ import 'package:washer/core/enums/machine_state.dart';
 import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
 import 'package:washer/core/ui/dialog/washer_dialog.dart';
+import 'package:washer/core/utils/date_time_formatter.dart';
+import 'package:washer/features/home/presentation/viewmodels/home_view_model.dart';
+import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/presentation/viewmodels/reservation_view_model.dart';
 
 class LaundryStatusDialog extends ConsumerWidget {
@@ -31,17 +34,30 @@ class LaundryStatusDialog extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final now = ref.watch(clockProvider).asData?.value ?? DateTime.now();
+    final activeReservations = ref
+        .watch(activeReservationProvider)
+        .whenOrNull(
+          data: (reservations) => reservations,
+        );
+    final syncedReservation = _findReservationByMachineId(
+      activeReservations,
+      machineId,
+    );
     final isAvailable = !isUsed && !isUnavailable;
     final title = machineType == LaundryMachineType.washer
         ? '세탁기 현황'
         : '건조기 현황';
     final statusText = _buildStatusText(isUnavailable, isUsed, machineState);
-    final roomText = roomNumber ?? '없음';
+    final roomText = _formatRoomNumber(
+      syncedReservation?.userRoomNumber ?? roomNumber,
+    );
     final notesText = _buildNotesText(
       machineType: machineType,
       isUnavailable: isUnavailable,
       machineState: machineState,
-      expectedTime: expectedTime,
+      expectedTime: syncedReservation?.expectedCompletionTime ?? expectedTime,
+      now: now,
     );
 
     return Dialog(
@@ -120,11 +136,29 @@ class LaundryStatusDialog extends ConsumerWidget {
     return '사용중';
   }
 
+  static String _formatRoomNumber(String? roomNumber) {
+    if (roomNumber == null) {
+      return '없음';
+    }
+
+    final normalized = roomNumber.trim();
+    if (normalized.isEmpty) {
+      return '없음';
+    }
+
+    if (normalized.endsWith('호')) {
+      return normalized;
+    }
+
+    return '$normalized호';
+  }
+
   static String _buildNotesText({
     required LaundryMachineType machineType,
     required bool isUnavailable,
     required MachineState? machineState,
     required String? expectedTime,
+    required DateTime now,
   }) {
     if (isUnavailable) {
       final machineTypeText = machineType == LaundryMachineType.washer
@@ -135,13 +169,36 @@ class LaundryStatusDialog extends ConsumerWidget {
 
     if (expectedTime == null) return '없음';
 
+    final formattedExpectedTime = DateTimeFormatter.formatRemainingTimeToKorean(
+      expectedTime,
+      now: now,
+      expiredText: machineState == MachineState.delayWash ? '만료됨' : '완료 예정',
+    );
+
     if (machineState == MachineState.delayWash) {
-      return '예약 만료까지: $expectedTime';
+      return '예약 만료까지: $formattedExpectedTime';
     }
     if (machineType == LaundryMachineType.dryer) {
-      return '건조 완료 예정시간: $expectedTime';
+      return '건조 완료 예정시간: $formattedExpectedTime';
     }
-    return '세탁 완료 예정시간: $expectedTime';
+    return '세탁 완료 예정시간: $formattedExpectedTime';
+  }
+
+  static ActiveReservationModel? _findReservationByMachineId(
+    List<ActiveReservationModel>? reservations,
+    int machineId,
+  ) {
+    if (reservations == null) {
+      return null;
+    }
+
+    for (final reservation in reservations) {
+      if (reservation.machineId == machineId) {
+        return reservation;
+      }
+    }
+
+    return null;
   }
 }
 

@@ -132,6 +132,19 @@ class ReservationBottomSection extends StatelessWidget {
   final String? remainDuration;
   final VoidCallback? onReserve;
 
+  static String? formatRoom(String? room) {
+    if (room == null) {
+      return null;
+    }
+
+    final normalized = room.trim();
+    if (normalized.isEmpty || normalized.endsWith('호')) {
+      return normalized;
+    }
+
+    return '$normalized호';
+  }
+
   @override
   Widget build(BuildContext context) {
     switch (reservationState) {
@@ -202,7 +215,7 @@ class _InUseBottom extends StatelessWidget {
         AppGap.v4,
         if (room != null)
           Text(
-            '사용 호실: $room',
+            '사용 호실: ${ReservationBottomSection.formatRoom(room)}',
             style: WasherTypography.body2(WasherColor.baseGray400),
           ),
       ],
@@ -512,7 +525,7 @@ class _ReservedBottom extends StatelessWidget {
         if (room != null && room!.trim().isNotEmpty) ...[
           AppGap.v4,
           Text(
-            '사용 호실: $room',
+            '사용 호실: ${ReservationBottomSection.formatRoom(room)}',
             style: WasherTypography.body2(WasherColor.baseGray500),
           ),
         ],

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/features/home/data/repositories/home_repository.dart';
 import 'package:washer/features/home/presentation/viewmodels/home_view_model.dart';
@@ -216,29 +217,33 @@ class ReservationViewModel extends Notifier<ReservationActionState> {
           .read(activeReservationProvider)
           .maybeWhen(
             data: (value) => value,
-            orElse: () => null,
+            orElse: () => const <ActiveReservationModel>[],
           );
 
       final latest = await ref
           .read(homeRepositoryProvider)
-          .getActiveReservation();
-      if (latest == null) {
+          .getActiveReservations();
+      if (latest.isEmpty) {
         _stopPolling();
 
-        if (current != null) {
-          ref.read(activeReservationProvider.notifier).setReservation(null);
+        if (current.isNotEmpty) {
+          ref
+              .read(activeReservationProvider.notifier)
+              .setReservations(
+                const <ActiveReservationModel>[],
+              );
         }
 
-        if (current != null || forceMachineRefresh) {
+        if (current.isNotEmpty || forceMachineRefresh) {
           await ref.read(machineStatusProvider.notifier).refresh();
         }
         return;
       }
 
-      final hasChanged = current != latest;
+      final hasChanged = !_sameReservations(current, latest);
 
       if (hasChanged) {
-        ref.read(activeReservationProvider.notifier).setReservation(latest);
+        ref.read(activeReservationProvider.notifier).setReservations(latest);
       }
 
       if (hasChanged || forceMachineRefresh) {
@@ -252,6 +257,17 @@ class ReservationViewModel extends Notifier<ReservationActionState> {
     _expiryTimer?.cancel();
     _pollingTimer = null;
     _expiryTimer = null;
+  }
+
+  bool _sameReservations(
+    List<ActiveReservationModel> current,
+    List<ActiveReservationModel> latest,
+  ) {
+    if (current.length != latest.length) {
+      return false;
+    }
+
+    return listEquals(current, latest);
   }
 
   Future<ReservationActionState> _runSingleFlight({

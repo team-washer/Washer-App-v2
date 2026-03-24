@@ -56,12 +56,13 @@ class _ReservationSectionWidgetState
 
   ReservationState _toReservationState(
     MachineModel machine,
-    ActiveReservationModel? activeReservation,
+    List<ActiveReservationModel> activeReservations,
   ) {
-    final isMyMachine =
-        activeReservation != null &&
-        (machine.machineId == activeReservation.machineId ||
-            machine.reservationId == activeReservation.id);
+    final activeReservation = _findReservationForMachine(
+      machine,
+      activeReservations,
+    );
+    final isMyMachine = activeReservation != null;
 
     if (machine.isUnavailable) return ReservationState.unavailable;
 
@@ -83,17 +84,18 @@ class _ReservationSectionWidgetState
 
   List<_MachineData> _buildItems(
     List<MachineModel> machines,
-    ActiveReservationModel? activeReservation,
+    List<ActiveReservationModel> activeReservations,
     int floor,
   ) {
     return machines
         .where((machine) => machine.floorNumber == floor)
         .map((machine) {
-          final state = _toReservationState(machine, activeReservation);
-          final isMyMachine =
-              activeReservation != null &&
-              (machine.machineId == activeReservation.machineId ||
-                  machine.reservationId == activeReservation.id);
+          final activeReservation = _findReservationForMachine(
+            machine,
+            activeReservations,
+          );
+          final state = _toReservationState(machine, activeReservations);
+          final isMyMachine = activeReservation != null;
 
           return _MachineData(
             machine.machineId,
@@ -155,9 +157,11 @@ class _ReservationSectionWidgetState
         (state) => state.status == ReservationActionStatus.loading,
       ),
     );
-    final activeReservation = ref
-        .watch(activeReservationProvider)
-        .whenOrNull(data: (reservation) => reservation);
+    final activeReservations =
+        ref
+            .watch(activeReservationProvider)
+            .whenOrNull(data: (reservations) => reservations) ??
+        const <ActiveReservationModel>[];
 
     return machineAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -174,7 +178,7 @@ class _ReservationSectionWidgetState
             _selectedFloor ?? (floors.isNotEmpty ? floors.first : 0);
         final items = _buildItems(
           typedMachines,
-          activeReservation,
+          activeReservations,
           currentFloor,
         );
 
@@ -226,6 +230,20 @@ class _ReservationSectionWidgetState
         );
       },
     );
+  }
+
+  ActiveReservationModel? _findReservationForMachine(
+    MachineModel machine,
+    List<ActiveReservationModel> activeReservations,
+  ) {
+    for (final reservation in activeReservations) {
+      if (machine.machineId == reservation.machineId ||
+          machine.reservationId == reservation.id) {
+        return reservation;
+      }
+    }
+
+    return null;
   }
 }
 

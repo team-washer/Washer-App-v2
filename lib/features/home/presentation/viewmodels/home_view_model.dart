@@ -86,23 +86,29 @@ class MachineStatusNotifier extends AsyncNotifier<MachineStatusResponse> {
 }
 
 final activeReservationProvider =
-    AsyncNotifierProvider<ActiveReservationNotifier, ActiveReservationModel?>(
+    AsyncNotifierProvider<
+      ActiveReservationNotifier,
+      List<ActiveReservationModel>
+    >(
       ActiveReservationNotifier.new,
     );
 
-class ActiveReservationNotifier extends AsyncNotifier<ActiveReservationModel?> {
+class ActiveReservationNotifier
+    extends AsyncNotifier<List<ActiveReservationModel>> {
   bool _hasFetched = false;
 
   @override
-  Future<ActiveReservationModel?> build() async {
+  Future<List<ActiveReservationModel>> build() async {
     ref.keepAlive();
     try {
       _hasFetched = true;
-      final reservation = await ref
+      final reservations = await ref
           .read(homeRepositoryProvider)
-          .getActiveReservation();
-      unawaited(_syncReservationNotification(reservation));
-      return reservation;
+          .getActiveReservations();
+      unawaited(
+        _syncReservationNotification(_notificationTarget(reservations)),
+      );
+      return reservations;
     } on DioException catch (e) {
       final message = _pollingErrorMessageFor(e);
       if (message != null) {
@@ -124,11 +130,13 @@ class ActiveReservationNotifier extends AsyncNotifier<ActiveReservationModel?> {
     state = const AsyncLoading();
     try {
       _hasFetched = true;
-      final reservation = await ref
+      final reservations = await ref
           .read(homeRepositoryProvider)
-          .getActiveReservation();
-      await _syncReservationNotification(reservation);
-      state = AsyncData(reservation);
+          .getActiveReservations();
+      await _syncReservationNotification(
+        _notificationTarget(reservations),
+      );
+      state = AsyncData(reservations);
     } on DioException catch (e, st) {
       final message = _pollingErrorMessageFor(e);
       if (message != null) {
@@ -140,10 +148,22 @@ class ActiveReservationNotifier extends AsyncNotifier<ActiveReservationModel?> {
     }
   }
 
-  void setReservation(ActiveReservationModel? reservation) {
+  void setReservations(List<ActiveReservationModel> reservations) {
     _hasFetched = true;
-    state = AsyncData(reservation);
-    unawaited(_syncReservationNotification(reservation));
+    state = AsyncData(reservations);
+    unawaited(
+      _syncReservationNotification(_notificationTarget(reservations)),
+    );
+  }
+
+  ActiveReservationModel? _notificationTarget(
+    List<ActiveReservationModel> reservations,
+  ) {
+    if (reservations.isEmpty) {
+      return null;
+    }
+
+    return reservations.first;
   }
 
   Future<void> _syncReservationNotification(

@@ -11,7 +11,7 @@ part 'home_remote_data_source.g.dart';
 
 abstract class HomeRemoteDataSource {
   Future<MachineStatusResponse> getMachineStatus();
-  Future<ActiveReservationModel?> getActiveReservation();
+  Future<List<ActiveReservationModel>> getActiveReservations();
 }
 
 @RestApi()
@@ -20,15 +20,13 @@ abstract class HomeApiService {
 
   @GET('/api/v2/machines/status')
   Future<HttpResponse<dynamic>> getMachineStatus();
-
-  @GET('/api/v2/reservations/active')
-  Future<HttpResponse<dynamic>> getActiveReservation();
 }
 
 class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
-  const HomeRemoteDataSourceImpl(this._api);
+  const HomeRemoteDataSourceImpl(this._api, this._dio);
 
   final HomeApiService _api;
+  final Dio _dio;
 
   @override
   Future<MachineStatusResponse> getMachineStatus() async {
@@ -39,22 +37,30 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
   }
 
   @override
-  Future<ActiveReservationModel?> getActiveReservation() async {
+  Future<List<ActiveReservationModel>> getActiveReservations() async {
     try {
-      final response = await _api.getActiveReservation();
-      if (response.response.statusCode == 204 || response.data == null) {
-        return null;
+      final response = await _dio.get<dynamic>(
+        '/api/v2/reservations/active/room',
+      );
+      if (response.statusCode == 204 || response.data == null) {
+        return const [];
       }
 
-      final data = extractNullableDataMap(castJsonMap(response.data));
-      if (data == null) {
-        return null;
+      final responseMap = castJsonMap(response.data);
+      final data = extractDataMap(responseMap);
+      final reservations = data['reservations'];
+      if (reservations is! List || reservations.isEmpty) {
+        return const [];
       }
 
-      return runInBackground(() => ActiveReservationModel.fromJson(data));
+      return runInBackground(
+        () => reservations
+            .map((item) => ActiveReservationModel.fromJson(castJsonMap(item)))
+            .toList(growable: false),
+      );
     } on DioException catch (e) {
       if (e.response?.statusCode == 404 || e.response?.statusCode == 204) {
-        return null;
+        return const [];
       }
       rethrow;
     }
@@ -62,5 +68,6 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
 }
 
 final homeRemoteDataSourceProvider = Provider<HomeRemoteDataSource>((ref) {
-  return HomeRemoteDataSourceImpl(HomeApiService(ref.watch(dioProvider)));
+  final dio = ref.watch(dioProvider);
+  return HomeRemoteDataSourceImpl(HomeApiService(dio), dio);
 });

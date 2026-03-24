@@ -150,6 +150,11 @@ class _ReservationSectionWidgetState
   @override
   Widget build(BuildContext context) {
     final machineAsync = ref.watch(machineStatusProvider);
+    final isReservationActionLoading = ref.watch(
+      reservationViewModelProvider.select(
+        (state) => state.status == ReservationActionStatus.loading,
+      ),
+    );
     final activeReservation = ref
         .watch(activeReservationProvider)
         .whenOrNull(data: (reservation) => reservation);
@@ -208,7 +213,9 @@ class _ReservationSectionWidgetState
                           reservedAt: item.reservedAt,
                           remainDuration: item.remainDuration,
                           reservationId: item.reservationId,
-                          onReserve: item.state == ReservationState.available
+                          onReserve:
+                              item.state == ReservationState.available &&
+                                  !isReservationActionLoading
                               ? () => _reserveMachine(context, item)
                               : null,
                         );

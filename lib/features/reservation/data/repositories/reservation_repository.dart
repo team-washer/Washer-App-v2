@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/features/reservation/data/data_sources/remote/reservation_remote_data_source.dart';
-import 'package:washer/features/reservation/data/models/remote/cancel_reservation_response.dart';
 import 'package:washer/features/reservation/data/models/remote/confirm_reservation_response.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 
@@ -11,7 +10,7 @@ abstract class ReservationRepository {
     required String startTime,
   });
 
-  Future<CancelReservationResponse> cancelReservation({
+  Future<void> cancelReservation({
     required int id,
   });
 
@@ -37,7 +36,7 @@ class ReservationRepositoryImpl implements ReservationRepository {
   }
 
   @override
-  Future<CancelReservationResponse> cancelReservation({
+  Future<void> cancelReservation({
     required int id,
   }) {
     return _dataSource.cancelReservation(

@@ -28,11 +28,24 @@ class ReservationViewModel extends Notifier<ReservationActionState> {
 
   Timer? _pollingTimer;
   Timer? _expiryTimer;
+  Future<ReservationActionState>? _reserveRequest;
+  Future<ReservationActionState>? _cancelRequest;
+  Future<ReservationActionState>? _confirmRequest;
 
   @override
   ReservationActionState build() => const ReservationActionState();
 
   Future<ReservationActionState> reserve({required int machineId}) async {
+    return _runSingleFlight(
+      currentRequest: _reserveRequest,
+      setRequest: (request) => _reserveRequest = request,
+      action: () => _reserveInternal(machineId: machineId),
+    );
+  }
+
+  Future<ReservationActionState> _reserveInternal({
+    required int machineId,
+  }) async {
     state = const ReservationActionState(
       status: ReservationActionStatus.loading,
     );
@@ -75,6 +88,16 @@ class ReservationViewModel extends Notifier<ReservationActionState> {
   }
 
   Future<ReservationActionState> cancel({required int reservationId}) async {
+    return _runSingleFlight(
+      currentRequest: _cancelRequest,
+      setRequest: (request) => _cancelRequest = request,
+      action: () => _cancelInternal(reservationId: reservationId),
+    );
+  }
+
+  Future<ReservationActionState> _cancelInternal({
+    required int reservationId,
+  }) async {
     state = const ReservationActionState(
       status: ReservationActionStatus.loading,
     );
@@ -121,6 +144,16 @@ class ReservationViewModel extends Notifier<ReservationActionState> {
   }
 
   Future<ReservationActionState> confirmAndWatch({
+    required int reservationId,
+  }) async {
+    return _runSingleFlight(
+      currentRequest: _confirmRequest,
+      setRequest: (request) => _confirmRequest = request,
+      action: () => _confirmAndWatchInternal(reservationId: reservationId),
+    );
+  }
+
+  Future<ReservationActionState> _confirmAndWatchInternal({
     required int reservationId,
   }) async {
     state = const ReservationActionState(
@@ -219,6 +252,27 @@ class ReservationViewModel extends Notifier<ReservationActionState> {
     _expiryTimer?.cancel();
     _pollingTimer = null;
     _expiryTimer = null;
+  }
+
+  Future<ReservationActionState> _runSingleFlight({
+    required Future<ReservationActionState>? currentRequest,
+    required void Function(Future<ReservationActionState>? request) setRequest,
+    required Future<ReservationActionState> Function() action,
+  }) {
+    if (currentRequest != null) {
+      return currentRequest;
+    }
+
+    final request = action();
+    setRequest(request);
+    request.whenComplete(() {
+      if (identical(currentRequest, request)) {
+        return;
+      }
+
+      setRequest(null);
+    });
+    return request;
   }
 }
 

@@ -6,7 +6,7 @@ class WasherTextButton extends StatelessWidget {
   final String text;
   final TextStyle typography;
   final Color color;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   const WasherTextButton({
     super.key,

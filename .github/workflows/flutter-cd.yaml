@@ -59,7 +59,7 @@ jobs:
           KEYSTORE_BASE64_CLEAN=$(printf '%s' "$ANDROID_KEYSTORE_BASE64" | tr -d '\r\n\t ')
 
           printf '%s' "$ANDROID_KEY_PROPERTIES" > android/key.properties
-          if ! printf '%s' "$KEYSTORE_BASE64_CLEAN" | base64 --decode > upload-keystore.jks; then
+          if ! printf '%s' "$KEYSTORE_BASE64_CLEAN" | base64 --decode > android/upload-keystore.jks; then
             echo "::error::ANDROID_KEYSTORE_BASE64 is not valid base64."
             exit 1
           fi

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/features/auth/data/repositories/auth_repository.dart';
 
@@ -5,15 +7,21 @@ class AuthCallbackViewModel extends AsyncNotifier<void> {
   late final AuthRepository _authRepository;
 
   @override
-  Future<void> build() async {
+  FutureOr<void> build() {
     _authRepository = ref.watch(authRepositoryProvider);
   }
 
-  Future<void> handleAuthCode(String authCode) async {
+  Future<bool> handleAuthCode(String authCode) async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(
-      () => _authRepository.login(authCode),
-    );
+
+    try {
+      await _authRepository.login(authCode);
+      state = const AsyncData(null);
+      return true;
+    } catch (error, stackTrace) {
+      state = AsyncError(error, stackTrace);
+      return false;
+    }
   }
 }
 

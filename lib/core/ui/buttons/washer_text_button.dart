@@ -18,12 +18,10 @@ class WasherTextButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: _buildButtonStyle(),
-        child: Text(text, style: typography),
-      ),
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: _buildButtonStyle(),
+      child: Text(text, style: typography),
     );
   }
 

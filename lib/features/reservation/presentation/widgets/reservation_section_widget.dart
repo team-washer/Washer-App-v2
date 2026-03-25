@@ -14,6 +14,7 @@ import 'package:washer/features/home/presentation/viewmodels/home_view_model.dar
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/data/models/local/laundry_machine_model.dart';
 import 'package:washer/features/reservation/presentation/viewmodels/reservation_view_model.dart';
+import 'package:washer/features/user/presentation/viewmodels/my_user_view_model.dart';
 import 'package:washer/features/reservation/presentation/widgets/reservation_widget.dart';
 
 class ReservationSectionWidget extends ConsumerStatefulWidget {
@@ -58,21 +59,26 @@ class _ReservationSectionWidgetState
   ReservationState _toReservationState(
     MachineModel machine,
     List<ActiveReservationModel> activeReservations,
+    int? myUserId,
   ) {
     final activeReservation = _findReservationForMachine(
       machine,
       activeReservations,
     );
-    final isMyMachine = activeReservation != null;
+    final isMyMachine = _isMyReservation(
+      activeReservation: activeReservation,
+      myUserId: myUserId,
+    );
 
     if (machine.isUnavailable) return ReservationState.unavailable;
 
-    if (isMyMachine) {
-      if (activeReservation.laundryStatus == LaundryStatus.confirmed) {
+    if (isMyMachine && activeReservation != null) {
+      final myReservation = activeReservation;
+      if (myReservation.laundryStatus == LaundryStatus.confirmed) {
         return ReservationState.confirmed;
       }
-      if (activeReservation.laundryStatus == LaundryStatus.inUse ||
-          activeReservation.laundryStatus == LaundryStatus.completed) {
+      if (myReservation.laundryStatus == LaundryStatus.inUse ||
+          myReservation.laundryStatus == LaundryStatus.completed) {
         return ReservationState.inUse;
       }
       return ReservationState.reservedByMe;
@@ -87,6 +93,7 @@ class _ReservationSectionWidgetState
     List<MachineModel> machines,
     List<ActiveReservationModel> activeReservations,
     int floor,
+    int? myUserId,
   ) {
     return machines
         .where((machine) => machine.floorNumber == floor)
@@ -95,23 +102,45 @@ class _ReservationSectionWidgetState
             machine,
             activeReservations,
           );
-          final state = _toReservationState(machine, activeReservations);
-          final isMyMachine = activeReservation != null;
+          final state = _toReservationState(
+            machine,
+            activeReservations,
+            myUserId,
+          );
+          final isMyMachine = _isMyReservation(
+            activeReservation: activeReservation,
+            myUserId: myUserId,
+          );
+
+          final room = isMyMachine && activeReservation != null
+              ? activeReservation.userRoomNumber
+              : machine.roomNumber;
+          final reservedAt = isMyMachine && activeReservation != null
+              ? activeReservation.reservedAt
+              : null;
+          final reservationId = isMyMachine && activeReservation != null
+              ? activeReservation.id
+              : 0;
 
           return _MachineData(
             machine.machineId,
             machine.name,
             state,
             finishedAt: machine.expectedCompletionTime,
-            room: isMyMachine
-                ? activeReservation.userRoomNumber
-                : machine.roomNumber,
-            reservedAt: isMyMachine ? activeReservation.reservedAt : null,
+            room: room,
+            reservedAt: reservedAt,
             remainDuration: null,
-            reservationId: machine.reservationId ?? 0,
+            reservationId: reservationId,
           );
         })
         .toList(growable: false);
+  }
+
+  Future<void> _refreshReservationScreen() async {
+    await Future.wait([
+      ref.read(machineStatusProvider.notifier).refresh(),
+      ref.read(activeReservationProvider.notifier).refresh(),
+    ]);
   }
 
   Future<void> _reserveMachine(BuildContext context, _MachineData item) async {
@@ -163,13 +192,29 @@ class _ReservationSectionWidgetState
             .watch(activeReservationProvider)
             .whenOrNull(data: (reservations) => reservations) ??
         const <ActiveReservationModel>[];
+    final myUserId = ref
+        .watch(myUserProvider)
+        .whenOrNull(
+          data: (user) => user?.id,
+        );
 
     return machineAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (_, __) => Center(
-        child: Text(
-          '기기 정보를 불러오지 못했습니다.',
-          style: WasherTypography.body1(WasherColor.baseGray300),
+      error: (_, __) => RefreshIndicator(
+        onRefresh: _refreshReservationScreen,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            SizedBox(
+              height: 240,
+              child: Center(
+                child: Text(
+                  '기기 정보를 불러오지 못했습니다.',
+                  style: WasherTypography.body1(WasherColor.baseGray300),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
       data: (data) {
@@ -181,6 +226,7 @@ class _ReservationSectionWidgetState
           typedMachines,
           activeReservations,
           currentFloor,
+          myUserId,
         );
 
         return Column(
@@ -194,38 +240,52 @@ class _ReservationSectionWidgetState
             ),
             AppGap.v16,
             Expanded(
-              child: items.isEmpty
-                  ? Center(
-                      child: Text(
-                        '표시할 기기가 없습니다.',
-                        style: WasherTypography.body1(WasherColor.baseGray300),
-                      ),
-                    )
-                  : ListView.separated(
-                      padding: EdgeInsets.only(bottom: AppSpacing.v12),
-                      itemCount: items.length,
-                      separatorBuilder: (_, __) => AppGap.v12,
-                      itemBuilder: (_, index) {
-                        final item = items[index];
+              child: RefreshIndicator(
+                onRefresh: _refreshReservationScreen,
+                child: items.isEmpty
+                    ? ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        children: [
+                          SizedBox(
+                            height: 240,
+                            child: Center(
+                              child: Text(
+                                '표시할 기기가 없습니다.',
+                                style: WasherTypography.body1(
+                                  WasherColor.baseGray300,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                    : ListView.separated(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: EdgeInsets.only(bottom: AppSpacing.v12),
+                        itemCount: items.length,
+                        separatorBuilder: (_, __) => AppGap.v12,
+                        itemBuilder: (_, index) {
+                          final item = items[index];
 
-                        return ReservationWidget(
-                          laundryMachineType: widget.laundryMachineType,
-                          reservationState: item.state,
-                          machineId: item.machineId,
-                          machineName: item.name,
-                          finishedAt: item.finishedAt,
-                          room: item.room,
-                          reservedAt: item.reservedAt,
-                          remainDuration: item.remainDuration,
-                          reservationId: item.reservationId,
-                          onReserve:
-                              item.state == ReservationState.available &&
-                                  !isReservationActionLoading
-                              ? () => _reserveMachine(context, item)
-                              : null,
-                        );
-                      },
-                    ),
+                          return ReservationWidget(
+                            laundryMachineType: widget.laundryMachineType,
+                            reservationState: item.state,
+                            machineId: item.machineId,
+                            machineName: item.name,
+                            finishedAt: item.finishedAt,
+                            room: item.room,
+                            reservedAt: item.reservedAt,
+                            remainDuration: item.remainDuration,
+                            reservationId: item.reservationId,
+                            onReserve:
+                                item.state == ReservationState.available &&
+                                    !isReservationActionLoading
+                                ? () => _reserveMachine(context, item)
+                                : null,
+                          );
+                        },
+                      ),
+              ),
             ),
           ],
         );
@@ -242,6 +302,17 @@ class _ReservationSectionWidgetState
           machine.machineId == reservation.machineId ||
           machine.reservationId == reservation.id,
     );
+  }
+
+  bool _isMyReservation({
+    required ActiveReservationModel? activeReservation,
+    required int? myUserId,
+  }) {
+    if (activeReservation == null || myUserId == null) {
+      return false;
+    }
+
+    return activeReservation.userId == myUserId;
   }
 }
 

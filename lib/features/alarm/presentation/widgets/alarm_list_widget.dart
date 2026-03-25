@@ -9,7 +9,7 @@ part 'local_widgets/alarm_date_section.dart';
 part 'local_widgets/alarm_date_divider.dart';
 
 /// 날짜별 알람 목록을 그룹화하여 표시하는 위젯
-/// 
+///
 /// 기능:
 /// - 날짜 분류 규칙
 /// - 날짜 분류기 링크 제공

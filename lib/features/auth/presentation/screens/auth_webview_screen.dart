@@ -14,8 +14,6 @@ const _redirectUri = 'com.washer://auth/callback';
 const _callbackScheme = 'com.washer';
 const _webViewKey = ValueKey('auth-webview');
 
-_AuthWebViewSession? _cachedAuthSession;
-
 class _AuthWebViewSession {
   _AuthWebViewSession({
     required this.controller,
@@ -32,15 +30,6 @@ class _AuthWebViewSession {
 
 class AuthWebViewScreen extends ConsumerStatefulWidget {
   const AuthWebViewScreen({super.key});
-
-  static void preload() {
-    _cachedAuthSession ??= _createSession();
-  }
-
-  static void clearPreloadedSession() {
-    _cachedAuthSession?.dispose();
-    _cachedAuthSession = null;
-  }
 
   static _AuthWebViewSession? _createSession() {
     final environment = AppEnvironment.instance;
@@ -76,13 +65,12 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
   void initState() {
     super.initState();
 
-    final session = _cachedAuthSession ?? AuthWebViewScreen._createSession();
+    final session = AuthWebViewScreen._createSession();
     if (session == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _onError());
       return;
     }
 
-    _cachedAuthSession = session;
     _session = session;
 
     try {
@@ -96,6 +84,7 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
   @override
   void dispose() {
     _isDisposed = true;
+    _session?.dispose();
     super.dispose();
   }
 
@@ -113,6 +102,10 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
           }
         },
         onWebResourceError: (error) {
+          if (_isCallbackUrl(error.url) || _isHandlingAuthCode) {
+            return;
+          }
+
           if (error.isForMainFrame ?? true) {
             session.isLoading.value = false;
             _showErrorMessage();
@@ -137,7 +130,7 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
     final uri = Uri.tryParse(request.url);
     if (uri == null) return NavigationDecision.navigate;
 
-    if (uri.scheme == _callbackScheme) {
+    if (_isCallbackUri(uri)) {
       final authCode = uri.queryParameters['code'];
       if (authCode != null && authCode.isNotEmpty) {
         unawaited(_onAuthCode(authCode));
@@ -150,6 +143,18 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
     return NavigationDecision.navigate;
   }
 
+  bool _isCallbackUrl(String? url) {
+    if (url == null || url.isEmpty) {
+      return false;
+    }
+
+    return _isCallbackUri(Uri.tryParse(url));
+  }
+
+  bool _isCallbackUri(Uri? uri) {
+    return uri?.scheme == _callbackScheme;
+  }
+
   Future<void> _onAuthCode(String authCode) async {
     final session = _session;
     if (_isDisposed || !mounted || _isHandlingAuthCode || session == null) {
@@ -159,25 +164,22 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
     _isHandlingAuthCode = true;
     session.isLoading.value = true;
 
-    await ref
+    final isSuccess = await ref
         .read(authCallbackViewModelProvider.notifier)
         .handleAuthCode(authCode);
 
     if (!mounted) return;
 
-    final state = ref.read(authCallbackViewModelProvider);
-    if (state.hasError) {
+    if (!isSuccess) {
       _isHandlingAuthCode = false;
       session.isLoading.value = false;
       _showErrorMessage();
     } else {
-      AuthWebViewScreen.clearPreloadedSession();
       context.go(RoutePaths.splash);
     }
   }
 
   void _onError() {
-    AuthWebViewScreen.clearPreloadedSession();
     if (!mounted) return;
     _showErrorMessage();
     context.go(RoutePaths.login);

@@ -40,17 +40,7 @@ class DateTimeFormatter {
       return '만료됨';
     }
 
-    final hours = duration.inHours;
-    final minutes = duration.inMinutes % 60;
-    final seconds = duration.inSeconds % 60;
-
-    if (hours > 0) {
-      return '$hours시간 $minutes분 $seconds초';
-    }
-    if (duration.inMinutes > 0) {
-      return '${duration.inMinutes}분 $seconds초';
-    }
-    return '$seconds초';
+    return formatDurationParts(duration);
   }
 
   static String formatRemainingTimeToKorean(
@@ -84,15 +74,26 @@ class DateTimeFormatter {
       return expiredText;
     }
 
-    final hours = duration.inHours;
-    final minutes = duration.inMinutes % 60;
-    final seconds = duration.inSeconds % 60;
+    return formatDurationParts(duration, includeHours: includeHours);
+  }
+
+  static String formatDurationParts(
+    Duration duration, {
+    bool includeHours = true,
+  }) {
+    final safeDuration = duration.isNegative ? Duration.zero : duration;
+    final hours = safeDuration.inHours;
+    final minutes = safeDuration.inMinutes % 60;
+    final seconds = safeDuration.inSeconds % 60;
 
     if (includeHours && hours > 0) {
-      return '$hours시간 ${minutes.toString().padLeft(2, '0')}분 ${seconds.toString().padLeft(2, '0')}초';
+      return '${hours.toString().padLeft(2, '0')}시간 '
+          '${minutes.toString().padLeft(2, '0')}분 '
+          '${seconds.toString().padLeft(2, '0')}초';
     }
 
-    return '${duration.inMinutes.toString().padLeft(2, '0')}분 ${seconds.toString().padLeft(2, '0')}초';
+    return '${safeDuration.inMinutes.toString().padLeft(2, '0')}분 '
+        '${seconds.toString().padLeft(2, '0')}초';
   }
 
   static Duration? _parseIsoDuration(String value) {

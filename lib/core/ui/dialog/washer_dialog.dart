@@ -93,15 +93,14 @@ class _WasherDialogActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (confirmText.isEmpty) {
-      // confirmText가 빈 문자열이면 단일 버튼(backButton)만 표시.
-      // CustomBigButton 내부에 Expanded가 있으므로 반드시 Row 내부에 배치해야
-      // 세로 방향(Column)의 unbounded height 에러가 발생하지 않습니다.
       return Row(
         children: [
-          CustomBigButton(
-            text: backText,
-            onPressed: onBackPressed,
-            color: backColor,
+          Expanded(
+            child: CustomBigButton(
+              text: backText,
+              onPressed: onBackPressed,
+              color: backColor,
+            ),
           ),
         ],
       );
@@ -109,16 +108,20 @@ class _WasherDialogActions extends StatelessWidget {
 
     return Row(
       children: [
-        CustomBigButton(
-          text: backText,
-          onPressed: onBackPressed,
-          color: backColor,
+        Expanded(
+          child: CustomBigButton(
+            text: backText,
+            onPressed: onBackPressed,
+            color: backColor,
+          ),
         ),
         AppGap.h4,
-        CustomBigButton(
-          text: confirmText,
-          onPressed: onConfirmPressed,
-          color: confirmColor,
+        Expanded(
+          child: CustomBigButton(
+            text: confirmText,
+            onPressed: onConfirmPressed,
+            color: confirmColor,
+          ),
         ),
       ],
     );

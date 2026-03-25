@@ -34,7 +34,17 @@ class AuthRepositoryImpl implements AuthRepository {
       _storage.write(key: 'refresh_token', value: response.refreshToken),
     ]);
 
-    final fcmToken = await _notificationService.ensureFcmToken();
+    String? fcmToken;
+    try {
+      fcmToken = await _notificationService.ensureFcmToken();
+    } catch (error, stackTrace) {
+      if (kDebugMode) {
+        debugPrint('Failed to prepare FCM token during login: $error');
+        debugPrintStack(stackTrace: stackTrace);
+      }
+      return;
+    }
+
     if (fcmToken == null || fcmToken.isEmpty) {
       return;
     }

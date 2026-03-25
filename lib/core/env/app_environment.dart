@@ -56,10 +56,6 @@ class AppEnvironment {
   }
 
   static bool _resolveAllowBadCertificates(AppFlavor flavor) {
-    if (kReleaseMode || flavor == AppFlavor.production) {
-      return false;
-    }
-
     final rawValue =
         dotenv.env['ALLOW_BAD_CERTIFICATES']?.trim().toLowerCase() ?? '';
 

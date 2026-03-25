@@ -56,6 +56,7 @@ class _HistoryDialogState extends ConsumerState<HistoryDialog> {
             ),
             AppGap.v16,
             _buildContent(state),
+            AppGap.v16,
           ],
         ),
       ),

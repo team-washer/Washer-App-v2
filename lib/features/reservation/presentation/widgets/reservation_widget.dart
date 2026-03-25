@@ -12,6 +12,7 @@ import 'package:washer/core/ui/buttons/custom_big_button.dart';
 import 'package:washer/core/ui/dialog/laundry_action_dialog.dart';
 import 'package:washer/core/ui/reservation_state_widget.dart';
 import 'package:washer/core/utils/date_time_formatter.dart';
+import 'package:washer/core/utils/room_formatter.dart';
 import 'package:washer/features/history/presentation/widgets/history_dialog.dart';
 import 'package:washer/features/home/presentation/viewmodels/home_view_model.dart';
 
@@ -132,19 +133,6 @@ class ReservationBottomSection extends StatelessWidget {
   final String? remainDuration;
   final VoidCallback? onReserve;
 
-  static String? formatRoom(String? room) {
-    if (room == null) {
-      return null;
-    }
-
-    final normalized = room.trim();
-    if (normalized.isEmpty || normalized.endsWith('호')) {
-      return normalized;
-    }
-
-    return '$normalized호';
-  }
-
   @override
   Widget build(BuildContext context) {
     switch (reservationState) {
@@ -215,7 +203,7 @@ class _InUseBottom extends StatelessWidget {
         AppGap.v4,
         if (room != null)
           Text(
-            '사용 호실: ${ReservationBottomSection.formatRoom(room)}',
+            '사용 호실: ${RoomFormatter.formatRoom(room)}',
             style: WasherTypography.body2(WasherColor.baseGray400),
           ),
       ],
@@ -525,7 +513,7 @@ class _ReservedBottom extends StatelessWidget {
         if (room != null && room!.trim().isNotEmpty) ...[
           AppGap.v4,
           Text(
-            '사용 호실: ${ReservationBottomSection.formatRoom(room)}',
+            '사용 호실: ${RoomFormatter.formatRoom(room)}',
             style: WasherTypography.body2(WasherColor.baseGray500),
           ),
         ],

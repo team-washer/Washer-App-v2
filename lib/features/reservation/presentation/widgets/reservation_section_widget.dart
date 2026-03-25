@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -236,14 +237,11 @@ class _ReservationSectionWidgetState
     MachineModel machine,
     List<ActiveReservationModel> activeReservations,
   ) {
-    for (final reservation in activeReservations) {
-      if (machine.machineId == reservation.machineId ||
-          machine.reservationId == reservation.id) {
-        return reservation;
-      }
-    }
-
-    return null;
+    return activeReservations.firstWhereOrNull(
+      (reservation) =>
+          machine.machineId == reservation.machineId ||
+          machine.reservationId == reservation.id,
+    );
   }
 }
 

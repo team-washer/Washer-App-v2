@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
@@ -6,6 +7,7 @@ import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
 import 'package:washer/core/ui/dialog/washer_dialog.dart';
 import 'package:washer/core/utils/date_time_formatter.dart';
+import 'package:washer/core/utils/room_formatter.dart';
 import 'package:washer/features/home/presentation/viewmodels/home_view_model.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/presentation/viewmodels/reservation_view_model.dart';
@@ -49,7 +51,7 @@ class LaundryStatusDialog extends ConsumerWidget {
         ? '세탁기 현황'
         : '건조기 현황';
     final statusText = _buildStatusText(isUnavailable, isUsed, machineState);
-    final roomText = _formatRoomNumber(
+    final roomText = RoomFormatter.formatRoomNumber(
       syncedReservation?.userRoomNumber ?? roomNumber,
     );
     final notesText = _buildNotesText(
@@ -136,23 +138,6 @@ class LaundryStatusDialog extends ConsumerWidget {
     return '사용중';
   }
 
-  static String _formatRoomNumber(String? roomNumber) {
-    if (roomNumber == null) {
-      return '없음';
-    }
-
-    final normalized = roomNumber.trim();
-    if (normalized.isEmpty) {
-      return '없음';
-    }
-
-    if (normalized.endsWith('호')) {
-      return normalized;
-    }
-
-    return '$normalized호';
-  }
-
   static String _buildNotesText({
     required LaundryMachineType machineType,
     required bool isUnavailable,
@@ -188,17 +173,9 @@ class LaundryStatusDialog extends ConsumerWidget {
     List<ActiveReservationModel>? reservations,
     int machineId,
   ) {
-    if (reservations == null) {
-      return null;
-    }
-
-    for (final reservation in reservations) {
-      if (reservation.machineId == machineId) {
-        return reservation;
-      }
-    }
-
-    return null;
+    return reservations?.firstWhereOrNull(
+      (reservation) => reservation.machineId == machineId,
+    );
   }
 }
 

@@ -11,6 +11,7 @@ import 'package:washer/core/ui/dialog/laundry_action_dialog.dart';
 import 'package:washer/core/ui/reservation_state_widget.dart';
 import 'package:washer/core/utils/date_time_formatter.dart';
 import 'package:washer/features/home/presentation/viewmodels/home_view_model.dart';
+import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/user/presentation/viewmodels/my_user_view_model.dart';
 
 class HomeMyReservationWidget extends ConsumerWidget {
@@ -18,12 +19,14 @@ class HomeMyReservationWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final reservationAsync = ref.watch(activeReservationProvider);
+    final reservationsAsync = ref.watch(activeReservationProvider);
     final myUserAsync = ref.watch(myUserProvider);
     final roomNumber =
         myUserAsync.whenOrNull(data: (user) => user?.roomNumber) ??
-        reservationAsync.whenOrNull(
-          data: (reservation) => reservation?.userRoomNumber,
+        reservationsAsync.whenOrNull(
+          data: (reservations) => reservations.isNotEmpty
+              ? reservations.first.userRoomNumber
+              : null,
         );
 
     return Column(
@@ -32,7 +35,7 @@ class HomeMyReservationWidget extends ConsumerWidget {
         _ReservationTitle(roomNumber: roomNumber),
         Padding(
           padding: EdgeInsets.symmetric(vertical: AppSpacing.v16),
-          child: reservationAsync.when(
+          child: reservationsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (_, __) => Center(
               child: Padding(
@@ -43,17 +46,27 @@ class HomeMyReservationWidget extends ConsumerWidget {
                 ),
               ),
             ),
-            data: (reservation) => reservation != null
-                ? _MyReservationCard(
-                    laundryMachineType: reservation.machineType,
-                    laundryStatus: reservation.laundryStatus,
-                    machine: reservation.machineName,
-                    reservedAt: reservation.reservedAt,
-                    remainDuration: null,
-                    finishedAt: reservation.expectedCompletionTime,
-                    machineId: reservation.machineId,
-                    reservationId: reservation.id,
-                  )
+            data: (reservations) => reservations.isNotEmpty
+                ? reservations.length == 1
+                      ? _MyReservationCard(
+                          reservation: reservations.first,
+                          width: double.infinity,
+                        )
+                      : SizedBox(
+                          height: 220,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            padding: EdgeInsets.zero,
+                            itemCount: reservations.length,
+                            separatorBuilder: (_, __) => AppGap.h12,
+                            itemBuilder: (context, index) {
+                              return _MyReservationCard(
+                                reservation: reservations[index],
+                                width: 300,
+                              );
+                            },
+                          ),
+                        )
                 : Center(
                     child: Padding(
                       padding: EdgeInsets.symmetric(
@@ -93,29 +106,17 @@ class _ReservationTitle extends StatelessWidget {
 
 class _MyReservationCard extends StatelessWidget {
   const _MyReservationCard({
-    required this.laundryMachineType,
-    required this.laundryStatus,
-    required this.machine,
-    this.reservedAt,
-    this.remainDuration,
-    this.finishedAt,
-    this.machineId,
-    required this.reservationId,
+    required this.reservation,
+    required this.width,
   });
 
-  final LaundryMachineType laundryMachineType;
-  final LaundryStatus laundryStatus;
-  final String machine;
-  final String? reservedAt;
-  final String? remainDuration;
-  final String? finishedAt;
-  final int? machineId;
-  final int reservationId;
+  final ActiveReservationModel reservation;
+  final double width;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity,
+      width: width,
       padding: AppPadding.card,
       decoration: BoxDecoration(
         color: Colors.white,
@@ -126,37 +127,38 @@ class _MyReservationCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              laundryMachineType.icon(),
+              reservation.machineType.icon(),
               AppGap.h8,
               // Ensure long machine names don't overflow the row
               Expanded(
                 child: Text(
-                  machine,
+                  reservation.machineName,
                   style: WasherTypography.subTitle3(),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               ReservationStateWidget(
-                label: laundryStatus.label,
-                color: laundryStatus.color,
+                label: reservation.laundryStatus.label,
+                color: reservation.laundryStatus.color,
               ),
             ],
           ),
           AppGap.v12,
           _ReservationBody(
-            laundryMachineType: laundryMachineType,
-            laundryStatus: laundryStatus,
-            reservedAt: reservedAt,
-            remainDuration: remainDuration,
-            finishedAt: finishedAt,
+            laundryMachineType: reservation.machineType,
+            laundryStatus: reservation.laundryStatus,
+            reservedAt: reservation.reservedAt,
+            confirmedAt: reservation.confirmedAt,
+            remainDuration: null,
+            finishedAt: reservation.expectedCompletionTime,
           ),
           _BottomSection(
-            laundryMachineType: laundryMachineType,
-            laundryStatus: laundryStatus,
-            machineId: machineId,
-            reservationId: reservationId,
-            deviceId: machine,
+            laundryMachineType: reservation.machineType,
+            laundryStatus: reservation.laundryStatus,
+            machineId: reservation.machineId,
+            reservationId: reservation.id,
+            deviceId: reservation.machineName,
           ),
         ],
       ),
@@ -169,6 +171,7 @@ class _ReservationBody extends StatelessWidget {
     required this.laundryMachineType,
     required this.laundryStatus,
     required this.reservedAt,
+    required this.confirmedAt,
     required this.remainDuration,
     required this.finishedAt,
   });
@@ -176,6 +179,7 @@ class _ReservationBody extends StatelessWidget {
   final LaundryMachineType laundryMachineType;
   final LaundryStatus laundryStatus;
   final String? reservedAt;
+  final String? confirmedAt;
   final String? remainDuration;
   final String? finishedAt;
 
@@ -189,7 +193,7 @@ class _ReservationBody extends StatelessWidget {
         );
       case LaundryStatus.confirmed:
         return _ConfirmedBody(
-          reservedAt: reservedAt,
+          confirmedAt: confirmedAt,
           finishedAt: finishedAt,
         );
       case LaundryStatus.needConfirm:
@@ -239,11 +243,11 @@ class _WaitingBody extends StatelessWidget {
 
 class _ConfirmedBody extends StatelessWidget {
   const _ConfirmedBody({
-    this.reservedAt,
+    this.confirmedAt,
     this.finishedAt,
   });
 
-  final String? reservedAt;
+  final String? confirmedAt;
   final String? finishedAt;
 
   @override
@@ -257,7 +261,7 @@ class _ConfirmedBody extends StatelessWidget {
         ),
         AppGap.v4,
         _ConfirmationCountdownText(
-          reservedAt: reservedAt,
+          confirmedAt: confirmedAt,
           finishedAt: finishedAt,
         ),
         AppGap.v12,
@@ -339,18 +343,18 @@ class _ReservationExpiryText extends ConsumerWidget {
 
 class _ConfirmationCountdownText extends ConsumerWidget {
   const _ConfirmationCountdownText({
-    this.reservedAt,
+    this.confirmedAt,
     this.finishedAt,
   });
 
-  final String? reservedAt;
+  final String? confirmedAt;
   final String? finishedAt;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final now = ref.watch(clockProvider).asData?.value ?? DateTime.now();
     final baseTime =
-        (reservedAt != null ? DateTime.tryParse(reservedAt!) : null) ??
+        (confirmedAt != null ? DateTime.tryParse(confirmedAt!) : null) ??
         (finishedAt != null ? DateTime.tryParse(finishedAt!) : null);
     final countdown = _formatDuration(
       (baseTime ?? now).add(const Duration(minutes: 3)).difference(now),
@@ -376,16 +380,12 @@ class _InUseCountdownText extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final now = ref.watch(clockProvider).asData?.value ?? DateTime.now();
-    final finishTime = finishedAt != null
-        ? DateTime.tryParse(finishedAt!)
-        : null;
-    final countdown = finishTime == null
-        ? ''
-        : _formatDuration(
-            finishTime.difference(now),
-            expiredText: '완료 예정',
-            includeHours: true,
-          );
+    final countdown = DateTimeFormatter.formatRemainingTimeToKorean(
+      finishedAt,
+      now: now,
+      expiredText: '완료 예정',
+      includeHours: true,
+    );
 
     return Text(
       '${laundryMachineType.text} 완료 예정 시간: $countdown',

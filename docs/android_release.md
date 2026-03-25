@@ -84,5 +84,11 @@ version: 1.0.0+1
 예시:
 
 ```bash
+# macOS
+base64 -i upload-keystore.jks | tr -d '\n'
+
+# Linux
 base64 upload-keystore.jks | tr -d '\n'
 ```
+
+GitHub Secret에는 생성된 한 줄 문자열만 넣습니다. `-----BEGIN ...-----` 같은 PEM 형식 텍스트나 원본 바이너리 파일 내용을 그대로 넣으면 `base64: invalid input` 에러가 납니다.

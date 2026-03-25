@@ -11,6 +11,7 @@ class AppEnvironment {
     required this.refreshTokenEndpoint,
     required this.oauthBaseUrl,
     required this.oauthClientId,
+    required this.allowBadCertificates,
   });
 
   static late final AppEnvironment instance;
@@ -20,9 +21,9 @@ class AppEnvironment {
   final String refreshTokenEndpoint;
   final String oauthBaseUrl;
   final String oauthClientId;
+  final bool allowBadCertificates;
 
   bool get isDevelopment => flavor == AppFlavor.development;
-  bool get allowBadCertificates => true;
 
   static Future<void> initialize() async {
     final flavor = _resolveFlavor();
@@ -36,6 +37,7 @@ class AppEnvironment {
           dotenv.env['REFRESH_TOKEN_ENDPOINT'] ?? '/auth/refresh',
       oauthBaseUrl: dotenv.env['OAUTH_BASE_URL'] ?? '',
       oauthClientId: dotenv.env['OAUTH_CLIENT_ID'] ?? '',
+      allowBadCertificates: _resolveAllowBadCertificates(flavor),
     );
   }
 
@@ -51,6 +53,17 @@ class AppEnvironment {
     }
 
     return kReleaseMode ? AppFlavor.production : AppFlavor.development;
+  }
+
+  static bool _resolveAllowBadCertificates(AppFlavor flavor) {
+    if (kReleaseMode || flavor == AppFlavor.production) {
+      return false;
+    }
+
+    final rawValue =
+        dotenv.env['ALLOW_BAD_CERTIFICATES']?.trim().toLowerCase() ?? '';
+
+    return rawValue == 'true' || rawValue == '1' || rawValue == 'yes';
   }
 }
 

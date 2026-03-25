@@ -60,8 +60,8 @@ class WasherBottomNavigationBar extends StatelessWidget {
         currentIndex: NavTabType.values.indexOf(currentTab),
         onTap: (index) => onTabChanged(NavTabType.values[index]),
         backgroundColor: Colors.white,
-        selectedItemColor: WasherColor.baseGray400,
-        unselectedItemColor: WasherColor.baseGray200,
+        selectedItemColor: WasherColor.baseGray500,
+        unselectedItemColor: WasherColor.baseGray300,
         type: BottomNavigationBarType.fixed,
         items: NavTabType.values.map((tab) {
           return BottomNavigationBarItem(
@@ -70,8 +70,8 @@ class WasherBottomNavigationBar extends StatelessWidget {
               child: WasherIcon(
                 type: tab.iconType,
                 color: currentTab == tab
-                    ? WasherColor.baseGray400
-                    : WasherColor.baseGray200,
+                    ? WasherColor.baseGray500
+                    : WasherColor.baseGray300,
               ),
             ),
             label: tab.label,

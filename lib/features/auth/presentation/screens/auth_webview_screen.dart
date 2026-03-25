@@ -115,7 +115,7 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
         onWebResourceError: (error) {
           if (error.isForMainFrame ?? true) {
             session.isLoading.value = false;
-            _onError();
+            _showErrorMessage();
           }
         },
         onNavigationRequest: _handleNavigationRequest,
@@ -142,7 +142,7 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
       if (authCode != null && authCode.isNotEmpty) {
         unawaited(_onAuthCode(authCode));
       } else {
-        _onError();
+        _showErrorMessage();
       }
       return NavigationDecision.prevent;
     }
@@ -167,7 +167,9 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
 
     final state = ref.read(authCallbackViewModelProvider);
     if (state.hasError) {
-      _onError();
+      _isHandlingAuthCode = false;
+      session.isLoading.value = false;
+      _showErrorMessage();
     } else {
       AuthWebViewScreen.clearPreloadedSession();
       context.go(RoutePaths.splash);
@@ -177,10 +179,15 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
   void _onError() {
     AuthWebViewScreen.clearPreloadedSession();
     if (!mounted) return;
+    _showErrorMessage();
+    context.go(RoutePaths.login);
+  }
+
+  void _showErrorMessage() {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('로그인에 실패했습니다. 다시 시도해주세요.')),
     );
-    context.go(RoutePaths.login);
   }
 
   @override

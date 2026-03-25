@@ -5,7 +5,7 @@ import 'package:washer/features/reservation/data/models/local/laundry_machine_mo
 
 abstract class HomeRepository {
   Future<MachineStatusResponse> getMachineStatus();
-  Future<ActiveReservationModel?> getActiveReservation();
+  Future<List<ActiveReservationModel>> getActiveReservations();
 }
 
 class HomeRepositoryImpl implements HomeRepository {
@@ -19,8 +19,8 @@ class HomeRepositoryImpl implements HomeRepository {
   }
 
   @override
-  Future<ActiveReservationModel?> getActiveReservation() {
-    return _dataSource.getActiveReservation();
+  Future<List<ActiveReservationModel>> getActiveReservations() {
+    return _dataSource.getActiveReservations();
   }
 }
 

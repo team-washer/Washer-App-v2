@@ -42,7 +42,7 @@ class _HomeApiService implements HomeApiService {
   }
 
   @override
-  Future<HttpResponse<dynamic>> getActiveReservation() async {
+  Future<HttpResponse<dynamic>> getActiveReservations() async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};
@@ -51,7 +51,7 @@ class _HomeApiService implements HomeApiService {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v2/reservations/active',
+            '/api/v2/reservations/active/room',
             queryParameters: queryParameters,
             data: _data,
           )

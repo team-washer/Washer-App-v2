@@ -110,7 +110,9 @@ class _HomeBodyWidgetState extends ConsumerState<HomeBodyWidget>
         final roomNumber =
             myUserAsync.whenOrNull(data: (user) => user?.roomNumber) ??
             activeReservationAsync.whenOrNull(
-              data: (reservation) => reservation?.userRoomNumber,
+              data: (reservations) => reservations.isNotEmpty
+                  ? reservations.first.userRoomNumber
+                  : null,
             );
         final targetFloor = _targetFloorFromRoomNumber(roomNumber);
         final visibleMachines = targetFloor == null

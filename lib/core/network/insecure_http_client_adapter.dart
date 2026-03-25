@@ -14,6 +14,7 @@ void configureHttpClientAdapter(
   dio.httpClientAdapter = IOHttpClientAdapter(
     createHttpClient: () {
       final client = HttpClient();
+      // Development-only override for local/self-signed certificates.
       client.badCertificateCallback =
           (X509Certificate cert, String host, int port) => true;
       return client;

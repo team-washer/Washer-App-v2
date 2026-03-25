@@ -1,0 +1,61 @@
+﻿import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:washer/core/enums/laundry_machine_type.dart';
+import 'package:washer/core/enums/laundry_status.dart';
+
+part 'active_reservation_model.freezed.dart';
+part 'active_reservation_model.g.dart';
+
+@freezed
+abstract class ActiveReservationModel with _$ActiveReservationModel {
+  const ActiveReservationModel._();
+
+  const factory ActiveReservationModel({
+    required int id,
+    required int userId,
+    required String userName,
+    required String userRoomNumber,
+    required int machineId,
+    required String machineName,
+    String? reservedAt,
+    String? confirmedAt,
+    String? startTime,
+    String? expectedCompletionTime,
+    String? actualCompletionTime,
+    required String status,
+  }) = _ActiveReservationModel;
+
+  factory ActiveReservationModel.fromJson(Map<String, dynamic> json) =>
+      _$ActiveReservationModelFromJson(json);
+
+  String get normalizedStatus => status.trim().toUpperCase();
+
+  LaundryMachineType get machineType {
+    final normalizedName = machineName.toLowerCase();
+
+    if (normalizedName.startsWith('washer') || machineName.contains('세탁')) {
+      return LaundryMachineType.washer;
+    }
+
+    if (normalizedName.startsWith('dryer') || machineName.contains('건조')) {
+      return LaundryMachineType.dryer;
+    }
+
+    return LaundryMachineType.dryer;
+  }
+
+  LaundryStatus get laundryStatus {
+    switch (normalizedStatus) {
+      case 'RESERVED':
+        return LaundryStatus.reserved;
+      case 'CONFIRMED':
+        return LaundryStatus.confirmed;
+      case 'IN_USE':
+      case 'RUNNING':
+        return LaundryStatus.inUse;
+      case 'COMPLETED':
+        return LaundryStatus.completed;
+      default:
+        return LaundryStatus.reserved;
+    }
+  }
+}

@@ -1,0 +1,49 @@
+﻿import 'package:flutter/material.dart';
+import 'package:washer/core/theme/color.dart';
+import 'package:washer/core/theme/icon.dart';
+
+enum LaundryMachineType { washer, dryer }
+
+extension LaundryMachineTypeExt on LaundryMachineType {
+  Widget icon({
+    Color? color,
+    double size = 28,
+  }) {
+    final iconColor = color ?? WasherColor.mainColor300;
+
+    switch (this) {
+      case LaundryMachineType.washer:
+        return WasherIcon(
+          type: WasherIconType.waterCircle,
+          color: iconColor,
+          size: size,
+        );
+
+      case LaundryMachineType.dryer:
+        return WasherIcon(
+          type: WasherIconType.dryCircle,
+          color: iconColor,
+          size: size,
+        );
+    }
+  }
+
+  String get text {
+    switch (this) {
+      case LaundryMachineType.washer:
+        return "세탁";
+
+      case LaundryMachineType.dryer:
+        return "건조";
+    }
+  }
+
+  String get apiValue {
+    switch (this) {
+      case LaundryMachineType.washer:
+        return 'WASHER';
+      case LaundryMachineType.dryer:
+        return 'DRYER';
+    }
+  }
+}

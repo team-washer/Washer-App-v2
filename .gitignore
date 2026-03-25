@@ -43,16 +43,24 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+/ios/Runner.xcodeproj/build/
 
 # Mac OS
 .DS_store
+
+# Environment variables
+.env
+.env.development
+.env.production
 
 # FVM Version Cache
 .fvm/
 
 #Firebase files
 google-services.json
-GoogleService-Info.plisty
-firebase_options.dart
-firebase.json
+GoogleService-Info.plist
 
+# Android release signing
+android/key.properties
+*.jks
+*.keystore

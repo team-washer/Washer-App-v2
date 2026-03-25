@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
-import 'package:project_setting/core/theme/color.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:washer/core/theme/color.dart';
 
 class WasherTheme {
   WasherTheme._();
@@ -11,6 +11,9 @@ class WasherTheme {
       foregroundColor: WasherColor.baseGray,
       elevation: 0,
       centerTitle: true,
+    ),
+    progressIndicatorTheme: const ProgressIndicatorThemeData(
+      color: WasherColor.mainColor500,
     ),
   );
 }

@@ -20,13 +20,15 @@ abstract class HomeApiService {
 
   @GET('/api/v2/machines/status')
   Future<HttpResponse<dynamic>> getMachineStatus();
+
+  @GET('/api/v2/reservations/active/room')
+  Future<HttpResponse<dynamic>> getActiveReservations();
 }
 
 class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
-  const HomeRemoteDataSourceImpl(this._api, this._dio);
+  const HomeRemoteDataSourceImpl(this._api);
 
   final HomeApiService _api;
-  final Dio _dio;
 
   @override
   Future<MachineStatusResponse> getMachineStatus() async {
@@ -39,10 +41,8 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
   @override
   Future<List<ActiveReservationModel>> getActiveReservations() async {
     try {
-      final response = await _dio.get<dynamic>(
-        '/api/v2/reservations/active/room',
-      );
-      if (response.statusCode == 204 || response.data == null) {
+      final response = await _api.getActiveReservations();
+      if (response.response.statusCode == 204 || response.data == null) {
         return const [];
       }
 
@@ -69,5 +69,5 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
 
 final homeRemoteDataSourceProvider = Provider<HomeRemoteDataSource>((ref) {
   final dio = ref.watch(dioProvider);
-  return HomeRemoteDataSourceImpl(HomeApiService(dio), dio);
+  return HomeRemoteDataSourceImpl(HomeApiService(dio));
 });

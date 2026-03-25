@@ -152,7 +152,7 @@ class LaundryStatusDialog extends ConsumerWidget {
       return '$machineTypeText 사용 불가';
     }
 
-    if (expectedTime == null) return '없음';
+    if (expectedTime == null || expectedTime.trim().isEmpty) return '분석중';
 
     final formattedExpectedTime = DateTimeFormatter.formatRemainingTimeToKorean(
       expectedTime,

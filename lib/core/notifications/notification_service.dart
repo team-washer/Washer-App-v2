@@ -22,6 +22,8 @@ const _scheduledReservationKey = 'scheduled_completion_reservation_key';
 const fcmTokenStorageKey = 'fcm_token';
 const _apnsTokenRetryDelay = Duration(seconds: 1);
 const _apnsTokenMaxRetries = 10;
+const _defaultRemoteNotificationTitle = '예약취소';
+const _defaultRemoteNotificationSource = 'from Washer';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -60,29 +62,14 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
         ),
       );
 
-  final notification = message.notification;
-  final title = notification?.title ?? '세탁 알림';
-  final body = notification?.body ?? '새 알림이 도착했습니다.';
+  final content = NotificationService._buildRemoteNotificationContent(message);
 
   await localNotifications.show(
     message.messageId?.hashCode.abs() ??
         DateTime.now().millisecondsSinceEpoch.remainder(100000),
-    title,
-    body,
-    const NotificationDetails(
-      android: AndroidNotificationDetails(
-        _completionChannelId,
-        _completionChannelName,
-        channelDescription: '세탁 및 건조 완료 알림 채널',
-        importance: Importance.max,
-        priority: Priority.high,
-      ),
-      iOS: DarwinNotificationDetails(
-        presentAlert: true,
-        presentBadge: true,
-        presentSound: true,
-      ),
-    ),
+    content.title,
+    content.body,
+    NotificationService._remoteNotificationDetails(content.body),
     payload: message.data.isEmpty ? null : message.data.toString(),
   );
 }
@@ -185,15 +172,13 @@ class NotificationService {
   Future<void> showRemoteNotification(RemoteMessage message) async {
     await _initializeLocalNotifications();
 
-    final notification = message.notification;
-    final title = notification?.title ?? '세탁 알림';
-    final body = notification?.body ?? '새 알림이 도착했습니다.';
+    final content = _buildRemoteNotificationContent(message);
 
     await _localNotifications.show(
       _remoteNotificationId(message),
-      title,
-      body,
-      _notificationDetails(),
+      content.title,
+      content.body,
+      _remoteNotificationDetails(content.body),
       payload: message.data.isEmpty ? null : message.data.toString(),
     );
   }
@@ -335,6 +320,48 @@ class NotificationService {
         error.code == 'apns-token-not-set';
   }
 
+  static _RemoteNotificationContent _buildRemoteNotificationContent(
+    RemoteMessage message,
+  ) {
+    final data = message.data;
+    final machineName =
+        data['machineName']?.toString().trim() ??
+        data['deviceId']?.toString().trim() ??
+        data['reservationMachineName']?.toString().trim() ??
+        '';
+
+    if (machineName.isNotEmpty) {
+      return _RemoteNotificationContent(
+        title: _defaultRemoteNotificationTitle,
+        body:
+            '$_defaultRemoteNotificationSource\n$machineName의 예약이 자동으로 취소되었습니다.',
+      );
+    }
+
+    final notification = message.notification;
+    final title = notification?.title ?? '세탁 알림';
+    final body = notification?.body ?? '새 알림이 도착했습니다.';
+    return _RemoteNotificationContent(title: title, body: body);
+  }
+
+  static NotificationDetails _remoteNotificationDetails(String body) {
+    return NotificationDetails(
+      android: AndroidNotificationDetails(
+        _completionChannelId,
+        _completionChannelName,
+        channelDescription: '세탁 및 건조 완료 알림 채널',
+        importance: Importance.max,
+        priority: Priority.high,
+        styleInformation: BigTextStyleInformation(body),
+      ),
+      iOS: const DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      ),
+    );
+  }
+
   NotificationDetails _notificationDetails() {
     return const NotificationDetails(
       android: AndroidNotificationDetails(
@@ -356,6 +383,16 @@ class NotificationService {
     return message.messageId?.hashCode.abs() ??
         DateTime.now().millisecondsSinceEpoch.remainder(100000);
   }
+}
+
+class _RemoteNotificationContent {
+  const _RemoteNotificationContent({
+    required this.title,
+    required this.body,
+  });
+
+  final String title;
+  final String body;
 }
 
 final notificationServiceProvider = Provider<NotificationService>((ref) {

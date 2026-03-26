@@ -234,11 +234,6 @@ class _ReservationBody extends StatelessWidget {
           reservedAt: reservedAt,
           remainDuration: remainDuration,
         );
-      case LaundryStatus.confirmed:
-        return _ConfirmedBody(
-          confirmedAt: confirmedAt,
-          finishedAt: finishedAt,
-        );
       case LaundryStatus.needConfirm:
         return const _NeedConfirmBody();
       case LaundryStatus.inUse:
@@ -280,41 +275,6 @@ class _WaitingBody extends StatelessWidget {
           _ReservationExpiryText(
             reservedAt: reservedAt,
             remainDuration: remainDuration,
-          ),
-          AppGap.v12,
-        ],
-      ],
-    );
-  }
-}
-
-class _ConfirmedBody extends StatelessWidget {
-  const _ConfirmedBody({
-    this.confirmedAt,
-    this.finishedAt,
-  });
-
-  final String? confirmedAt;
-  final String? finishedAt;
-
-  @override
-  Widget build(BuildContext context) {
-    final hasConfirmedAt =
-        confirmedAt != null && confirmedAt!.trim().isNotEmpty;
-    final hasFinishedAt = finishedAt != null && finishedAt!.trim().isNotEmpty;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '기기 연결을 확인하고 있습니다. 잠시만 기다려주세요.',
-          style: WasherTypography.body2(WasherColor.baseGray500),
-        ),
-        if (hasConfirmedAt || hasFinishedAt) ...[
-          AppGap.v4,
-          _ConfirmationCountdownText(
-            confirmedAt: confirmedAt,
-            finishedAt: finishedAt,
           ),
           AppGap.v12,
         ],
@@ -392,7 +352,7 @@ class _ReservationExpiryText extends ConsumerWidget {
         : null;
     if (reservedTime != null) {
       countdown = _formatDuration(
-        reservedTime.add(const Duration(minutes: 5)).difference(now),
+        reservedTime.add(const Duration(minutes: 3)).difference(now),
         expiredText: '만료됨',
       );
     }
@@ -400,33 +360,6 @@ class _ReservationExpiryText extends ConsumerWidget {
     return Text(
       '예약 만료까지: $countdown',
       style: WasherTypography.body2(WasherColor.errorColor),
-    );
-  }
-}
-
-class _ConfirmationCountdownText extends ConsumerWidget {
-  const _ConfirmationCountdownText({
-    this.confirmedAt,
-    this.finishedAt,
-  });
-
-  final String? confirmedAt;
-  final String? finishedAt;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final now = ref.watch(clockProvider).asData?.value ?? DateTime.now();
-    final baseTime =
-        (confirmedAt != null ? DateTime.tryParse(confirmedAt!) : null) ??
-        (finishedAt != null ? DateTime.tryParse(finishedAt!) : null);
-    final countdown = _formatDuration(
-      (baseTime ?? now).add(const Duration(minutes: 3)).difference(now),
-      expiredText: '만료됨',
-    );
-
-    return Text(
-      '예정 완료 시간: $countdown',
-      style: WasherTypography.body2(WasherColor.baseGray500),
     );
   }
 }
@@ -508,11 +441,7 @@ class _BottomSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final canCancel =
-        isOwnedByMe &&
-        (laundryStatus == LaundryStatus.reserved ||
-            laundryStatus == LaundryStatus.confirmed);
-    final canStart = isOwnedByMe && laundryStatus == LaundryStatus.reserved;
+    final canCancel = isOwnedByMe && laundryStatus == LaundryStatus.reserved;
 
     if (!canCancel || machineId == null) {
       return const SizedBox.shrink();
@@ -539,34 +468,6 @@ class _BottomSection extends StatelessWidget {
               }
             },
             color: WasherColor.baseGray300,
-          ),
-        ),
-        AppGap.h4,
-        Expanded(
-          child: CustomSmallButton(
-            text: '${laundryMachineType.text} 시작',
-            onPressed: () {
-              if (!canStart) {
-                return;
-              }
-
-              if (reservationId > 0) {
-                showDialog(
-                  context: context,
-                  builder: (context) => Dialog(
-                    child: LaundryActionDialog(
-                      actionType: LaundryActionType.reserve,
-                      deviceId: deviceId,
-                      reservationId: reservationId,
-                      machineId: machineId!,
-                    ),
-                  ),
-                );
-              }
-            },
-            color: canStart
-                ? WasherColor.mainColor400
-                : WasherColor.mainColor300,
           ),
         ),
       ],

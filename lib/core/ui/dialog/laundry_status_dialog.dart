@@ -97,7 +97,7 @@ class LaundryStatusDialog extends ConsumerWidget {
                   messenger.showSnackBar(
                     SnackBar(
                       content: Text(
-                        '$machineName 예약이 완료되었습니다\n5분 이내에 기기를 켜주세요',
+                        '$machineName 예약이 완료되었습니다\n3분 동안 기기 연결을 확인합니다',
                       ),
                     ),
                   );

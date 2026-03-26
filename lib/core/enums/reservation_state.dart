@@ -7,7 +7,6 @@ enum ReservationState {
   available, // 예약가능
   reservedByMe, // 예약완료 (본인)
   reservedByOther, // 예약완료 (타인)
-  confirmed, // 예약확인중 (본인)
   unavailable, // 사용불가
 }
 
@@ -22,8 +21,6 @@ extension ReservationStateText on ReservationState {
         return '예약완료';
       case ReservationState.reservedByOther:
         return '예약완료';
-      case ReservationState.confirmed:
-        return '예약확인중';
       case ReservationState.unavailable:
         return '사용불가';
     }
@@ -36,7 +33,6 @@ extension ReservationStateText on ReservationState {
       case ReservationState.inUse:
       case ReservationState.reservedByMe:
       case ReservationState.reservedByOther:
-      case ReservationState.confirmed:
         return WasherColor.mainColor400;
       case ReservationState.unavailable:
         return WasherColor.errorColor;

@@ -47,8 +47,6 @@ abstract class ActiveReservationModel with _$ActiveReservationModel {
     switch (normalizedStatus) {
       case 'RESERVED':
         return LaundryStatus.reserved;
-      case 'CONFIRMED':
-        return LaundryStatus.confirmed;
       case 'IN_USE':
       case 'RUNNING':
         return LaundryStatus.inUse;

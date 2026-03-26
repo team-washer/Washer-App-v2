@@ -161,12 +161,6 @@ class ReservationBottomSection extends StatelessWidget {
           reservationId: reservationId,
           machineName: machineName,
         );
-      case ReservationState.confirmed:
-        return _ConfirmedByMeBottom(
-          laundryMachineType: laundryMachineType,
-          reservedAt: reservedAt,
-          finishedAt: finishedAt,
-        );
       case ReservationState.reservedByOther:
         return _ReservedBottom(
           reservedAt: reservedAt,
@@ -364,94 +358,28 @@ class _ReservedByMeBottom extends StatelessWidget {
           formatCountdown: _formatCountdown,
         ),
         AppGap.v12,
-        Row(
-          children: [
-            Expanded(
-              child: CustomBigButton(
-                text: '예약 취소',
-                onPressed: () {
-                  if (reservationId > 0) {
-                    showDialog(
-                      context: context,
-                      builder: (context) => Dialog(
-                        child: LaundryActionDialog(
-                          actionType: LaundryActionType.cancelReservation,
-                          deviceId: machineName,
-                          reservationId: reservationId,
-                          machineId: machineId,
-                        ),
-                      ),
-                    );
-                  }
-                },
-                color: WasherColor.baseGray300,
-              ),
-            ),
-            AppGap.h8,
-            Expanded(
-              child: CustomBigButton(
-                text: '${laundryMachineType.text} 시작',
-                onPressed: () {
-                  if (reservationId > 0) {
-                    showDialog(
-                      context: context,
-                      builder: (context) => Dialog(
-                        child: LaundryActionDialog(
-                          actionType: LaundryActionType.reserve,
-                          deviceId: machineName,
-                          reservationId: reservationId,
-                          machineId: machineId,
-                        ),
-                      ),
-                    );
-                  }
-                },
-                color: WasherColor.mainColor400,
-              ),
-            ),
-          ],
+        SizedBox(
+          width: double.infinity,
+          child: CustomBigButton(
+            text: '예약 취소',
+            onPressed: () {
+              if (reservationId > 0) {
+                showDialog(
+                  context: context,
+                  builder: (context) => Dialog(
+                    child: LaundryActionDialog(
+                      actionType: LaundryActionType.cancelReservation,
+                      deviceId: machineName,
+                      reservationId: reservationId,
+                      machineId: machineId,
+                    ),
+                  ),
+                );
+              }
+            },
+            color: WasherColor.baseGray300,
+          ),
         ),
-      ],
-    );
-  }
-}
-
-class _ConfirmedByMeBottom extends StatelessWidget {
-  const _ConfirmedByMeBottom({
-    required this.laundryMachineType,
-    this.reservedAt,
-    this.finishedAt,
-  });
-
-  final LaundryMachineType laundryMachineType;
-  final String? reservedAt;
-  final String? finishedAt;
-
-  String _formatCountdown(DateTime? baseTime, DateTime now) {
-    if (baseTime == null) return '';
-    final expiryTime = baseTime.add(const Duration(minutes: 3));
-    final remaining = expiryTime.difference(now);
-    if (remaining.isNegative) return '만료됨';
-
-    return DateTimeFormatter.formatDurationParts(remaining);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '기기 연결을 확인하고 있습니다. 잠시만 기다려주세요.',
-          style: WasherTypography.body2(WasherColor.baseGray500),
-        ),
-        AppGap.v4,
-        _ConfirmedByMeCountdownText(
-          reservedAt: reservedAt,
-          finishedAt: finishedAt,
-          formatCountdown: _formatCountdown,
-        ),
-        AppGap.v12,
       ],
     );
   }
@@ -472,41 +400,11 @@ class _ReservedByMeCountdownText extends ConsumerWidget {
     final reservedTime = reservedAt != null
         ? DateTime.tryParse(reservedAt!)
         : null;
-    final expireAt = reservedTime?.add(const Duration(minutes: 5));
+    final expireAt = reservedTime?.add(const Duration(minutes: 3));
 
     return Text(
       '예약 만료까지: ${expireAt != null ? formatCountdown(expireAt, now) : ''}',
       style: WasherTypography.body2(WasherColor.errorColor),
-    );
-  }
-}
-
-class _ConfirmedByMeCountdownText extends ConsumerWidget {
-  const _ConfirmedByMeCountdownText({
-    required this.reservedAt,
-    required this.finishedAt,
-    required this.formatCountdown,
-  });
-
-  final String? reservedAt;
-  final String? finishedAt;
-  final String Function(DateTime? baseTime, DateTime now) formatCountdown;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final now = ref.watch(clockProvider).asData?.value ?? DateTime.now();
-    final reservedTime = reservedAt != null
-        ? DateTime.tryParse(reservedAt!)
-        : null;
-    final countdown = reservedTime != null
-        ? formatCountdown(reservedTime, now)
-        : (finishedAt != null
-              ? formatCountdown(DateTime.tryParse(finishedAt!), now)
-              : '');
-
-    return Text(
-      '예정 완료 시간: $countdown',
-      style: WasherTypography.body2(WasherColor.baseGray500),
     );
   }
 }

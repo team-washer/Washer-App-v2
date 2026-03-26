@@ -74,9 +74,6 @@ class _ReservationSectionWidgetState
 
     if (isMyMachine && activeReservation != null) {
       final myReservation = activeReservation;
-      if (myReservation.laundryStatus == LaundryStatus.confirmed) {
-        return ReservationState.confirmed;
-      }
       if (myReservation.laundryStatus == LaundryStatus.inUse ||
           myReservation.laundryStatus == LaundryStatus.completed) {
         return ReservationState.inUse;
@@ -165,7 +162,7 @@ class _ReservationSectionWidgetState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              '${item.name} 예약이 완료되었습니다\n5분 이내에 기기를 켜주세요',
+              '${item.name} 예약이 완료되었습니다\n3분 동안 기기 연결을 확인합니다',
             ),
           ),
         );

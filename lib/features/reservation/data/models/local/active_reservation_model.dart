@@ -12,6 +12,7 @@ abstract class ActiveReservationModel with _$ActiveReservationModel {
   const factory ActiveReservationModel({
     required int id,
     required int userId,
+    String? userStudentId,
     required String userName,
     required String userRoomNumber,
     required int machineId,

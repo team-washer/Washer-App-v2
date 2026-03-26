@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$MachineModel {
 
- int get machineId; String get name; String get type; String get status; String get availability; String? get operatingState; String? get jobState; String? get switchStatus; String? get expectedCompletionTime; int? get remainingMinutes; int? get reservationId; int? get userId; String? get roomNumber;
+ int get machineId; String get name; String get type; String get status; String get availability; String? get operatingState; String? get jobState; String? get switchStatus; String? get expectedCompletionTime; int? get remainingMinutes; int? get reservationId; int? get userId; String? get userStudentId; String? get userName; String? get roomNumber;
 /// Create a copy of MachineModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $MachineModelCopyWith<MachineModel> get copyWith => _$MachineModelCopyWithImpl<M
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MachineModel&&(identical(other.machineId, machineId) || other.machineId == machineId)&&(identical(other.name, name) || other.name == name)&&(identical(other.type, type) || other.type == type)&&(identical(other.status, status) || other.status == status)&&(identical(other.availability, availability) || other.availability == availability)&&(identical(other.operatingState, operatingState) || other.operatingState == operatingState)&&(identical(other.jobState, jobState) || other.jobState == jobState)&&(identical(other.switchStatus, switchStatus) || other.switchStatus == switchStatus)&&(identical(other.expectedCompletionTime, expectedCompletionTime) || other.expectedCompletionTime == expectedCompletionTime)&&(identical(other.remainingMinutes, remainingMinutes) || other.remainingMinutes == remainingMinutes)&&(identical(other.reservationId, reservationId) || other.reservationId == reservationId)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.roomNumber, roomNumber) || other.roomNumber == roomNumber));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MachineModel&&(identical(other.machineId, machineId) || other.machineId == machineId)&&(identical(other.name, name) || other.name == name)&&(identical(other.type, type) || other.type == type)&&(identical(other.status, status) || other.status == status)&&(identical(other.availability, availability) || other.availability == availability)&&(identical(other.operatingState, operatingState) || other.operatingState == operatingState)&&(identical(other.jobState, jobState) || other.jobState == jobState)&&(identical(other.switchStatus, switchStatus) || other.switchStatus == switchStatus)&&(identical(other.expectedCompletionTime, expectedCompletionTime) || other.expectedCompletionTime == expectedCompletionTime)&&(identical(other.remainingMinutes, remainingMinutes) || other.remainingMinutes == remainingMinutes)&&(identical(other.reservationId, reservationId) || other.reservationId == reservationId)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.userStudentId, userStudentId) || other.userStudentId == userStudentId)&&(identical(other.userName, userName) || other.userName == userName)&&(identical(other.roomNumber, roomNumber) || other.roomNumber == roomNumber));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,machineId,name,type,status,availability,operatingState,jobState,switchStatus,expectedCompletionTime,remainingMinutes,reservationId,userId,roomNumber);
+int get hashCode => Object.hash(runtimeType,machineId,name,type,status,availability,operatingState,jobState,switchStatus,expectedCompletionTime,remainingMinutes,reservationId,userId,userStudentId,userName,roomNumber);
 
 @override
 String toString() {
-  return 'MachineModel(machineId: $machineId, name: $name, type: $type, status: $status, availability: $availability, operatingState: $operatingState, jobState: $jobState, switchStatus: $switchStatus, expectedCompletionTime: $expectedCompletionTime, remainingMinutes: $remainingMinutes, reservationId: $reservationId, userId: $userId, roomNumber: $roomNumber)';
+  return 'MachineModel(machineId: $machineId, name: $name, type: $type, status: $status, availability: $availability, operatingState: $operatingState, jobState: $jobState, switchStatus: $switchStatus, expectedCompletionTime: $expectedCompletionTime, remainingMinutes: $remainingMinutes, reservationId: $reservationId, userId: $userId, userStudentId: $userStudentId, userName: $userName, roomNumber: $roomNumber)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $MachineModelCopyWith<$Res>  {
   factory $MachineModelCopyWith(MachineModel value, $Res Function(MachineModel) _then) = _$MachineModelCopyWithImpl;
 @useResult
 $Res call({
- int machineId, String name, String type, String status, String availability, String? operatingState, String? jobState, String? switchStatus, String? expectedCompletionTime, int? remainingMinutes, int? reservationId, int? userId, String? roomNumber
+ int machineId, String name, String type, String status, String availability, String? operatingState, String? jobState, String? switchStatus, String? expectedCompletionTime, int? remainingMinutes, int? reservationId, int? userId, String? userStudentId, String? userName, String? roomNumber
 });
 
 
@@ -65,7 +65,7 @@ class _$MachineModelCopyWithImpl<$Res>
 
 /// Create a copy of MachineModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? machineId = null,Object? name = null,Object? type = null,Object? status = null,Object? availability = null,Object? operatingState = freezed,Object? jobState = freezed,Object? switchStatus = freezed,Object? expectedCompletionTime = freezed,Object? remainingMinutes = freezed,Object? reservationId = freezed,Object? userId = freezed,Object? roomNumber = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? machineId = null,Object? name = null,Object? type = null,Object? status = null,Object? availability = null,Object? operatingState = freezed,Object? jobState = freezed,Object? switchStatus = freezed,Object? expectedCompletionTime = freezed,Object? remainingMinutes = freezed,Object? reservationId = freezed,Object? userId = freezed,Object? userStudentId = freezed,Object? userName = freezed,Object? roomNumber = freezed,}) {
   return _then(_self.copyWith(
 machineId: null == machineId ? _self.machineId : machineId // ignore: cast_nullable_to_non_nullable
 as int,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -79,7 +79,9 @@ as String?,expectedCompletionTime: freezed == expectedCompletionTime ? _self.exp
 as String?,remainingMinutes: freezed == remainingMinutes ? _self.remainingMinutes : remainingMinutes // ignore: cast_nullable_to_non_nullable
 as int?,reservationId: freezed == reservationId ? _self.reservationId : reservationId // ignore: cast_nullable_to_non_nullable
 as int?,userId: freezed == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
-as int?,roomNumber: freezed == roomNumber ? _self.roomNumber : roomNumber // ignore: cast_nullable_to_non_nullable
+as int?,userStudentId: freezed == userStudentId ? _self.userStudentId : userStudentId // ignore: cast_nullable_to_non_nullable
+as String?,userName: freezed == userName ? _self.userName : userName // ignore: cast_nullable_to_non_nullable
+as String?,roomNumber: freezed == roomNumber ? _self.roomNumber : roomNumber // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }
@@ -165,10 +167,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int machineId,  String name,  String type,  String status,  String availability,  String? operatingState,  String? jobState,  String? switchStatus,  String? expectedCompletionTime,  int? remainingMinutes,  int? reservationId,  int? userId,  String? roomNumber)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int machineId,  String name,  String type,  String status,  String availability,  String? operatingState,  String? jobState,  String? switchStatus,  String? expectedCompletionTime,  int? remainingMinutes,  int? reservationId,  int? userId,  String? userStudentId,  String? userName,  String? roomNumber)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MachineModel() when $default != null:
-return $default(_that.machineId,_that.name,_that.type,_that.status,_that.availability,_that.operatingState,_that.jobState,_that.switchStatus,_that.expectedCompletionTime,_that.remainingMinutes,_that.reservationId,_that.userId,_that.roomNumber);case _:
+return $default(_that.machineId,_that.name,_that.type,_that.status,_that.availability,_that.operatingState,_that.jobState,_that.switchStatus,_that.expectedCompletionTime,_that.remainingMinutes,_that.reservationId,_that.userId,_that.userStudentId,_that.userName,_that.roomNumber);case _:
   return orElse();
 
 }
@@ -186,10 +188,10 @@ return $default(_that.machineId,_that.name,_that.type,_that.status,_that.availab
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int machineId,  String name,  String type,  String status,  String availability,  String? operatingState,  String? jobState,  String? switchStatus,  String? expectedCompletionTime,  int? remainingMinutes,  int? reservationId,  int? userId,  String? roomNumber)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int machineId,  String name,  String type,  String status,  String availability,  String? operatingState,  String? jobState,  String? switchStatus,  String? expectedCompletionTime,  int? remainingMinutes,  int? reservationId,  int? userId,  String? userStudentId,  String? userName,  String? roomNumber)  $default,) {final _that = this;
 switch (_that) {
 case _MachineModel():
-return $default(_that.machineId,_that.name,_that.type,_that.status,_that.availability,_that.operatingState,_that.jobState,_that.switchStatus,_that.expectedCompletionTime,_that.remainingMinutes,_that.reservationId,_that.userId,_that.roomNumber);case _:
+return $default(_that.machineId,_that.name,_that.type,_that.status,_that.availability,_that.operatingState,_that.jobState,_that.switchStatus,_that.expectedCompletionTime,_that.remainingMinutes,_that.reservationId,_that.userId,_that.userStudentId,_that.userName,_that.roomNumber);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -206,10 +208,10 @@ return $default(_that.machineId,_that.name,_that.type,_that.status,_that.availab
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int machineId,  String name,  String type,  String status,  String availability,  String? operatingState,  String? jobState,  String? switchStatus,  String? expectedCompletionTime,  int? remainingMinutes,  int? reservationId,  int? userId,  String? roomNumber)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int machineId,  String name,  String type,  String status,  String availability,  String? operatingState,  String? jobState,  String? switchStatus,  String? expectedCompletionTime,  int? remainingMinutes,  int? reservationId,  int? userId,  String? userStudentId,  String? userName,  String? roomNumber)?  $default,) {final _that = this;
 switch (_that) {
 case _MachineModel() when $default != null:
-return $default(_that.machineId,_that.name,_that.type,_that.status,_that.availability,_that.operatingState,_that.jobState,_that.switchStatus,_that.expectedCompletionTime,_that.remainingMinutes,_that.reservationId,_that.userId,_that.roomNumber);case _:
+return $default(_that.machineId,_that.name,_that.type,_that.status,_that.availability,_that.operatingState,_that.jobState,_that.switchStatus,_that.expectedCompletionTime,_that.remainingMinutes,_that.reservationId,_that.userId,_that.userStudentId,_that.userName,_that.roomNumber);case _:
   return null;
 
 }
@@ -221,7 +223,7 @@ return $default(_that.machineId,_that.name,_that.type,_that.status,_that.availab
 @JsonSerializable()
 
 class _MachineModel extends MachineModel {
-  const _MachineModel({required this.machineId, required this.name, required this.type, required this.status, required this.availability, this.operatingState, this.jobState, this.switchStatus, this.expectedCompletionTime, this.remainingMinutes, this.reservationId, this.userId, this.roomNumber}): super._();
+  const _MachineModel({required this.machineId, required this.name, required this.type, required this.status, required this.availability, this.operatingState, this.jobState, this.switchStatus, this.expectedCompletionTime, this.remainingMinutes, this.reservationId, this.userId, this.userStudentId, this.userName, this.roomNumber}): super._();
   factory _MachineModel.fromJson(Map<String, dynamic> json) => _$MachineModelFromJson(json);
 
 @override final  int machineId;
@@ -236,6 +238,8 @@ class _MachineModel extends MachineModel {
 @override final  int? remainingMinutes;
 @override final  int? reservationId;
 @override final  int? userId;
+@override final  String? userStudentId;
+@override final  String? userName;
 @override final  String? roomNumber;
 
 /// Create a copy of MachineModel
@@ -251,16 +255,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MachineModel&&(identical(other.machineId, machineId) || other.machineId == machineId)&&(identical(other.name, name) || other.name == name)&&(identical(other.type, type) || other.type == type)&&(identical(other.status, status) || other.status == status)&&(identical(other.availability, availability) || other.availability == availability)&&(identical(other.operatingState, operatingState) || other.operatingState == operatingState)&&(identical(other.jobState, jobState) || other.jobState == jobState)&&(identical(other.switchStatus, switchStatus) || other.switchStatus == switchStatus)&&(identical(other.expectedCompletionTime, expectedCompletionTime) || other.expectedCompletionTime == expectedCompletionTime)&&(identical(other.remainingMinutes, remainingMinutes) || other.remainingMinutes == remainingMinutes)&&(identical(other.reservationId, reservationId) || other.reservationId == reservationId)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.roomNumber, roomNumber) || other.roomNumber == roomNumber));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MachineModel&&(identical(other.machineId, machineId) || other.machineId == machineId)&&(identical(other.name, name) || other.name == name)&&(identical(other.type, type) || other.type == type)&&(identical(other.status, status) || other.status == status)&&(identical(other.availability, availability) || other.availability == availability)&&(identical(other.operatingState, operatingState) || other.operatingState == operatingState)&&(identical(other.jobState, jobState) || other.jobState == jobState)&&(identical(other.switchStatus, switchStatus) || other.switchStatus == switchStatus)&&(identical(other.expectedCompletionTime, expectedCompletionTime) || other.expectedCompletionTime == expectedCompletionTime)&&(identical(other.remainingMinutes, remainingMinutes) || other.remainingMinutes == remainingMinutes)&&(identical(other.reservationId, reservationId) || other.reservationId == reservationId)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.userStudentId, userStudentId) || other.userStudentId == userStudentId)&&(identical(other.userName, userName) || other.userName == userName)&&(identical(other.roomNumber, roomNumber) || other.roomNumber == roomNumber));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,machineId,name,type,status,availability,operatingState,jobState,switchStatus,expectedCompletionTime,remainingMinutes,reservationId,userId,roomNumber);
+int get hashCode => Object.hash(runtimeType,machineId,name,type,status,availability,operatingState,jobState,switchStatus,expectedCompletionTime,remainingMinutes,reservationId,userId,userStudentId,userName,roomNumber);
 
 @override
 String toString() {
-  return 'MachineModel(machineId: $machineId, name: $name, type: $type, status: $status, availability: $availability, operatingState: $operatingState, jobState: $jobState, switchStatus: $switchStatus, expectedCompletionTime: $expectedCompletionTime, remainingMinutes: $remainingMinutes, reservationId: $reservationId, userId: $userId, roomNumber: $roomNumber)';
+  return 'MachineModel(machineId: $machineId, name: $name, type: $type, status: $status, availability: $availability, operatingState: $operatingState, jobState: $jobState, switchStatus: $switchStatus, expectedCompletionTime: $expectedCompletionTime, remainingMinutes: $remainingMinutes, reservationId: $reservationId, userId: $userId, userStudentId: $userStudentId, userName: $userName, roomNumber: $roomNumber)';
 }
 
 
@@ -271,7 +275,7 @@ abstract mixin class _$MachineModelCopyWith<$Res> implements $MachineModelCopyWi
   factory _$MachineModelCopyWith(_MachineModel value, $Res Function(_MachineModel) _then) = __$MachineModelCopyWithImpl;
 @override @useResult
 $Res call({
- int machineId, String name, String type, String status, String availability, String? operatingState, String? jobState, String? switchStatus, String? expectedCompletionTime, int? remainingMinutes, int? reservationId, int? userId, String? roomNumber
+ int machineId, String name, String type, String status, String availability, String? operatingState, String? jobState, String? switchStatus, String? expectedCompletionTime, int? remainingMinutes, int? reservationId, int? userId, String? userStudentId, String? userName, String? roomNumber
 });
 
 
@@ -288,7 +292,7 @@ class __$MachineModelCopyWithImpl<$Res>
 
 /// Create a copy of MachineModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? machineId = null,Object? name = null,Object? type = null,Object? status = null,Object? availability = null,Object? operatingState = freezed,Object? jobState = freezed,Object? switchStatus = freezed,Object? expectedCompletionTime = freezed,Object? remainingMinutes = freezed,Object? reservationId = freezed,Object? userId = freezed,Object? roomNumber = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? machineId = null,Object? name = null,Object? type = null,Object? status = null,Object? availability = null,Object? operatingState = freezed,Object? jobState = freezed,Object? switchStatus = freezed,Object? expectedCompletionTime = freezed,Object? remainingMinutes = freezed,Object? reservationId = freezed,Object? userId = freezed,Object? userStudentId = freezed,Object? userName = freezed,Object? roomNumber = freezed,}) {
   return _then(_MachineModel(
 machineId: null == machineId ? _self.machineId : machineId // ignore: cast_nullable_to_non_nullable
 as int,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -302,7 +306,9 @@ as String?,expectedCompletionTime: freezed == expectedCompletionTime ? _self.exp
 as String?,remainingMinutes: freezed == remainingMinutes ? _self.remainingMinutes : remainingMinutes // ignore: cast_nullable_to_non_nullable
 as int?,reservationId: freezed == reservationId ? _self.reservationId : reservationId // ignore: cast_nullable_to_non_nullable
 as int?,userId: freezed == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
-as int?,roomNumber: freezed == roomNumber ? _self.roomNumber : roomNumber // ignore: cast_nullable_to_non_nullable
+as int?,userStudentId: freezed == userStudentId ? _self.userStudentId : userStudentId // ignore: cast_nullable_to_non_nullable
+as String?,userName: freezed == userName ? _self.userName : userName // ignore: cast_nullable_to_non_nullable
+as String?,roomNumber: freezed == roomNumber ? _self.roomNumber : roomNumber // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }

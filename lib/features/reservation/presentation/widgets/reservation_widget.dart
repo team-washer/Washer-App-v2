@@ -28,6 +28,9 @@ class ReservationWidget extends StatelessWidget {
     this.reservedAt,
     this.finishedAt,
     this.remainDuration,
+    this.activeUserName,
+    this.activeUserStudentId,
+    this.showActions = true,
     this.onReserve,
   });
 
@@ -40,6 +43,9 @@ class ReservationWidget extends StatelessWidget {
   final String? reservedAt;
   final String? finishedAt;
   final String? remainDuration;
+  final String? activeUserName;
+  final String? activeUserStudentId;
+  final bool showActions;
   final VoidCallback? onReserve;
 
   @override
@@ -103,6 +109,9 @@ class ReservationWidget extends StatelessWidget {
             reservedAt: reservedAt,
             finishedAt: finishedAt,
             remainDuration: remainDuration,
+            activeUserName: activeUserName,
+            activeUserStudentId: activeUserStudentId,
+            showActions: showActions,
             onReserve: onReserve,
           ),
         ],
@@ -123,6 +132,9 @@ class ReservationBottomSection extends StatelessWidget {
     this.reservedAt,
     this.finishedAt,
     this.remainDuration,
+    this.activeUserName,
+    this.activeUserStudentId,
+    this.showActions = true,
     this.onReserve,
   });
 
@@ -135,6 +147,9 @@ class ReservationBottomSection extends StatelessWidget {
   final String? reservedAt;
   final String? finishedAt;
   final String? remainDuration;
+  final String? activeUserName;
+  final String? activeUserStudentId;
+  final bool showActions;
   final VoidCallback? onReserve;
 
   @override
@@ -145,6 +160,8 @@ class ReservationBottomSection extends StatelessWidget {
           laundryMachineType: laundryMachineType,
           finishedAt: finishedAt,
           room: room,
+          activeUserName: activeUserName,
+          activeUserStudentId: activeUserStudentId,
         );
       case ReservationState.available:
         return _AvailableBottom(
@@ -160,6 +177,7 @@ class ReservationBottomSection extends StatelessWidget {
           machineId: machineId,
           reservationId: reservationId,
           machineName: machineName,
+          showActions: showActions,
         );
       case ReservationState.reservedByOther:
         return _ReservedBottom(
@@ -178,14 +196,23 @@ class _InUseBottom extends ConsumerWidget {
     required this.laundryMachineType,
     this.finishedAt,
     this.room,
+    this.activeUserName,
+    this.activeUserStudentId,
   });
 
   final LaundryMachineType laundryMachineType;
   final String? finishedAt;
   final String? room;
+  final String? activeUserName;
+  final String? activeUserStudentId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final activeUserLabel = _buildActiveUserLabel(
+      studentId: activeUserStudentId,
+      userName: activeUserName,
+    );
+
     if (!_hasText(finishedAt)) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -205,6 +232,13 @@ class _InUseBottom extends ConsumerWidget {
               '사용 호실: ${RoomFormatter.formatRoom(room)}',
               style: WasherTypography.body2(WasherColor.baseGray400),
             ),
+          if (activeUserLabel != null) ...[
+            AppGap.v4,
+            Text(
+              '$activeUserLabel 이용중...',
+              style: WasherTypography.body2(WasherColor.baseGray400),
+            ),
+          ],
         ],
       );
     }
@@ -235,12 +269,37 @@ class _InUseBottom extends ConsumerWidget {
             '사용 호실: ${RoomFormatter.formatRoom(room)}',
             style: WasherTypography.body2(WasherColor.baseGray400),
           ),
+        if (activeUserLabel != null) ...[
+          AppGap.v4,
+          Text(
+            '$activeUserLabel 이용중...',
+            style: WasherTypography.body2(WasherColor.baseGray400),
+          ),
+        ],
       ],
     );
   }
 }
 
 bool _hasText(String? value) => value != null && value.trim().isNotEmpty;
+
+String? _buildActiveUserLabel({
+  required String? studentId,
+  required String? userName,
+}) {
+  final normalizedStudentId = studentId?.trim();
+  final normalizedUserName = userName?.trim();
+
+  if (normalizedUserName == null || normalizedUserName.isEmpty) {
+    return null;
+  }
+
+  if (normalizedStudentId == null || normalizedStudentId.isEmpty) {
+    return normalizedUserName;
+  }
+
+  return '$normalizedStudentId $normalizedUserName';
+}
 
 class _AvailableBottom extends StatelessWidget {
   const _AvailableBottom({
@@ -328,6 +387,7 @@ class _ReservedByMeBottom extends StatelessWidget {
     required this.machineId,
     required this.reservationId,
     required this.machineName,
+    this.showActions = true,
   });
 
   final LaundryMachineType laundryMachineType;
@@ -335,6 +395,7 @@ class _ReservedByMeBottom extends StatelessWidget {
   final int machineId;
   final int reservationId;
   final String machineName;
+  final bool showActions;
 
   String _formatCountdown(DateTime expireAt, DateTime now) {
     final remaining = expireAt.difference(now);
@@ -357,29 +418,31 @@ class _ReservedByMeBottom extends StatelessWidget {
           reservedAt: reservedAt,
           formatCountdown: _formatCountdown,
         ),
-        AppGap.v12,
-        SizedBox(
-          width: double.infinity,
-          child: CustomBigButton(
-            text: '예약 취소',
-            onPressed: () {
-              if (reservationId > 0) {
-                showDialog(
-                  context: context,
-                  builder: (context) => Dialog(
-                    child: LaundryActionDialog(
-                      actionType: LaundryActionType.cancelReservation,
-                      deviceId: machineName,
-                      reservationId: reservationId,
-                      machineId: machineId,
+        if (showActions) ...[
+          AppGap.v12,
+          SizedBox(
+            width: double.infinity,
+            child: CustomBigButton(
+              text: '예약 취소',
+              onPressed: () {
+                if (reservationId > 0) {
+                  showDialog(
+                    context: context,
+                    builder: (context) => Dialog(
+                      child: LaundryActionDialog(
+                        actionType: LaundryActionType.cancelReservation,
+                        deviceId: machineName,
+                        reservationId: reservationId,
+                        machineId: machineId,
+                      ),
                     ),
-                  ),
-                );
-              }
-            },
-            color: WasherColor.baseGray300,
+                  );
+                }
+              },
+              color: WasherColor.baseGray300,
+            ),
           ),
-        ),
+        ],
       ],
     );
   }

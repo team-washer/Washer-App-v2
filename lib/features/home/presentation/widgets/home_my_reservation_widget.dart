@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:washer/core/enums/laundry_action_type.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
 import 'package:washer/core/enums/laundry_status.dart';
@@ -17,7 +18,7 @@ import 'package:washer/features/user/presentation/viewmodels/my_user_view_model.
 class HomeMyReservationWidget extends ConsumerWidget {
   const HomeMyReservationWidget({super.key});
 
-  static const double _cardWidth = 360;
+  static final double _cardWidth = 348.w;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -171,10 +172,11 @@ class _MyReservationCard extends StatelessWidget {
             finishedAt: reservation.expectedCompletionTime,
           ),
           if (!isOwnedByMe) ...[
-            AppGap.v12,
+            AppGap.v4,
             _ReservedUserInfo(
+              laundryStatus: reservation.laundryStatus,
+              userStudentId: reservation.userStudentId,
               userName: reservation.userName,
-              roomNumber: reservation.userRoomNumber,
             ),
           ],
           _BottomSection(
@@ -193,17 +195,25 @@ class _MyReservationCard extends StatelessWidget {
 
 class _ReservedUserInfo extends StatelessWidget {
   const _ReservedUserInfo({
+    required this.laundryStatus,
+    this.userStudentId,
     required this.userName,
-    required this.roomNumber,
   });
 
+  final LaundryStatus laundryStatus;
+  final String? userStudentId;
   final String userName;
-  final String roomNumber;
 
   @override
   Widget build(BuildContext context) {
+    final userLabel = _buildUserLabel(
+      studentId: userStudentId,
+      userName: userName,
+    );
+    final message = '$userLabel 이용중...';
+
     return Text(
-      '예약자: $userName',
+      message,
       style: WasherTypography.body2(WasherColor.baseGray500),
     );
   }
@@ -364,6 +374,20 @@ class _ReservationExpiryText extends ConsumerWidget {
   }
 }
 
+String _buildUserLabel({
+  required String? studentId,
+  required String userName,
+}) {
+  final normalizedStudentId = studentId?.trim();
+  final normalizedUserName = userName.trim();
+
+  if (normalizedStudentId == null || normalizedStudentId.isEmpty) {
+    return normalizedUserName;
+  }
+
+  return '$normalizedStudentId $normalizedUserName';
+}
+
 class _InUseCountdownText extends ConsumerWidget {
   const _InUseCountdownText({
     required this.laundryMachineType,
@@ -441,9 +465,13 @@ class _BottomSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final canCancel = isOwnedByMe && laundryStatus == LaundryStatus.reserved;
+    if (!isOwnedByMe || machineId == null) {
+      return const SizedBox.shrink();
+    }
 
-    if (!canCancel || machineId == null) {
+    final canCancel = laundryStatus == LaundryStatus.reserved;
+
+    if (!canCancel) {
       return const SizedBox.shrink();
     }
 

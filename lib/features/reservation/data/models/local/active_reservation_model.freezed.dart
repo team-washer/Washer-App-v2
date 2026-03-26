@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ActiveReservationModel {
 
- int get id; int get userId; String get userName; String get userRoomNumber; int get machineId; String get machineName; String? get reservedAt; String? get confirmedAt; String? get startTime; String? get expectedCompletionTime; String? get actualCompletionTime; String get status;
+ int get id; int get userId; String? get userStudentId; String get userName; String get userRoomNumber; int get machineId; String get machineName; String? get reservedAt; String? get confirmedAt; String? get startTime; String? get expectedCompletionTime; String? get actualCompletionTime; String get status;
 /// Create a copy of ActiveReservationModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $ActiveReservationModelCopyWith<ActiveReservationModel> get copyWith => _$Active
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ActiveReservationModel&&(identical(other.id, id) || other.id == id)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.userName, userName) || other.userName == userName)&&(identical(other.userRoomNumber, userRoomNumber) || other.userRoomNumber == userRoomNumber)&&(identical(other.machineId, machineId) || other.machineId == machineId)&&(identical(other.machineName, machineName) || other.machineName == machineName)&&(identical(other.reservedAt, reservedAt) || other.reservedAt == reservedAt)&&(identical(other.confirmedAt, confirmedAt) || other.confirmedAt == confirmedAt)&&(identical(other.startTime, startTime) || other.startTime == startTime)&&(identical(other.expectedCompletionTime, expectedCompletionTime) || other.expectedCompletionTime == expectedCompletionTime)&&(identical(other.actualCompletionTime, actualCompletionTime) || other.actualCompletionTime == actualCompletionTime)&&(identical(other.status, status) || other.status == status));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ActiveReservationModel&&(identical(other.id, id) || other.id == id)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.userStudentId, userStudentId) || other.userStudentId == userStudentId)&&(identical(other.userName, userName) || other.userName == userName)&&(identical(other.userRoomNumber, userRoomNumber) || other.userRoomNumber == userRoomNumber)&&(identical(other.machineId, machineId) || other.machineId == machineId)&&(identical(other.machineName, machineName) || other.machineName == machineName)&&(identical(other.reservedAt, reservedAt) || other.reservedAt == reservedAt)&&(identical(other.confirmedAt, confirmedAt) || other.confirmedAt == confirmedAt)&&(identical(other.startTime, startTime) || other.startTime == startTime)&&(identical(other.expectedCompletionTime, expectedCompletionTime) || other.expectedCompletionTime == expectedCompletionTime)&&(identical(other.actualCompletionTime, actualCompletionTime) || other.actualCompletionTime == actualCompletionTime)&&(identical(other.status, status) || other.status == status));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,userId,userName,userRoomNumber,machineId,machineName,reservedAt,confirmedAt,startTime,expectedCompletionTime,actualCompletionTime,status);
+int get hashCode => Object.hash(runtimeType,id,userId,userStudentId,userName,userRoomNumber,machineId,machineName,reservedAt,confirmedAt,startTime,expectedCompletionTime,actualCompletionTime,status);
 
 @override
 String toString() {
-  return 'ActiveReservationModel(id: $id, userId: $userId, userName: $userName, userRoomNumber: $userRoomNumber, machineId: $machineId, machineName: $machineName, reservedAt: $reservedAt, confirmedAt: $confirmedAt, startTime: $startTime, expectedCompletionTime: $expectedCompletionTime, actualCompletionTime: $actualCompletionTime, status: $status)';
+  return 'ActiveReservationModel(id: $id, userId: $userId, userStudentId: $userStudentId, userName: $userName, userRoomNumber: $userRoomNumber, machineId: $machineId, machineName: $machineName, reservedAt: $reservedAt, confirmedAt: $confirmedAt, startTime: $startTime, expectedCompletionTime: $expectedCompletionTime, actualCompletionTime: $actualCompletionTime, status: $status)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $ActiveReservationModelCopyWith<$Res>  {
   factory $ActiveReservationModelCopyWith(ActiveReservationModel value, $Res Function(ActiveReservationModel) _then) = _$ActiveReservationModelCopyWithImpl;
 @useResult
 $Res call({
- int id, int userId, String userName, String userRoomNumber, int machineId, String machineName, String? reservedAt, String? confirmedAt, String? startTime, String? expectedCompletionTime, String? actualCompletionTime, String status
+ int id, int userId, String? userStudentId, String userName, String userRoomNumber, int machineId, String machineName, String? reservedAt, String? confirmedAt, String? startTime, String? expectedCompletionTime, String? actualCompletionTime, String status
 });
 
 
@@ -65,11 +65,12 @@ class _$ActiveReservationModelCopyWithImpl<$Res>
 
 /// Create a copy of ActiveReservationModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? userId = null,Object? userName = null,Object? userRoomNumber = null,Object? machineId = null,Object? machineName = null,Object? reservedAt = freezed,Object? confirmedAt = freezed,Object? startTime = freezed,Object? expectedCompletionTime = freezed,Object? actualCompletionTime = freezed,Object? status = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? userId = null,Object? userStudentId = freezed,Object? userName = null,Object? userRoomNumber = null,Object? machineId = null,Object? machineName = null,Object? reservedAt = freezed,Object? confirmedAt = freezed,Object? startTime = freezed,Object? expectedCompletionTime = freezed,Object? actualCompletionTime = freezed,Object? status = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
-as int,userName: null == userName ? _self.userName : userName // ignore: cast_nullable_to_non_nullable
+as int,userStudentId: freezed == userStudentId ? _self.userStudentId : userStudentId // ignore: cast_nullable_to_non_nullable
+as String?,userName: null == userName ? _self.userName : userName // ignore: cast_nullable_to_non_nullable
 as String,userRoomNumber: null == userRoomNumber ? _self.userRoomNumber : userRoomNumber // ignore: cast_nullable_to_non_nullable
 as String,machineId: null == machineId ? _self.machineId : machineId // ignore: cast_nullable_to_non_nullable
 as int,machineName: null == machineName ? _self.machineName : machineName // ignore: cast_nullable_to_non_nullable
@@ -164,10 +165,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  int userId,  String userName,  String userRoomNumber,  int machineId,  String machineName,  String? reservedAt,  String? confirmedAt,  String? startTime,  String? expectedCompletionTime,  String? actualCompletionTime,  String status)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  int userId,  String? userStudentId,  String userName,  String userRoomNumber,  int machineId,  String machineName,  String? reservedAt,  String? confirmedAt,  String? startTime,  String? expectedCompletionTime,  String? actualCompletionTime,  String status)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ActiveReservationModel() when $default != null:
-return $default(_that.id,_that.userId,_that.userName,_that.userRoomNumber,_that.machineId,_that.machineName,_that.reservedAt,_that.confirmedAt,_that.startTime,_that.expectedCompletionTime,_that.actualCompletionTime,_that.status);case _:
+return $default(_that.id,_that.userId,_that.userStudentId,_that.userName,_that.userRoomNumber,_that.machineId,_that.machineName,_that.reservedAt,_that.confirmedAt,_that.startTime,_that.expectedCompletionTime,_that.actualCompletionTime,_that.status);case _:
   return orElse();
 
 }
@@ -185,10 +186,10 @@ return $default(_that.id,_that.userId,_that.userName,_that.userRoomNumber,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  int userId,  String userName,  String userRoomNumber,  int machineId,  String machineName,  String? reservedAt,  String? confirmedAt,  String? startTime,  String? expectedCompletionTime,  String? actualCompletionTime,  String status)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  int userId,  String? userStudentId,  String userName,  String userRoomNumber,  int machineId,  String machineName,  String? reservedAt,  String? confirmedAt,  String? startTime,  String? expectedCompletionTime,  String? actualCompletionTime,  String status)  $default,) {final _that = this;
 switch (_that) {
 case _ActiveReservationModel():
-return $default(_that.id,_that.userId,_that.userName,_that.userRoomNumber,_that.machineId,_that.machineName,_that.reservedAt,_that.confirmedAt,_that.startTime,_that.expectedCompletionTime,_that.actualCompletionTime,_that.status);case _:
+return $default(_that.id,_that.userId,_that.userStudentId,_that.userName,_that.userRoomNumber,_that.machineId,_that.machineName,_that.reservedAt,_that.confirmedAt,_that.startTime,_that.expectedCompletionTime,_that.actualCompletionTime,_that.status);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -205,10 +206,10 @@ return $default(_that.id,_that.userId,_that.userName,_that.userRoomNumber,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  int userId,  String userName,  String userRoomNumber,  int machineId,  String machineName,  String? reservedAt,  String? confirmedAt,  String? startTime,  String? expectedCompletionTime,  String? actualCompletionTime,  String status)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  int userId,  String? userStudentId,  String userName,  String userRoomNumber,  int machineId,  String machineName,  String? reservedAt,  String? confirmedAt,  String? startTime,  String? expectedCompletionTime,  String? actualCompletionTime,  String status)?  $default,) {final _that = this;
 switch (_that) {
 case _ActiveReservationModel() when $default != null:
-return $default(_that.id,_that.userId,_that.userName,_that.userRoomNumber,_that.machineId,_that.machineName,_that.reservedAt,_that.confirmedAt,_that.startTime,_that.expectedCompletionTime,_that.actualCompletionTime,_that.status);case _:
+return $default(_that.id,_that.userId,_that.userStudentId,_that.userName,_that.userRoomNumber,_that.machineId,_that.machineName,_that.reservedAt,_that.confirmedAt,_that.startTime,_that.expectedCompletionTime,_that.actualCompletionTime,_that.status);case _:
   return null;
 
 }
@@ -220,11 +221,12 @@ return $default(_that.id,_that.userId,_that.userName,_that.userRoomNumber,_that.
 @JsonSerializable()
 
 class _ActiveReservationModel extends ActiveReservationModel {
-  const _ActiveReservationModel({required this.id, required this.userId, required this.userName, required this.userRoomNumber, required this.machineId, required this.machineName, this.reservedAt, this.confirmedAt, this.startTime, this.expectedCompletionTime, this.actualCompletionTime, required this.status}): super._();
+  const _ActiveReservationModel({required this.id, required this.userId, this.userStudentId, required this.userName, required this.userRoomNumber, required this.machineId, required this.machineName, this.reservedAt, this.confirmedAt, this.startTime, this.expectedCompletionTime, this.actualCompletionTime, required this.status}): super._();
   factory _ActiveReservationModel.fromJson(Map<String, dynamic> json) => _$ActiveReservationModelFromJson(json);
 
 @override final  int id;
 @override final  int userId;
+@override final  String? userStudentId;
 @override final  String userName;
 @override final  String userRoomNumber;
 @override final  int machineId;
@@ -249,16 +251,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ActiveReservationModel&&(identical(other.id, id) || other.id == id)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.userName, userName) || other.userName == userName)&&(identical(other.userRoomNumber, userRoomNumber) || other.userRoomNumber == userRoomNumber)&&(identical(other.machineId, machineId) || other.machineId == machineId)&&(identical(other.machineName, machineName) || other.machineName == machineName)&&(identical(other.reservedAt, reservedAt) || other.reservedAt == reservedAt)&&(identical(other.confirmedAt, confirmedAt) || other.confirmedAt == confirmedAt)&&(identical(other.startTime, startTime) || other.startTime == startTime)&&(identical(other.expectedCompletionTime, expectedCompletionTime) || other.expectedCompletionTime == expectedCompletionTime)&&(identical(other.actualCompletionTime, actualCompletionTime) || other.actualCompletionTime == actualCompletionTime)&&(identical(other.status, status) || other.status == status));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ActiveReservationModel&&(identical(other.id, id) || other.id == id)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.userStudentId, userStudentId) || other.userStudentId == userStudentId)&&(identical(other.userName, userName) || other.userName == userName)&&(identical(other.userRoomNumber, userRoomNumber) || other.userRoomNumber == userRoomNumber)&&(identical(other.machineId, machineId) || other.machineId == machineId)&&(identical(other.machineName, machineName) || other.machineName == machineName)&&(identical(other.reservedAt, reservedAt) || other.reservedAt == reservedAt)&&(identical(other.confirmedAt, confirmedAt) || other.confirmedAt == confirmedAt)&&(identical(other.startTime, startTime) || other.startTime == startTime)&&(identical(other.expectedCompletionTime, expectedCompletionTime) || other.expectedCompletionTime == expectedCompletionTime)&&(identical(other.actualCompletionTime, actualCompletionTime) || other.actualCompletionTime == actualCompletionTime)&&(identical(other.status, status) || other.status == status));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,userId,userName,userRoomNumber,machineId,machineName,reservedAt,confirmedAt,startTime,expectedCompletionTime,actualCompletionTime,status);
+int get hashCode => Object.hash(runtimeType,id,userId,userStudentId,userName,userRoomNumber,machineId,machineName,reservedAt,confirmedAt,startTime,expectedCompletionTime,actualCompletionTime,status);
 
 @override
 String toString() {
-  return 'ActiveReservationModel(id: $id, userId: $userId, userName: $userName, userRoomNumber: $userRoomNumber, machineId: $machineId, machineName: $machineName, reservedAt: $reservedAt, confirmedAt: $confirmedAt, startTime: $startTime, expectedCompletionTime: $expectedCompletionTime, actualCompletionTime: $actualCompletionTime, status: $status)';
+  return 'ActiveReservationModel(id: $id, userId: $userId, userStudentId: $userStudentId, userName: $userName, userRoomNumber: $userRoomNumber, machineId: $machineId, machineName: $machineName, reservedAt: $reservedAt, confirmedAt: $confirmedAt, startTime: $startTime, expectedCompletionTime: $expectedCompletionTime, actualCompletionTime: $actualCompletionTime, status: $status)';
 }
 
 
@@ -269,7 +271,7 @@ abstract mixin class _$ActiveReservationModelCopyWith<$Res> implements $ActiveRe
   factory _$ActiveReservationModelCopyWith(_ActiveReservationModel value, $Res Function(_ActiveReservationModel) _then) = __$ActiveReservationModelCopyWithImpl;
 @override @useResult
 $Res call({
- int id, int userId, String userName, String userRoomNumber, int machineId, String machineName, String? reservedAt, String? confirmedAt, String? startTime, String? expectedCompletionTime, String? actualCompletionTime, String status
+ int id, int userId, String? userStudentId, String userName, String userRoomNumber, int machineId, String machineName, String? reservedAt, String? confirmedAt, String? startTime, String? expectedCompletionTime, String? actualCompletionTime, String status
 });
 
 
@@ -286,11 +288,12 @@ class __$ActiveReservationModelCopyWithImpl<$Res>
 
 /// Create a copy of ActiveReservationModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? userId = null,Object? userName = null,Object? userRoomNumber = null,Object? machineId = null,Object? machineName = null,Object? reservedAt = freezed,Object? confirmedAt = freezed,Object? startTime = freezed,Object? expectedCompletionTime = freezed,Object? actualCompletionTime = freezed,Object? status = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? userId = null,Object? userStudentId = freezed,Object? userName = null,Object? userRoomNumber = null,Object? machineId = null,Object? machineName = null,Object? reservedAt = freezed,Object? confirmedAt = freezed,Object? startTime = freezed,Object? expectedCompletionTime = freezed,Object? actualCompletionTime = freezed,Object? status = null,}) {
   return _then(_ActiveReservationModel(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
-as int,userName: null == userName ? _self.userName : userName // ignore: cast_nullable_to_non_nullable
+as int,userStudentId: freezed == userStudentId ? _self.userStudentId : userStudentId // ignore: cast_nullable_to_non_nullable
+as String?,userName: null == userName ? _self.userName : userName // ignore: cast_nullable_to_non_nullable
 as String,userRoomNumber: null == userRoomNumber ? _self.userRoomNumber : userRoomNumber // ignore: cast_nullable_to_non_nullable
 as String,machineId: null == machineId ? _self.machineId : machineId // ignore: cast_nullable_to_non_nullable
 as int,machineName: null == machineName ? _self.machineName : machineName // ignore: cast_nullable_to_non_nullable

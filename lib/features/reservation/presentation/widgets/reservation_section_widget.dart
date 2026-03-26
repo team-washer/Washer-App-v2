@@ -123,11 +123,18 @@ class _ReservationSectionWidgetState
             machine.machineId,
             machine.name,
             state,
+            isOwnedByMe: isMyMachine,
             finishedAt: machine.expectedCompletionTime,
             room: room,
             reservedAt: reservedAt,
             remainDuration: null,
             reservationId: reservationId,
+            activeUserName: !isMyMachine
+                ? activeReservation?.userName ?? machine.userName
+                : null,
+            activeUserStudentId: !isMyMachine
+                ? activeReservation?.userStudentId ?? machine.userStudentId
+                : null,
           );
         })
         .toList(growable: false);
@@ -274,6 +281,9 @@ class _ReservationSectionWidgetState
                             reservedAt: item.reservedAt,
                             remainDuration: item.remainDuration,
                             reservationId: item.reservationId,
+                            activeUserName: item.activeUserName,
+                            activeUserStudentId: item.activeUserStudentId,
+                            showActions: item.isOwnedByMe,
                             onReserve:
                                 item.state == ReservationState.available &&
                                     !isReservationActionLoading
@@ -392,19 +402,25 @@ class _MachineData {
     this.machineId,
     this.name,
     this.state, {
+    this.isOwnedByMe = false,
     this.finishedAt,
     this.room,
     this.reservedAt,
     this.remainDuration,
     this.reservationId = 0,
+    this.activeUserName,
+    this.activeUserStudentId,
   });
 
   final int machineId;
   final String name;
   final ReservationState state;
+  final bool isOwnedByMe;
   final String? finishedAt;
   final String? room;
   final String? reservedAt;
   final String? remainDuration;
   final int reservationId;
+  final String? activeUserName;
+  final String? activeUserStudentId;
 }

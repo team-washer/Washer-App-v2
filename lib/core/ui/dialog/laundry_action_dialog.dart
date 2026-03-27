@@ -56,16 +56,9 @@ class _LaundryActionDialogState extends ConsumerState<LaundryActionDialog> {
       switch (widget.actionType) {
         case LaundryActionType.reserve:
           navigator.pop();
-          final confirmState = await reservationNotifier.confirmAndWatch(
-            reservationId: widget.reservationId,
-          );
           messenger.showSnackBar(
-            SnackBar(
-              content: Text(
-                confirmState.status == ReservationActionStatus.success
-                    ? '기기 연결을 확인하고 있습니다.'
-                    : (confirmState.errorMessage ?? '시작 처리에 실패했습니다.'),
-              ),
+            const SnackBar(
+              content: Text('예약 후 자동으로 기기 연결 확인이 진행됩니다.'),
             ),
           );
           break;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:washer/core/constants/durations.dart';
 import 'package:washer/core/enums/laundry_action_type.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
 import 'package:washer/core/enums/reservation_state.dart';
@@ -13,6 +14,7 @@ import 'package:washer/core/ui/dialog/laundry_action_dialog.dart';
 import 'package:washer/core/ui/reservation_state_widget.dart';
 import 'package:washer/core/utils/date_time_formatter.dart';
 import 'package:washer/core/utils/room_formatter.dart';
+import 'package:washer/core/utils/user_formatter.dart';
 import 'package:washer/features/history/presentation/widgets/history_dialog.dart';
 import 'package:washer/features/home/presentation/viewmodels/home_view_model.dart';
 
@@ -28,6 +30,9 @@ class ReservationWidget extends StatelessWidget {
     this.reservedAt,
     this.finishedAt,
     this.remainDuration,
+    this.activeUserName,
+    this.activeUserStudentId,
+    this.showActions = true,
     this.onReserve,
   });
 
@@ -40,6 +45,9 @@ class ReservationWidget extends StatelessWidget {
   final String? reservedAt;
   final String? finishedAt;
   final String? remainDuration;
+  final String? activeUserName;
+  final String? activeUserStudentId;
+  final bool showActions;
   final VoidCallback? onReserve;
 
   @override
@@ -103,6 +111,9 @@ class ReservationWidget extends StatelessWidget {
             reservedAt: reservedAt,
             finishedAt: finishedAt,
             remainDuration: remainDuration,
+            activeUserName: activeUserName,
+            activeUserStudentId: activeUserStudentId,
+            showActions: showActions,
             onReserve: onReserve,
           ),
         ],
@@ -123,6 +134,9 @@ class ReservationBottomSection extends StatelessWidget {
     this.reservedAt,
     this.finishedAt,
     this.remainDuration,
+    this.activeUserName,
+    this.activeUserStudentId,
+    this.showActions = true,
     this.onReserve,
   });
 
@@ -135,6 +149,9 @@ class ReservationBottomSection extends StatelessWidget {
   final String? reservedAt;
   final String? finishedAt;
   final String? remainDuration;
+  final String? activeUserName;
+  final String? activeUserStudentId;
+  final bool showActions;
   final VoidCallback? onReserve;
 
   @override
@@ -145,6 +162,8 @@ class ReservationBottomSection extends StatelessWidget {
           laundryMachineType: laundryMachineType,
           finishedAt: finishedAt,
           room: room,
+          activeUserName: activeUserName,
+          activeUserStudentId: activeUserStudentId,
         );
       case ReservationState.available:
         return _AvailableBottom(
@@ -160,12 +179,7 @@ class ReservationBottomSection extends StatelessWidget {
           machineId: machineId,
           reservationId: reservationId,
           machineName: machineName,
-        );
-      case ReservationState.confirmed:
-        return _ConfirmedByMeBottom(
-          laundryMachineType: laundryMachineType,
-          reservedAt: reservedAt,
-          finishedAt: finishedAt,
+          showActions: showActions,
         );
       case ReservationState.reservedByOther:
         return _ReservedBottom(
@@ -184,14 +198,23 @@ class _InUseBottom extends ConsumerWidget {
     required this.laundryMachineType,
     this.finishedAt,
     this.room,
+    this.activeUserName,
+    this.activeUserStudentId,
   });
 
   final LaundryMachineType laundryMachineType;
   final String? finishedAt;
   final String? room;
+  final String? activeUserName;
+  final String? activeUserStudentId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final activeUserLabel = UserFormatter.formatUserLabel(
+      studentId: activeUserStudentId,
+      userName: activeUserName,
+    );
+
     if (!_hasText(finishedAt)) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -211,6 +234,13 @@ class _InUseBottom extends ConsumerWidget {
               '사용 호실: ${RoomFormatter.formatRoom(room)}',
               style: WasherTypography.body2(WasherColor.baseGray400),
             ),
+          if (activeUserLabel != null) ...[
+            AppGap.v4,
+            Text(
+              '$activeUserLabel 이용중...',
+              style: WasherTypography.body2(WasherColor.baseGray400),
+            ),
+          ],
         ],
       );
     }
@@ -241,6 +271,13 @@ class _InUseBottom extends ConsumerWidget {
             '사용 호실: ${RoomFormatter.formatRoom(room)}',
             style: WasherTypography.body2(WasherColor.baseGray400),
           ),
+        if (activeUserLabel != null) ...[
+          AppGap.v4,
+          Text(
+            '$activeUserLabel 이용중...',
+            style: WasherTypography.body2(WasherColor.baseGray400),
+          ),
+        ],
       ],
     );
   }
@@ -334,6 +371,7 @@ class _ReservedByMeBottom extends StatelessWidget {
     required this.machineId,
     required this.reservationId,
     required this.machineName,
+    this.showActions = true,
   });
 
   final LaundryMachineType laundryMachineType;
@@ -341,6 +379,7 @@ class _ReservedByMeBottom extends StatelessWidget {
   final int machineId;
   final int reservationId;
   final String machineName;
+  final bool showActions;
 
   String _formatCountdown(DateTime expireAt, DateTime now) {
     final remaining = expireAt.difference(now);
@@ -363,95 +402,31 @@ class _ReservedByMeBottom extends StatelessWidget {
           reservedAt: reservedAt,
           formatCountdown: _formatCountdown,
         ),
-        AppGap.v12,
-        Row(
-          children: [
-            Expanded(
-              child: CustomBigButton(
-                text: '예약 취소',
-                onPressed: () {
-                  if (reservationId > 0) {
-                    showDialog(
-                      context: context,
-                      builder: (context) => Dialog(
-                        child: LaundryActionDialog(
-                          actionType: LaundryActionType.cancelReservation,
-                          deviceId: machineName,
-                          reservationId: reservationId,
-                          machineId: machineId,
-                        ),
+        if (showActions) ...[
+          AppGap.v12,
+          SizedBox(
+            width: double.infinity,
+            child: CustomBigButton(
+              text: '예약 취소',
+              onPressed: () {
+                if (reservationId > 0) {
+                  showDialog(
+                    context: context,
+                    builder: (context) => Dialog(
+                      child: LaundryActionDialog(
+                        actionType: LaundryActionType.cancelReservation,
+                        deviceId: machineName,
+                        reservationId: reservationId,
+                        machineId: machineId,
                       ),
-                    );
-                  }
-                },
-                color: WasherColor.baseGray300,
-              ),
+                    ),
+                  );
+                }
+              },
+              color: WasherColor.baseGray300,
             ),
-            AppGap.h8,
-            Expanded(
-              child: CustomBigButton(
-                text: '${laundryMachineType.text} 시작',
-                onPressed: () {
-                  if (reservationId > 0) {
-                    showDialog(
-                      context: context,
-                      builder: (context) => Dialog(
-                        child: LaundryActionDialog(
-                          actionType: LaundryActionType.reserve,
-                          deviceId: machineName,
-                          reservationId: reservationId,
-                          machineId: machineId,
-                        ),
-                      ),
-                    );
-                  }
-                },
-                color: WasherColor.mainColor400,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _ConfirmedByMeBottom extends StatelessWidget {
-  const _ConfirmedByMeBottom({
-    required this.laundryMachineType,
-    this.reservedAt,
-    this.finishedAt,
-  });
-
-  final LaundryMachineType laundryMachineType;
-  final String? reservedAt;
-  final String? finishedAt;
-
-  String _formatCountdown(DateTime? baseTime, DateTime now) {
-    if (baseTime == null) return '';
-    final expiryTime = baseTime.add(const Duration(minutes: 3));
-    final remaining = expiryTime.difference(now);
-    if (remaining.isNegative) return '만료됨';
-
-    return DateTimeFormatter.formatDurationParts(remaining);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '기기 연결을 확인하고 있습니다. 잠시만 기다려주세요.',
-          style: WasherTypography.body2(WasherColor.baseGray500),
-        ),
-        AppGap.v4,
-        _ConfirmedByMeCountdownText(
-          reservedAt: reservedAt,
-          finishedAt: finishedAt,
-          formatCountdown: _formatCountdown,
-        ),
-        AppGap.v12,
+          ),
+        ],
       ],
     );
   }
@@ -472,41 +447,11 @@ class _ReservedByMeCountdownText extends ConsumerWidget {
     final reservedTime = reservedAt != null
         ? DateTime.tryParse(reservedAt!)
         : null;
-    final expireAt = reservedTime?.add(const Duration(minutes: 5));
+    final expireAt = reservedTime?.add(reservationExpiryDuration);
 
     return Text(
       '예약 만료까지: ${expireAt != null ? formatCountdown(expireAt, now) : ''}',
       style: WasherTypography.body2(WasherColor.errorColor),
-    );
-  }
-}
-
-class _ConfirmedByMeCountdownText extends ConsumerWidget {
-  const _ConfirmedByMeCountdownText({
-    required this.reservedAt,
-    required this.finishedAt,
-    required this.formatCountdown,
-  });
-
-  final String? reservedAt;
-  final String? finishedAt;
-  final String Function(DateTime? baseTime, DateTime now) formatCountdown;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final now = ref.watch(clockProvider).asData?.value ?? DateTime.now();
-    final reservedTime = reservedAt != null
-        ? DateTime.tryParse(reservedAt!)
-        : null;
-    final countdown = reservedTime != null
-        ? formatCountdown(reservedTime, now)
-        : (finishedAt != null
-              ? formatCountdown(DateTime.tryParse(finishedAt!), now)
-              : '');
-
-    return Text(
-      '예정 완료 시간: $countdown',
-      style: WasherTypography.body2(WasherColor.baseGray500),
     );
   }
 }

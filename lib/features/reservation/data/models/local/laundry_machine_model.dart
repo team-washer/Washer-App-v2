@@ -35,6 +35,8 @@ abstract class MachineModel with _$MachineModel {
     int? remainingMinutes,
     int? reservationId,
     int? userId,
+    String? userStudentId,
+    String? userName,
     String? roomNumber,
   }) = _MachineModel;
 

@@ -11,6 +11,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:washer/core/enums/laundry_machine_type.dart';
+import 'package:washer/core/enums/laundry_status.dart';
 import 'package:washer/core/network/dio_client.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/firebase_options.dart';
@@ -132,7 +133,7 @@ class NotificationService {
     final shouldSchedule =
         completionTime != null &&
         completionTime.isAfter(DateTime.now()) &&
-        (reservation.status == 'CONFIRMED' || reservation.status == 'IN_USE');
+        reservation.laundryStatus == LaundryStatus.inUse;
 
     if (!shouldSchedule) {
       await cancelScheduledCompletionNotification();

@@ -17,11 +17,13 @@ class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource _dataSource;
   final FlutterSecureStorage _storage;
   final NotificationService _notificationService;
+  final DioClient _dioClient;
 
   const AuthRepositoryImpl(
     this._dataSource,
     this._storage,
     this._notificationService,
+    this._dioClient,
   );
 
   @override
@@ -71,8 +73,7 @@ class AuthRepositoryImpl implements AuthRepository {
     }
 
     await Future.wait([
-      _storage.delete(key: 'access_token'),
-      _storage.delete(key: 'refresh_token'),
+      _dioClient.clearAuthCache(),
       _notificationService.deleteStoredFcmToken(),
     ]);
   }
@@ -96,5 +97,6 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
     ref.watch(authRemoteDataSourceProvider),
     ref.watch(secureStorageProvider),
     ref.watch(notificationServiceProvider),
+    ref.watch(dioClientProvider),
   );
 });

@@ -57,8 +57,10 @@ class AuthInterceptor extends Interceptor {
     if (_cachedAccessToken == null) {
       _cachedAccessToken = await _tryRefreshBeforeRequest();
     } else if (TokenUtils.isExpired(_cachedAccessToken!)) {
-      _cachedAccessToken =
-          await _tryRefreshBeforeRequest() ?? _cachedAccessToken;
+      _cachedAccessToken = await _tryRefreshBeforeRequest();
+      if (_cachedAccessToken == null) {
+        await _handleRefreshFailure();
+      }
     }
 
     if (_cachedAccessToken != null) {
@@ -128,6 +130,9 @@ class AuthInterceptor extends Interceptor {
   Future<String?> _performRefresh() async {
     final refreshToken = await _storage.read(key: 'refresh_token');
     if (refreshToken == null || refreshToken.isEmpty) {
+      return null;
+    }
+    if (TokenUtils.isExpired(refreshToken)) {
       return null;
     }
 

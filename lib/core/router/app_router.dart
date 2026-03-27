@@ -21,7 +21,10 @@ final appRouter = GoRouter(
   redirect: (context, state) async {
     final accessToken = await _storage.read(key: 'access_token');
     final refreshToken = await _storage.read(key: 'refresh_token');
-    final hasRefreshToken = refreshToken != null && refreshToken.isNotEmpty;
+    final hasRefreshToken =
+        refreshToken != null &&
+        refreshToken.isNotEmpty &&
+        !TokenUtils.isExpired(refreshToken);
     final hasValidAccessToken =
         accessToken != null &&
         accessToken.isNotEmpty &&

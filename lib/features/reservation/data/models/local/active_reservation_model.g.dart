@@ -11,6 +11,7 @@ _ActiveReservationModel _$ActiveReservationModelFromJson(
 ) => _ActiveReservationModel(
   id: (json['id'] as num).toInt(),
   userId: (json['userId'] as num).toInt(),
+  userStudentId: json['userStudentId'] as String?,
   userName: json['userName'] as String,
   userRoomNumber: json['userRoomNumber'] as String,
   machineId: (json['machineId'] as num).toInt(),
@@ -28,6 +29,7 @@ Map<String, dynamic> _$ActiveReservationModelToJson(
 ) => <String, dynamic>{
   'id': instance.id,
   'userId': instance.userId,
+  'userStudentId': instance.userStudentId,
   'userName': instance.userName,
   'userRoomNumber': instance.userRoomNumber,
   'machineId': instance.machineId,

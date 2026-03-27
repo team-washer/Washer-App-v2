@@ -32,7 +32,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     final accessToken = await storage.read(key: 'access_token');
     final refreshToken = await storage.read(key: 'refresh_token');
     final hasAccessToken = accessToken != null && accessToken.isNotEmpty;
-    final hasRefreshToken = refreshToken != null && refreshToken.isNotEmpty;
+    final hasRefreshToken =
+        refreshToken != null &&
+        refreshToken.isNotEmpty &&
+        !TokenUtils.isExpired(refreshToken);
 
     if (!hasAccessToken && !hasRefreshToken) {
       await _goToLogin(storage);

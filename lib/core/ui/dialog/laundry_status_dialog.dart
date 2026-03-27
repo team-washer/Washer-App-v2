@@ -1,6 +1,7 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:washer/core/constants/durations.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
 import 'package:washer/core/enums/machine_state.dart';
 import 'package:washer/core/theme/spacing.dart';
@@ -97,7 +98,8 @@ class LaundryStatusDialog extends ConsumerWidget {
                   messenger.showSnackBar(
                     SnackBar(
                       content: Text(
-                        '$machineName 예약이 완료되었습니다\n5분 이내에 기기를 켜주세요',
+                        '$machineName 예약이 완료되었습니다\n'
+                        '$reservationExpiryMinutes분 동안 기기 연결을 확인합니다',
                       ),
                     ),
                   );

@@ -13,6 +13,7 @@ import 'package:washer/core/ui/dialog/laundry_action_dialog.dart';
 import 'package:washer/core/ui/reservation_state_widget.dart';
 import 'package:washer/core/utils/date_time_formatter.dart';
 import 'package:washer/core/utils/room_formatter.dart';
+import 'package:washer/core/utils/user_formatter.dart';
 import 'package:washer/features/history/presentation/widgets/history_dialog.dart';
 import 'package:washer/features/home/presentation/viewmodels/home_view_model.dart';
 
@@ -208,7 +209,7 @@ class _InUseBottom extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final activeUserLabel = _buildActiveUserLabel(
+    final activeUserLabel = UserFormatter.formatUserLabel(
       studentId: activeUserStudentId,
       userName: activeUserName,
     );
@@ -282,24 +283,6 @@ class _InUseBottom extends ConsumerWidget {
 }
 
 bool _hasText(String? value) => value != null && value.trim().isNotEmpty;
-
-String? _buildActiveUserLabel({
-  required String? studentId,
-  required String? userName,
-}) {
-  final normalizedStudentId = studentId?.trim();
-  final normalizedUserName = userName?.trim();
-
-  if (normalizedUserName == null || normalizedUserName.isEmpty) {
-    return null;
-  }
-
-  if (normalizedStudentId == null || normalizedStudentId.isEmpty) {
-    return normalizedUserName;
-  }
-
-  return '$normalizedStudentId $normalizedUserName';
-}
 
 class _AvailableBottom extends StatelessWidget {
   const _AvailableBottom({

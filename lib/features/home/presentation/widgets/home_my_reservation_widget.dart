@@ -11,6 +11,7 @@ import 'package:washer/core/ui/buttons/custom_small_button.dart';
 import 'package:washer/core/ui/dialog/laundry_action_dialog.dart';
 import 'package:washer/core/ui/reservation_state_widget.dart';
 import 'package:washer/core/utils/date_time_formatter.dart';
+import 'package:washer/core/utils/user_formatter.dart';
 import 'package:washer/features/home/presentation/viewmodels/home_view_model.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/user/presentation/viewmodels/my_user_view_model.dart';
@@ -206,10 +207,12 @@ class _ReservedUserInfo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final userLabel = _buildUserLabel(
-      studentId: userStudentId,
-      userName: userName,
-    );
+    final userLabel =
+        UserFormatter.formatUserLabel(
+          studentId: userStudentId,
+          userName: userName,
+        ) ??
+        userName.trim();
     final message = '$userLabel 이용중...';
 
     return Text(
@@ -372,20 +375,6 @@ class _ReservationExpiryText extends ConsumerWidget {
       style: WasherTypography.body2(WasherColor.errorColor),
     );
   }
-}
-
-String _buildUserLabel({
-  required String? studentId,
-  required String userName,
-}) {
-  final normalizedStudentId = studentId?.trim();
-  final normalizedUserName = userName.trim();
-
-  if (normalizedStudentId == null || normalizedStudentId.isEmpty) {
-    return normalizedUserName;
-  }
-
-  return '$normalizedStudentId $normalizedUserName';
 }
 
 class _InUseCountdownText extends ConsumerWidget {

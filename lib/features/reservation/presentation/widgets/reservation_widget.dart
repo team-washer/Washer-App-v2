@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:washer/core/constants/durations.dart';
 import 'package:washer/core/enums/laundry_action_type.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
 import 'package:washer/core/enums/reservation_state.dart';
@@ -446,7 +447,7 @@ class _ReservedByMeCountdownText extends ConsumerWidget {
     final reservedTime = reservedAt != null
         ? DateTime.tryParse(reservedAt!)
         : null;
-    final expireAt = reservedTime?.add(const Duration(minutes: 3));
+    final expireAt = reservedTime?.add(reservationExpiryDuration);
 
     return Text(
       '예약 만료까지: ${expireAt != null ? formatCountdown(expireAt, now) : ''}',

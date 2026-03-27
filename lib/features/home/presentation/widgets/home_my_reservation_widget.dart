@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:washer/core/constants/durations.dart';
 import 'package:washer/core/enums/laundry_action_type.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
 import 'package:washer/core/enums/laundry_status.dart';
@@ -365,7 +366,7 @@ class _ReservationExpiryText extends ConsumerWidget {
         : null;
     if (reservedTime != null) {
       countdown = _formatDuration(
-        reservedTime.add(const Duration(minutes: 3)).difference(now),
+        reservedTime.add(reservationExpiryDuration).difference(now),
         expiredText: '만료됨',
       );
     }

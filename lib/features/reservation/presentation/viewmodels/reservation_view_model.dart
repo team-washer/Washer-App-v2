@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:washer/core/constants/durations.dart';
 import 'package:washer/core/enums/laundry_status.dart';
 import 'package:washer/features/home/data/repositories/home_repository.dart';
 import 'package:washer/features/home/presentation/viewmodels/home_view_model.dart';
@@ -25,7 +26,7 @@ class ReservationActionState {
 
 class ReservationViewModel extends Notifier<ReservationActionState> {
   static const Duration _reservationPollingInterval = Duration(seconds: 10);
-  static const Duration _reservationPollingDuration = Duration(minutes: 3);
+  static const Duration _reservationPollingDuration = reservationExpiryDuration;
   static const Duration _finalSyncDelay = Duration(seconds: 1);
 
   Timer? _pollingTimer;

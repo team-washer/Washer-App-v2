@@ -2,6 +2,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:washer/core/constants/durations.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
 import 'package:washer/core/enums/laundry_status.dart';
 import 'package:washer/core/enums/reservation_state.dart';
@@ -169,7 +170,8 @@ class _ReservationSectionWidgetState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              '${item.name} 예약이 완료되었습니다\n3분 동안 기기 연결을 확인합니다',
+              '${item.name} 예약이 완료되었습니다\n'
+              '$reservationExpiryMinutes분 동안 기기 연결을 확인합니다',
             ),
           ),
         );

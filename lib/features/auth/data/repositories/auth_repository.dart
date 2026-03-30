@@ -73,6 +73,8 @@ class AuthRepositoryImpl implements AuthRepository {
     }
 
     await Future.wait([
+      _storage.delete(key: 'access_token'),
+      _storage.delete(key: 'refresh_token'),
       _dioClient.clearAuthCache(),
       _notificationService.deleteStoredFcmToken(),
     ]);

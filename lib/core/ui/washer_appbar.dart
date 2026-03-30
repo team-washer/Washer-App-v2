@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:washer/core/network/auth_notifier.dart';
 import 'package:washer/core/router/route_paths.dart';
 import 'package:washer/core/theme/color.dart';
 import 'package:washer/core/theme/icon.dart';
@@ -10,6 +11,7 @@ import 'package:washer/core/theme/typography.dart';
 import 'package:washer/core/ui/circle_widget.dart';
 import 'package:washer/core/ui/dialog/washer_dialog.dart';
 import 'package:washer/features/auth/presentation/viewmodels/logout_view_model.dart';
+import 'package:washer/features/user/presentation/viewmodels/withdraw_view_model.dart';
 
 class WasherAppbar extends ConsumerWidget implements PreferredSizeWidget {
   static const double _toolbarHeight = 72;
@@ -67,6 +69,39 @@ class WasherAppbar extends ConsumerWidget implements PreferredSizeWidget {
                                 return;
                               }
 
+                              context.go(RoutePaths.login);
+                            },
+                            onWithdrawTap: () async {
+                              final shouldWithdraw = await showDialog<bool>(
+                                context: context,
+                                builder: (dialogContext) =>
+                                    const _WithdrawDialog(),
+                              );
+                              if (shouldWithdraw != true) {
+                                return;
+                              }
+
+                              final didWithdraw = await ref
+                                  .read(withdrawViewModelProvider.notifier)
+                                  .withdraw();
+                              if (!didWithdraw) {
+                                return;
+                              }
+                              if (!context.mounted) {
+                                return;
+                              }
+
+                              await showDialog<void>(
+                                context: context,
+                                barrierDismissible: false,
+                                builder: (dialogContext) =>
+                                    const _WithdrawCompleteDialog(),
+                              );
+                              if (!context.mounted) {
+                                return;
+                              }
+
+                              authNotifier.logout();
                               context.go(RoutePaths.login);
                             },
                           ),
@@ -142,9 +177,11 @@ class _ActionContainer extends StatelessWidget {
 
 class _SettingDialog extends StatelessWidget {
   final Future<void> Function() onLogoutTap;
+  final Future<void> Function() onWithdrawTap;
 
   const _SettingDialog({
     required this.onLogoutTap,
+    required this.onWithdrawTap,
   });
 
   @override
@@ -178,10 +215,11 @@ class _SettingDialog extends StatelessWidget {
             ),
             AppGap.v8,
             _SettingMenuItem(
-              icon: WasherIconType.user,
+              icon: WasherIconType.withDraw,
               label: '회원탈퇴',
-              onTap: () {
+              onTap: () async {
                 Navigator.of(context).pop();
+                await onWithdrawTap();
               },
             ),
           ],
@@ -212,6 +250,83 @@ class _LogoutDialog extends StatelessWidget {
             '로그아웃 하시겠습니까?',
             style: WasherTypography.subTitle4(),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _WithdrawDialog extends StatelessWidget {
+  const _WithdrawDialog();
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      child: WasherDialog(
+        title: '회원탈퇴',
+        backText: '취소',
+        confirmText: '회원탈퇴',
+        confirmColor: WasherColor.errorColor,
+        onBackPressed: () => Navigator.of(context).pop(false),
+        onConfirmPressed: () => Navigator.of(context).pop(true),
+        content: Padding(
+          padding: EdgeInsets.symmetric(vertical: AppSpacing.v16),
+          child: Text(
+            'Washer 회원탈퇴를 하시겠습니까?',
+            style: WasherTypography.subTitle4(WasherColor.negative),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _WithdrawCompleteDialog extends StatelessWidget {
+  const _WithdrawCompleteDialog();
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      child: Container(
+        width: double.infinity,
+        padding: AppPadding.card,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+          color: Colors.white,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: AppSpacing.v16),
+              child: Text(
+                '그동안 Washer를 사용해 주셔서 감사합니다.',
+                style: WasherTypography.subTitle4(),
+              ),
+            ),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: FilledButton.styleFrom(
+                  backgroundColor: WasherColor.mainColor400,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: AppRadius.medium,
+                  ),
+                  padding: EdgeInsets.symmetric(vertical: 14.h),
+                ),
+                child: Text(
+                  '닫기',
+                  style: WasherTypography.body1(Colors.white),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

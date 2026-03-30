@@ -7,6 +7,7 @@ import 'package:washer/core/theme/typography.dart';
 import 'package:washer/core/ui/circle_widget.dart';
 import 'package:washer/core/ui/dialog/washer_dialog.dart';
 import 'package:washer/features/report/presentation/viewmodels/report_view_model.dart';
+import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
 import 'package:washer/features/reservation/presentation/viewmodels/reservation_view_model.dart';
 
 class LaundryActionDialog extends ConsumerStatefulWidget {
@@ -67,6 +68,9 @@ class _LaundryActionDialogState extends ConsumerState<LaundryActionDialog> {
           final cancelState = await reservationNotifier.cancel(
             reservationId: widget.reservationId,
           );
+          if (cancelState.status == ReservationActionStatus.success) {
+            await refreshReservationStatusWidgets(ref);
+          }
           messenger.showSnackBar(
             SnackBar(
               content: Text(
@@ -92,6 +96,9 @@ class _LaundryActionDialogState extends ConsumerState<LaundryActionDialog> {
             machineId: widget.machineId,
             description: description,
           );
+          if (reportState.status == ReportActionStatus.success) {
+            await refreshReservationStatusWidgets(ref);
+          }
           messenger.showSnackBar(
             SnackBar(
               content: Text(

@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
-import 'package:washer/core/notifications/notification_service.dart';
 import 'package:washer/features/reservation/data/repositories/reservation_status_repository.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/data/models/local/laundry_machine_model.dart';
@@ -116,13 +115,7 @@ class ActiveReservationNotifier
     ref.keepAlive();
     try {
       _hasFetched = true;
-      final reservations = await ref
-          .read(homeRepositoryProvider)
-          .getActiveReservations();
-      unawaited(
-        _syncReservationNotification(_notificationTarget(reservations)),
-      );
-      return reservations;
+      return await ref.read(homeRepositoryProvider).getActiveReservations();
     } on DioException catch (e) {
       final message = _pollingErrorMessageFor(e);
       if (message != null) {
@@ -147,9 +140,6 @@ class ActiveReservationNotifier
       final reservations = await ref
           .read(homeRepositoryProvider)
           .getActiveReservations();
-      await _syncReservationNotification(
-        _notificationTarget(reservations),
-      );
       state = AsyncData(reservations);
     } on DioException catch (e, st) {
       final message = _pollingErrorMessageFor(e);
@@ -165,26 +155,5 @@ class ActiveReservationNotifier
   void setReservations(List<ActiveReservationModel> reservations) {
     _hasFetched = true;
     state = AsyncData(reservations);
-    unawaited(
-      _syncReservationNotification(_notificationTarget(reservations)),
-    );
-  }
-
-  ActiveReservationModel? _notificationTarget(
-    List<ActiveReservationModel> reservations,
-  ) {
-    if (reservations.isEmpty) {
-      return null;
-    }
-
-    return reservations.first;
-  }
-
-  Future<void> _syncReservationNotification(
-    ActiveReservationModel? reservation,
-  ) {
-    return ref
-        .read(notificationServiceProvider)
-        .syncReservationCompletionNotification(reservation);
   }
 }

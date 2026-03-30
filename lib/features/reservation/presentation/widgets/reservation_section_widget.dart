@@ -11,9 +11,9 @@ import 'package:washer/core/theme/color.dart';
 import 'package:washer/core/theme/icon.dart';
 import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
-import 'package:washer/features/home/presentation/viewmodels/home_view_model.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/data/models/local/laundry_machine_model.dart';
+import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
 import 'package:washer/features/reservation/presentation/viewmodels/reservation_view_model.dart';
 import 'package:washer/features/user/presentation/viewmodels/my_user_view_model.dart';
 import 'package:washer/features/reservation/presentation/widgets/reservation_widget.dart';
@@ -142,10 +142,7 @@ class _ReservationSectionWidgetState
   }
 
   Future<void> _refreshReservationScreen() async {
-    await Future.wait([
-      ref.read(machineStatusProvider.notifier).refresh(),
-      ref.read(activeReservationProvider.notifier).refresh(),
-    ]);
+    await refreshReservationStatusWidgets(ref);
   }
 
   Future<void> _reserveMachine(BuildContext context, _MachineData item) async {

@@ -30,3 +30,88 @@ Xcode Cloud 빌드를 사용하는 경우 `ios/ci_scripts/ci_post_clone.sh`가 �
 - `ENV_DEVELOPMENT`: `.env.development` 전체 내용
 
 이 단계가 빠지면 `ios/Flutter/Generated.xcconfig`, `ios/Pods/Target Support Files/...xcfilelist`, `.env.*` asset이 없어져 iOS Release 빌드가 실패할 수 있습니다.
+
+```text
+lib
+├─ core
+│  ├─ constants
+│  ├─ enums
+│  ├─ env
+│  ├─ network
+│  ├─ notifications
+│  ├─ router
+│  ├─ theme
+│  ├─ ui
+│  │  ├─ buttons
+│  │  └─ dialog
+│  └─ utils
+├─ features
+│  ├─ alarm
+│  │  ├─ data
+│  │  │  └─ models
+│  │  └─ presentation
+│  │     ├─ screens
+│  │     └─ widgets
+│  │        └─ local_widgets
+│  ├─ auth
+│  │  ├─ data
+│  │  │  ├─ data_sources
+│  │  │  │  └─ remote
+│  │  │  ├─ models
+│  │  │  │  ├─ request
+│  │  │  │  └─ response
+│  │  │  └─ repositories
+│  │  └─ presentation
+│  │     ├─ screens
+│  │     ├─ viewmodels
+│  │     └─ widgets
+│  ├─ dashboard
+│  │  ├─ data
+│  │  │  ├─ data_sources
+│  │  │  │  └─ remote
+│  │  │  └─ repositories
+│  │  └─ presentation
+│  │     ├─ screens
+│  │     ├─ viewmodels
+│  │     └─ widgets
+│  ├─ history
+│  │  ├─ data
+│  │  │  ├─ data_sources
+│  │  │  ├─ models
+│  │  │  └─ repositories
+│  │  ├─ domain
+│  │  │  └─ enum
+│  │  └─ presentation
+│  │     ├─ viewmodels
+│  │     └─ widgets
+│  ├─ report
+│  │  ├─ data
+│  │  │  ├─ data_sources
+│  │  │  │  └─ remote
+│  │  │  └─ repositories
+│  │  └─ presentation
+│  │     └─ viewmodels
+│  ├─ reservation
+│  │  ├─ data
+│  │  │  ├─ data_sources
+│  │  │  │  └─ remote
+│  │  │  ├─ models
+│  │  │  │  ├─ local
+│  │  │  │  └─ remote
+│  │  │  └─ repositories
+│  │  └─ presentation
+│  │     ├─ screens
+│  │     ├─ viewmodels
+│  │     └─ widgets
+│  └─ user
+│     ├─ data
+│     │  ├─ data_sources
+│     │  │  └─ remote
+│     │  ├─ models
+│     │  └─ repositories
+│     └─ presentation
+│        └─ viewmodels
+├─ firebase_options.dart
+├─ main.dart
+└─ splash_screen.dart
+```

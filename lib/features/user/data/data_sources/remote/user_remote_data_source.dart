@@ -10,6 +10,7 @@ part 'user_remote_data_source.g.dart';
 
 abstract class UserRemoteDataSource {
   Future<MyUserModel?> getMyUser();
+  Future<void> withdraw();
 }
 
 @RestApi()
@@ -18,6 +19,9 @@ abstract class UserApiService {
 
   @GET('/api/v2/users/my')
   Future<HttpResponse<dynamic>> getMyUser();
+
+  @DELETE('/api/v2/users/me')
+  Future<HttpResponse<dynamic>> withdraw();
 }
 
 class UserRemoteDataSourceImpl implements UserRemoteDataSource {
@@ -41,6 +45,11 @@ class UserRemoteDataSourceImpl implements UserRemoteDataSource {
       }
       rethrow;
     }
+  }
+
+  @override
+  Future<void> withdraw() async {
+    await _api.withdraw();
   }
 }
 

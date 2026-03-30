@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'user_remote_data_source.dart';
+part of 'reservation_status_remote_data_source.dart';
 
 // dart format off
 
@@ -10,8 +10,8 @@ part of 'user_remote_data_source.dart';
 
 // ignore_for_file: unnecessary_brace_in_string_interps,no_leading_underscores_for_local_identifiers,unused_element,unnecessary_string_interpolations,unused_element_parameter,avoid_unused_constructor_parameters,unreachable_from_main
 
-class _UserApiService implements UserApiService {
-  _UserApiService(this._dio, {this.baseUrl, this.errorLogger});
+class _HomeApiService implements HomeApiService {
+  _HomeApiService(this._dio, {this.baseUrl, this.errorLogger});
 
   final Dio _dio;
 
@@ -20,7 +20,7 @@ class _UserApiService implements UserApiService {
   final ParseErrorLogger? errorLogger;
 
   @override
-  Future<HttpResponse<dynamic>> getMyUser() async {
+  Future<HttpResponse<dynamic>> getMachineStatus() async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};
@@ -29,7 +29,7 @@ class _UserApiService implements UserApiService {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v2/users/my',
+            '/api/v2/machines/status',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -42,16 +42,16 @@ class _UserApiService implements UserApiService {
   }
 
   @override
-  Future<HttpResponse<dynamic>> withdraw() async {
+  Future<HttpResponse<dynamic>> getActiveReservations() async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};
     const Map<String, dynamic>? _data = null;
     final _options = _setStreamType<HttpResponse<dynamic>>(
-      Options(method: 'DELETE', headers: _headers, extra: _extra)
+      Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v2/users/me',
+            '/api/v2/reservations/active/room',
             queryParameters: queryParameters,
             data: _data,
           )

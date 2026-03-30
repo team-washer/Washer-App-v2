@@ -16,7 +16,7 @@ import 'package:washer/core/utils/date_time_formatter.dart';
 import 'package:washer/core/utils/room_formatter.dart';
 import 'package:washer/core/utils/user_formatter.dart';
 import 'package:washer/features/history/presentation/widgets/history_dialog.dart';
-import 'package:washer/features/home/presentation/viewmodels/home_view_model.dart';
+import 'package:washer/features/dashboard/presentation/viewmodels/home_view_model.dart';
 
 class ReservationWidget extends StatelessWidget {
   const ReservationWidget({

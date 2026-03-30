@@ -4,9 +4,9 @@ import 'package:washer/core/enums/laundry_machine_type.dart';
 import 'package:washer/core/theme/color.dart';
 import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
-import 'package:washer/features/home/presentation/viewmodels/home_view_model.dart';
-import 'package:washer/features/home/presentation/widgets/home_machine_section_widget.dart';
-import 'package:washer/features/home/presentation/widgets/home_my_reservation_widget.dart';
+import 'package:washer/features/dashboard/presentation/viewmodels/home_view_model.dart';
+import 'package:washer/features/dashboard/presentation/widgets/home_machine_section_widget.dart';
+import 'package:washer/features/dashboard/presentation/widgets/home_my_reservation_widget.dart';
 import 'package:washer/features/user/presentation/viewmodels/my_user_view_model.dart';
 
 class HomeBodyWidget extends ConsumerStatefulWidget {

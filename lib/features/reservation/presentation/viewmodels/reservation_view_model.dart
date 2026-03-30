@@ -5,8 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/constants/durations.dart';
 import 'package:washer/core/enums/laundry_status.dart';
-import 'package:washer/features/home/data/repositories/home_repository.dart';
-import 'package:washer/features/home/presentation/viewmodels/home_view_model.dart';
+import 'package:washer/features/dashboard/data/repositories/home_repository.dart';
+import 'package:washer/features/dashboard/presentation/viewmodels/home_view_model.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/data/repositories/reservation_repository.dart';
 

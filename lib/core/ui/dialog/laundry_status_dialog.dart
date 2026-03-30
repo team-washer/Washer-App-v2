@@ -9,7 +9,7 @@ import 'package:washer/core/theme/typography.dart';
 import 'package:washer/core/ui/dialog/washer_dialog.dart';
 import 'package:washer/core/utils/date_time_formatter.dart';
 import 'package:washer/core/utils/room_formatter.dart';
-import 'package:washer/features/home/presentation/viewmodels/home_view_model.dart';
+import 'package:washer/features/dashboard/presentation/viewmodels/home_view_model.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/presentation/viewmodels/reservation_view_model.dart';
 

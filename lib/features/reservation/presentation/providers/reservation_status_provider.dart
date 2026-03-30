@@ -5,7 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:washer/core/notifications/notification_service.dart';
-import 'package:washer/features/dashboard/data/repositories/home_repository.dart';
+import 'package:washer/features/reservation/data/repositories/reservation_status_repository.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/data/models/local/laundry_machine_model.dart';
 
@@ -14,6 +14,20 @@ final clockProvider = StreamProvider<DateTime>((ref) {
 });
 
 final pollingErrorProvider = StateProvider<String?>((ref) => null);
+
+Future<void> refreshReservationStatusProviders(Ref ref) {
+  return Future.wait([
+    ref.read(machineStatusProvider.notifier).refresh(),
+    ref.read(activeReservationProvider.notifier).refresh(),
+  ]);
+}
+
+Future<void> refreshReservationStatusWidgets(WidgetRef ref) {
+  return Future.wait([
+    ref.read(machineStatusProvider.notifier).refresh(),
+    ref.read(activeReservationProvider.notifier).refresh(),
+  ]);
+}
 
 String? _pollingErrorMessageFor(DioException error) {
   final statusCode = error.response?.statusCode;

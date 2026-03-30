@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:washer/features/dashboard/presentation/viewmodels/home_view_model.dart';
 import 'package:washer/features/report/data/repositories/report_repository.dart';
 
 enum ReportActionStatus { idle, loading, success, error }
@@ -32,8 +31,6 @@ class ReportViewModel extends Notifier<ReportActionState> {
             machineId: machineId,
             description: description,
           );
-      await ref.read(machineStatusProvider.notifier).refresh();
-      await ref.read(activeReservationProvider.notifier).refresh();
 
       const nextState = ReportActionState(status: ReportActionStatus.success);
       state = nextState;

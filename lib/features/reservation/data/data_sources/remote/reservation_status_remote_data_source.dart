@@ -7,7 +7,7 @@ import 'package:washer/core/utils/background_task.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/data/models/local/laundry_machine_model.dart';
 
-part 'home_remote_data_source.g.dart';
+part 'reservation_status_remote_data_source.g.dart';
 
 abstract class HomeRemoteDataSource {
   Future<MachineStatusResponse> getMachineStatus();

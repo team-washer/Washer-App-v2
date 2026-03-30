@@ -13,8 +13,8 @@ import 'package:washer/core/ui/dialog/laundry_action_dialog.dart';
 import 'package:washer/core/ui/reservation_state_widget.dart';
 import 'package:washer/core/utils/date_time_formatter.dart';
 import 'package:washer/core/utils/user_formatter.dart';
-import 'package:washer/features/dashboard/presentation/viewmodels/home_view_model.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
+import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
 import 'package:washer/features/user/presentation/viewmodels/my_user_view_model.dart';
 
 class HomeMyReservationWidget extends ConsumerWidget {

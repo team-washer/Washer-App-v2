@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'home_remote_data_source.dart';
+part of 'reservation_status_remote_data_source.dart';
 
 // dart format off
 

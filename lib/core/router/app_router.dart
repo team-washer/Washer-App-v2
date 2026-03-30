@@ -7,7 +7,7 @@ import 'package:washer/core/ui/main_shell.dart';
 import 'package:washer/features/alarm/presentation/screens/alarm_screen.dart';
 import 'package:washer/features/auth/presentation/screens/auth_webview_screen.dart';
 import 'package:washer/features/auth/presentation/screens/login_screen.dart';
-import 'package:washer/features/dashboard/presentation/screens/home_screen.dart';
+import 'package:washer/app/home/presentation/screens/home_screen.dart';
 import 'package:washer/features/reservation/presentation/screens/reservation_screen.dart';
 import 'package:washer/splash_screen.dart';
 

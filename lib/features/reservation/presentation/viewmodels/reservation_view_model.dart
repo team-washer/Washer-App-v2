@@ -5,10 +5,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/constants/durations.dart';
 import 'package:washer/core/enums/laundry_status.dart';
-import 'package:washer/features/dashboard/data/repositories/home_repository.dart';
-import 'package:washer/features/dashboard/presentation/viewmodels/home_view_model.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/data/repositories/reservation_repository.dart';
+import 'package:washer/features/reservation/data/repositories/reservation_status_repository.dart';
+import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
 
 enum ReservationActionStatus { idle, loading, success, error }
 
@@ -139,8 +139,7 @@ class ReservationViewModel extends Notifier<ReservationActionState> {
   }
 
   Future<void> _refreshReservationData() async {
-    await ref.read(activeReservationProvider.notifier).refresh();
-    await ref.read(machineStatusProvider.notifier).refresh();
+    await refreshReservationStatusProviders(ref);
   }
 
   void reset() {

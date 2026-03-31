@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:washer/core/enums/laundry_alarm_status.dart';
 import 'package:washer/core/theme/color.dart';
 import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
 import 'package:washer/features/alarm/domain/entities/alarm_model.dart';
+import 'package:washer/features/alarm/domain/enums/alarm_type.dart';
 import 'package:washer/features/alarm/presentation/states/alarm_state.dart';
 import 'package:washer/features/alarm/presentation/viewModels/alarm_view_model.dart';
 import 'package:washer/features/alarm/presentation/widgets/machine_state_widget.dart';
@@ -28,7 +28,12 @@ class AlarmListWidget extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('알림', style: WasherTypography.subTitle3(WasherColor.baseGray700,),),
+        Text(
+          '알림',
+          style: WasherTypography.subTitle3(
+            WasherColor.baseGray700,
+          ),
+        ),
         AppGap.v16,
         Expanded(child: _AlarmListBody(state: state)),
       ],
@@ -45,6 +50,13 @@ class _AlarmListBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     switch (state.status) {
       case AlarmStatus.initial:
+        return Center(
+          child: Text(
+            '홈 화면을 새로고침하면 알림이 갱신됩니다.',
+            style: WasherTypography.body1(WasherColor.baseGray400),
+            textAlign: TextAlign.center,
+          ),
+        );
       case AlarmStatus.loading:
         return const Center(child: CircularProgressIndicator());
       case AlarmStatus.error:
@@ -114,10 +126,9 @@ List<({String date, List<_AlarmData> alarms})> _buildDateSections(
         .putIfAbsent(sectionDate, () => <_AlarmData>[])
         .add(
           _AlarmData(
-            status: _toLaundryAlarmStatus(alarm.status),
+            status: alarm.status,
             time: time,
             description: alarm.description,
-            reason: alarm.reason,
           ),
         );
   }
@@ -138,21 +149,4 @@ String _formatDateTime(DateTime dateTime) {
   final hour = dateTime.hour.toString().padLeft(2, '0');
   final minute = dateTime.minute.toString().padLeft(2, '0');
   return '${_formatDate(dateTime)} $hour:$minute';
-}
-
-LaundryAlarmStatus _toLaundryAlarmStatus(String status) {
-  switch (status) {
-    case 'washComplete':
-      return LaundryAlarmStatus.washComplete;
-    case 'dryComplete':
-      return LaundryAlarmStatus.dryComplete;
-    case 'washerError':
-      return LaundryAlarmStatus.washerError;
-    case 'dryerError':
-      return LaundryAlarmStatus.dryerError;
-    case 'usageWarning':
-      return LaundryAlarmStatus.usageWarning;
-    default:
-      return LaundryAlarmStatus.usageWarning;
-  }
 }

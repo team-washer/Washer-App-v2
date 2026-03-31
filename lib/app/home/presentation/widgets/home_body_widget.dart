@@ -53,7 +53,6 @@ class _HomeBodyWidgetState extends ConsumerState<HomeBodyWidget>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.read(activeReservationProvider.notifier).ensureLoaded();
-      ref.read(alarmViewModelProvider.notifier).fetchAlarmList();
     });
   }
 
@@ -140,6 +139,11 @@ class _HomeBodyWidgetState extends ConsumerState<HomeBodyWidget>
               ref.read(machineStatusProvider.notifier).refresh(),
               ref.read(activeReservationProvider.notifier).refresh(),
               ref.read(myUserProvider.notifier).refresh(),
+              ref
+                  .read(alarmViewModelProvider.notifier)
+                  .fetchAlarmList(
+                    force: true,
+                  ),
             ]);
           },
           child: CustomScrollView(

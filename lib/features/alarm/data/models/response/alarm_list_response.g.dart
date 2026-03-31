@@ -19,7 +19,7 @@ Map<String, dynamic> _$AlarmListResponseToJson(_AlarmListResponse instance) =>
 _Notifications _$NotificationsFromJson(Map<String, dynamic> json) =>
     _Notifications(
       id: json['id'] as String,
-      type: json['type'] as String,
+      type: $enumDecode(_$AlarmTypeEnumMap, json['type']),
       message: json['message'] as String,
       createdAt: json['createdAt'] as String,
     );
@@ -27,7 +27,17 @@ _Notifications _$NotificationsFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$NotificationsToJson(_Notifications instance) =>
     <String, dynamic>{
       'id': instance.id,
-      'type': instance.type,
+      'type': _$AlarmTypeEnumMap[instance.type]!,
       'message': instance.message,
       'createdAt': instance.createdAt,
     };
+
+const _$AlarmTypeEnumMap = {
+  AlarmType.COMPLETION: 'washComplete',
+  AlarmType.MALFUNCTION: 'washerError',
+  AlarmType.WARNING: 'usageWarning',
+  AlarmType.INTERRUPTION: 'interruption',
+  AlarmType.AUTO_CANCELLED: 'autoCancelled',
+  AlarmType.PAUSE_TIMEOUT: 'pauseTimeout',
+  AlarmType.STARTED: 'started',
+};

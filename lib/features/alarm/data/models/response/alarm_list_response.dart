@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:washer/features/alarm/domain/enums/alarm_type.dart';
 
 part 'alarm_list_response.freezed.dart';
 part 'alarm_list_response.g.dart';
@@ -17,7 +18,7 @@ abstract class AlarmListResponse with _$AlarmListResponse {
 abstract class Notifications with _$Notifications {
   const factory Notifications({
     required String id,
-    required String type,
+    required AlarmType type,
     required String message,
     required String createdAt,
   }) = _Notifications;

@@ -284,7 +284,7 @@ as List<Notifications>,
 /// @nodoc
 mixin _$Notifications {
 
- String get id; String get type; String get message; String get createdAt;
+ String get id; AlarmType get type; String get message; String get createdAt;
 /// Create a copy of Notifications
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -317,7 +317,7 @@ abstract mixin class $NotificationsCopyWith<$Res>  {
   factory $NotificationsCopyWith(Notifications value, $Res Function(Notifications) _then) = _$NotificationsCopyWithImpl;
 @useResult
 $Res call({
- String id, String type, String message, String createdAt
+ String id, AlarmType type, String message, String createdAt
 });
 
 
@@ -338,7 +338,7 @@ class _$NotificationsCopyWithImpl<$Res>
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
-as String,message: null == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
+as AlarmType,message: null == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
 as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as String,
   ));
@@ -425,7 +425,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String type,  String message,  String createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  AlarmType type,  String message,  String createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Notifications() when $default != null:
 return $default(_that.id,_that.type,_that.message,_that.createdAt);case _:
@@ -446,7 +446,7 @@ return $default(_that.id,_that.type,_that.message,_that.createdAt);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String type,  String message,  String createdAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  AlarmType type,  String message,  String createdAt)  $default,) {final _that = this;
 switch (_that) {
 case _Notifications():
 return $default(_that.id,_that.type,_that.message,_that.createdAt);case _:
@@ -466,7 +466,7 @@ return $default(_that.id,_that.type,_that.message,_that.createdAt);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String type,  String message,  String createdAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  AlarmType type,  String message,  String createdAt)?  $default,) {final _that = this;
 switch (_that) {
 case _Notifications() when $default != null:
 return $default(_that.id,_that.type,_that.message,_that.createdAt);case _:
@@ -485,7 +485,7 @@ class _Notifications implements Notifications {
   factory _Notifications.fromJson(Map<String, dynamic> json) => _$NotificationsFromJson(json);
 
 @override final  String id;
-@override final  String type;
+@override final  AlarmType type;
 @override final  String message;
 @override final  String createdAt;
 
@@ -522,7 +522,7 @@ abstract mixin class _$NotificationsCopyWith<$Res> implements $NotificationsCopy
   factory _$NotificationsCopyWith(_Notifications value, $Res Function(_Notifications) _then) = __$NotificationsCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String type, String message, String createdAt
+ String id, AlarmType type, String message, String createdAt
 });
 
 
@@ -543,7 +543,7 @@ class __$NotificationsCopyWithImpl<$Res>
   return _then(_Notifications(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
-as String,message: null == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
+as AlarmType,message: null == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
 as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as String,
   ));

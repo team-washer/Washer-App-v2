@@ -107,6 +107,8 @@ class _TitleWithStatus extends StatelessWidget {
         return '일시정지 종료';
       case AlarmType.STARTED:
         return '시작';
+      case AlarmType.TIMEOUT_WARNING:
+        return '시간 초과 경고';
     }
   }
 
@@ -120,6 +122,7 @@ class _TitleWithStatus extends StatelessWidget {
       case AlarmType.AUTO_CANCELLED:
       case AlarmType.PAUSE_TIMEOUT:
       case AlarmType.STARTED:
+      case AlarmType.TIMEOUT_WARNING:
         return false;
     }
   }

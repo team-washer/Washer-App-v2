@@ -3,18 +3,20 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 enum AlarmType {
-  @JsonValue('washComplete')
+  @JsonValue('COMPLETION')
   COMPLETION,
-  @JsonValue('washerError')
+  @JsonValue('MALFUNCTION')
   MALFUNCTION,
-  @JsonValue('usageWarning')
+  @JsonValue('WARNING')
   WARNING,
-  @JsonValue('interruption')
+  @JsonValue('INTERRUPTION')
   INTERRUPTION,
-  @JsonValue('autoCancelled')
+  @JsonValue('AUTO_CANCELLED')
   AUTO_CANCELLED,
-  @JsonValue('pauseTimeout')
+  @JsonValue('PAUSE_TIMEOUT')
   PAUSE_TIMEOUT,
-  @JsonValue('started')
+  @JsonValue('STARTED')
   STARTED,
+  @JsonValue('TIMEOUT_WARNING')
+  TIMEOUT_WARNING,
 }

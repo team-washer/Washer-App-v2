@@ -14,7 +14,6 @@ extension NotificationMapper on Notifications {
       status: type,
       time: createdAt,
       description: message,
-      reason: null, // TODO: 추후 변경 예정
     );
   }
 }

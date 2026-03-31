@@ -2,16 +2,14 @@ part of '../alarm_list_widget.dart';
 
 /// 알람 데이터 모델
 class _AlarmData {
-  final LaundryAlarmStatus status;
+  final AlarmType status;
   final String time;
   final String description;
-  final String? reason;
 
   const _AlarmData({
     required this.status,
     required this.time,
     required this.description,
-    this.reason,
   });
 }
 
@@ -36,7 +34,6 @@ class _DateSection extends StatelessWidget {
               laundryStatus: alarm.status,
               date: alarm.time,
               descriptionText: alarm.description,
-              reason: alarm.reason ?? '',
             ),
           ),
         ),

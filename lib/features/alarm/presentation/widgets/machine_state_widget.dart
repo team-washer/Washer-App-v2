@@ -1,27 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:washer/core/enums/laundry_alarm_status.dart';
 import 'package:washer/core/theme/color.dart';
 import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
+import 'package:washer/core/ui/circle_widget.dart';
+import 'package:washer/features/alarm/domain/enums/alarm_type.dart';
 
 /// 기계 상태 알람을 카드 형태로 표시하는 위젯
 ///
 /// 기능:
 /// - 알람 상태별 아이콘 표시 (완료, 에러, 경고)
 /// - 날짜 및 설명 표시
-/// - 사용 위반 신고 사유 표시
 class MachineStateWidget extends StatelessWidget {
-  final LaundryAlarmStatus laundryStatus;
+  final AlarmType laundryStatus;
   final String date;
   final String descriptionText;
-  final String reason;
 
   const MachineStateWidget({
     super.key,
     required this.laundryStatus,
     required this.date,
     required this.descriptionText,
-    required this.reason,
   });
 
   @override
@@ -38,11 +36,7 @@ class MachineStateWidget extends StatelessWidget {
         children: [
           _HeaderRow(laundryStatus: laundryStatus, date: date),
           AppGap.v8,
-          _DescriptionText(
-            laundryStatus: laundryStatus,
-            descriptionText: descriptionText,
-            reason: reason,
-          ),
+          _DescriptionText(descriptionText: descriptionText),
         ],
       ),
     );
@@ -51,7 +45,7 @@ class MachineStateWidget extends StatelessWidget {
 
 /// 헤더 행 (상태 및 날짜)
 class _HeaderRow extends StatelessWidget {
-  final LaundryAlarmStatus laundryStatus;
+  final AlarmType laundryStatus;
   final String date;
 
   const _HeaderRow({required this.laundryStatus, required this.date});
@@ -70,7 +64,7 @@ class _HeaderRow extends StatelessWidget {
 
 /// 상태 텍스트 및 상태 아이콘
 class _TitleWithStatus extends StatelessWidget {
-  final LaundryAlarmStatus laundryStatus;
+  final AlarmType laundryStatus;
 
   const _TitleWithStatus({required this.laundryStatus});
 
@@ -81,7 +75,7 @@ class _TitleWithStatus extends StatelessWidget {
       children: [
         Flexible(
           child: Text(
-            laundryStatus.text,
+            _titleFor(laundryStatus),
             style: WasherTypography.subTitle3(
               WasherColor.baseGray700,
             ),
@@ -89,13 +83,45 @@ class _TitleWithStatus extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
         ),
-        if (laundryStatus == LaundryAlarmStatus.washComplete ||
-            laundryStatus == LaundryAlarmStatus.dryComplete) ...[
+        if (_isCompletionStatus(laundryStatus)) ...[
           AppGap.h4,
-          laundryStatus.circle,
+          const CircleWidget(color: CircleColor.blue),
         ],
       ],
     );
+  }
+
+  String _titleFor(AlarmType type) {
+    switch (type) {
+      case AlarmType.COMPLETION:
+        return '세탁 완료';
+      case AlarmType.MALFUNCTION:
+        return '세탁기 이상';
+      case AlarmType.WARNING:
+        return '사용 경고';
+      case AlarmType.INTERRUPTION:
+        return '중단';
+      case AlarmType.AUTO_CANCELLED:
+        return '자동 취소';
+      case AlarmType.PAUSE_TIMEOUT:
+        return '일시정지 종료';
+      case AlarmType.STARTED:
+        return '시작';
+    }
+  }
+
+  bool _isCompletionStatus(AlarmType type) {
+    switch (type) {
+      case AlarmType.COMPLETION:
+        return true;
+      case AlarmType.MALFUNCTION:
+      case AlarmType.WARNING:
+      case AlarmType.INTERRUPTION:
+      case AlarmType.AUTO_CANCELLED:
+      case AlarmType.PAUSE_TIMEOUT:
+      case AlarmType.STARTED:
+        return false;
+    }
   }
 }
 
@@ -118,37 +144,19 @@ class _DateText extends StatelessWidget {
 
 /// 날짜 및 설명 텍스트 렌더링
 class _DescriptionText extends StatelessWidget {
-  final LaundryAlarmStatus laundryStatus;
   final String descriptionText;
-  final String reason;
 
   const _DescriptionText({
     required this.descriptionText,
-    required this.reason,
-    required this.laundryStatus,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          descriptionText,
-          style: WasherTypography.body1(
-            WasherColor.baseGray400,
-          ),
-        ),
-        AppGap.v8,
-        laundryStatus == LaundryAlarmStatus.usageWarning
-            ? Text(
-                '신고 사유: $reason',
-                style: WasherTypography.body1(
-                  WasherColor.baseGray400,
-                ),
-              )
-            : SizedBox(),
-      ],
+    return Text(
+      descriptionText,
+      style: WasherTypography.body1(
+        WasherColor.baseGray400,
+      ),
     );
   }
 }

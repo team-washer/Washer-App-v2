@@ -5,8 +5,8 @@ import 'package:washer/core/theme/color.dart';
 import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
 import 'package:washer/features/alarm/domain/entities/alarm_model.dart';
-import 'package:washer/features/alarm/presentation/states/alarm_ui_state.dart';
-import 'package:washer/features/alarm/presentation/viewmodels/alarm_view_model.dart';
+import 'package:washer/features/alarm/presentation/states/alarm_state.dart';
+import 'package:washer/features/alarm/presentation/viewModels/alarm_view_model.dart';
 import 'package:washer/features/alarm/presentation/widgets/machine_state_widget.dart';
 
 part 'local_widgets/alarm_date_section.dart';
@@ -28,7 +28,7 @@ class AlarmListWidget extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('알람', style: WasherTypography.subTitle3()),
+        Text('알림', style: WasherTypography.subTitle3(WasherColor.baseGray700,),),
         AppGap.v16,
         Expanded(child: _AlarmListBody(state: state)),
       ],
@@ -39,15 +39,15 @@ class AlarmListWidget extends ConsumerWidget {
 class _AlarmListBody extends ConsumerWidget {
   const _AlarmListBody({required this.state});
 
-  final AlarmUiState state;
+  final AlarmState state;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     switch (state.status) {
-      case AlarmUiStatus.initial:
-      case AlarmUiStatus.loading:
+      case AlarmStatus.initial:
+      case AlarmStatus.loading:
         return const Center(child: CircularProgressIndicator());
-      case AlarmUiStatus.error:
+      case AlarmStatus.error:
         return Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -71,11 +71,11 @@ class _AlarmListBody extends ConsumerWidget {
             ],
           ),
         );
-      case AlarmUiStatus.success:
+      case AlarmStatus.success:
         if (state.alarms.isEmpty) {
           return Center(
             child: Text(
-              '표시할 알람이 없습니다.',
+              '알림이 없습니다!',
               style: WasherTypography.body1(WasherColor.baseGray400),
             ),
           );

@@ -9,6 +9,9 @@ class AlarmBaseScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BaseScaffold(body: alarmList);
+    return BaseScaffold(
+      showAppBar: true,
+      body: alarmList,
+    );
   }
 }

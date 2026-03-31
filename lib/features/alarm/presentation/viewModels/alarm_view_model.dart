@@ -1,13 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/features/alarm/data/repositories/alarm_repository_impl.dart';
-import 'package:washer/features/alarm/presentation/states/alarm_ui_state.dart';
+import 'package:washer/features/alarm/presentation/states/alarm_state.dart';
 
-class AlarmViewModel extends Notifier<AlarmUiState> {
+class AlarmViewModel extends Notifier<AlarmState> {
   bool _hasLoaded = false;
 
   @override
-  AlarmUiState build() {
-    return const AlarmUiState();
+  AlarmState build() {
+    return const AlarmState();
   }
 
   Future<void> fetchAlarmList({bool force = false}) async {
@@ -16,27 +16,27 @@ class AlarmViewModel extends Notifier<AlarmUiState> {
     }
 
     state = state.copyWith(
-      status: AlarmUiStatus.loading,
-      clearErrorMessage: true,
+      status: AlarmStatus.loading,
+      errorMessage: null,
     );
 
     try {
-      final alarms = await ref.read(alarmRepositoryProvider).getAlarmList();
+      final alarms = await ref.read(alarmRepositoryProvider).fetchAlarms();
       _hasLoaded = true;
       state = state.copyWith(
-        status: AlarmUiStatus.success,
+        status: AlarmStatus.success,
         alarms: alarms,
-        clearErrorMessage: true,
+        errorMessage: null,
       );
     } catch (_) {
       state = state.copyWith(
-        status: AlarmUiStatus.error,
+        status: AlarmStatus.error,
         errorMessage: '알람을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.',
       );
     }
   }
 }
 
-final alarmViewModelProvider = NotifierProvider<AlarmViewModel, AlarmUiState>(
+final alarmViewModelProvider = NotifierProvider<AlarmViewModel, AlarmState>(
   AlarmViewModel.new,
 );

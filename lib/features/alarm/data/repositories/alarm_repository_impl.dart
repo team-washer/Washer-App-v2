@@ -8,9 +8,9 @@ class AlarmRepositoryImpl implements AlarmRepository {
   const AlarmRepositoryImpl(this._dataSource);
 
   final AlarmDataSource _dataSource;
-
+  
   @override
-  Future<List<AlarmModel>> getAlarmList() async {
+  Future<List<AlarmModel>> fetchAlarms() async {
     final response = await _dataSource.getAlarmList();
     return response.toEntity();
   }

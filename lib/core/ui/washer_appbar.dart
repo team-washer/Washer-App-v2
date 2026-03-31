@@ -108,7 +108,9 @@ class WasherAppbar extends ConsumerWidget implements PreferredSizeWidget {
                         );
                       },
                       onNotificationTap: () {
-                        // context.push('/alarm'), 임시 차단
+                        final location = GoRouterState.of(context).uri.path;
+                        final baseRoute = _resolveAlarmBaseRoute(location);
+                        context.push('$baseRoute/${RoutePaths.alarmSubRoute}');
                       },
                     ),
                   ),
@@ -123,6 +125,16 @@ class WasherAppbar extends ConsumerWidget implements PreferredSizeWidget {
 
   @override
   Size get preferredSize => Size.fromHeight(_toolbarHeight.h);
+}
+
+String _resolveAlarmBaseRoute(String location) {
+  if (location.startsWith(RoutePaths.dryer)) {
+    return RoutePaths.dryer;
+  }
+  if (location.startsWith(RoutePaths.washer)) {
+    return RoutePaths.washer;
+  }
+  return RoutePaths.home;
 }
 
 class _ActionContainer extends StatelessWidget {

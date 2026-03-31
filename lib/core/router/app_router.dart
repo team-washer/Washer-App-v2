@@ -78,6 +78,13 @@ final appRouter = GoRouter(
               builder: (context, state) => const ReservationScreen(
                 laundryMachineType: LaundryMachineType.dryer,
               ),
+              routes: [
+                GoRoute(
+                  path: RoutePaths.alarmSubRoute,
+                  builder: (context, state) =>
+                      const AlarmScreen(useBaseScaffold: false),
+                ),
+              ],
             ),
           ],
         ),
@@ -86,6 +93,13 @@ final appRouter = GoRouter(
             GoRoute(
               path: RoutePaths.home,
               builder: (context, state) => const HomeScreen(),
+              routes: [
+                GoRoute(
+                  path: RoutePaths.alarmSubRoute,
+                  builder: (context, state) =>
+                      const AlarmScreen(useBaseScaffold: false),
+                ),
+              ],
             ),
           ],
         ),
@@ -96,14 +110,17 @@ final appRouter = GoRouter(
               builder: (context, state) => const ReservationScreen(
                 laundryMachineType: LaundryMachineType.washer,
               ),
+              routes: [
+                GoRoute(
+                  path: RoutePaths.alarmSubRoute,
+                  builder: (context, state) =>
+                      const AlarmScreen(useBaseScaffold: false),
+                ),
+              ],
             ),
           ],
         ),
       ],
-    ),
-    GoRoute(
-      path: RoutePaths.alarm,
-      builder: (context, state) => const AlarmScreen(),
     ),
   ],
 );

@@ -18,7 +18,6 @@ class MainShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final currentTab = NavTabType.values[navigationShell.currentIndex];
     final hasNotification =
-        currentTab == NavTabType.home &&
         ref.watch(
           alarmViewModelProvider.select((state) => state.alarms.isNotEmpty),
         );

@@ -1,5 +1,7 @@
+import 'dart:developer' as developer;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:washer/features/alarm/data/repositories/alarm_repository_impl.dart';
+import 'package:washer/features/alarm/data/repositories/alarm_repository_provider.dart';
 import 'package:washer/features/alarm/presentation/states/alarm_state.dart';
 
 class AlarmViewModel extends Notifier<AlarmState> {
@@ -28,7 +30,13 @@ class AlarmViewModel extends Notifier<AlarmState> {
         alarms: alarms,
         errorMessage: null,
       );
-    } catch (_) {
+    } catch (error, stackTrace) {
+      developer.log(
+        '알람 목록을 불러오는 중 오류가 발생했습니다.',
+        name: 'AlarmViewModel',
+        error: error,
+        stackTrace: stackTrace,
+      );
       state = state.copyWith(
         status: AlarmStatus.error,
         errorMessage: '알람을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.',

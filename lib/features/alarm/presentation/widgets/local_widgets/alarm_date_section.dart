@@ -5,11 +5,13 @@ class _AlarmData {
   final AlarmType status;
   final String time;
   final String description;
+  final DateTime? createdAt;
 
   const _AlarmData({
     required this.status,
     required this.time,
     required this.description,
+    required this.createdAt,
   });
 }
 

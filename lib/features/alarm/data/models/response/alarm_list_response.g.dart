@@ -33,11 +33,12 @@ Map<String, dynamic> _$NotificationsToJson(_Notifications instance) =>
     };
 
 const _$AlarmTypeEnumMap = {
-  AlarmType.COMPLETION: 'washComplete',
-  AlarmType.MALFUNCTION: 'washerError',
-  AlarmType.WARNING: 'usageWarning',
-  AlarmType.INTERRUPTION: 'interruption',
-  AlarmType.AUTO_CANCELLED: 'autoCancelled',
-  AlarmType.PAUSE_TIMEOUT: 'pauseTimeout',
-  AlarmType.STARTED: 'started',
+  AlarmType.COMPLETION: 'COMPLETION',
+  AlarmType.MALFUNCTION: 'MALFUNCTION',
+  AlarmType.WARNING: 'WARNING',
+  AlarmType.INTERRUPTION: 'INTERRUPTION',
+  AlarmType.AUTO_CANCELLED: 'AUTO_CANCELLED',
+  AlarmType.PAUSE_TIMEOUT: 'PAUSE_TIMEOUT',
+  AlarmType.STARTED: 'STARTED',
+  AlarmType.TIMEOUT_WARNING: 'TIMEOUT_WARNING',
 };

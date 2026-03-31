@@ -1,25 +1,13 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:washer/features/history/data/models/machine_history_response.dart';
 
-class HistoryState {
-  const HistoryState({
-    this.isLoading = false,
-    this.errorMessage,
-    this.historyList = const [],
-  });
+part 'history_state.freezed.dart';
 
-  final bool isLoading;
-  final String? errorMessage;
-  final List<HistoryContent> historyList;
-
-  HistoryState copyWith({
-    bool? isLoading,
+@freezed
+abstract class HistoryState with _$HistoryState {
+  const factory HistoryState({
+    @Default(false) bool isLoading,
     String? errorMessage,
-    List<HistoryContent>? historyList,
-  }) {
-    return HistoryState(
-      isLoading: isLoading ?? this.isLoading,
-      errorMessage: errorMessage ?? this.errorMessage,
-      historyList: historyList ?? this.historyList,
-    );
-  }
+    @Default([]) List<HistoryContent> historyList,
+  }) = _HistoryState;
 }

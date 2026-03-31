@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/theme/color.dart';
 import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
+import 'package:washer/core/utils/date_time_formatter.dart';
 import 'package:washer/features/alarm/domain/entities/alarm_model.dart';
 import 'package:washer/features/alarm/domain/enums/alarm_type.dart';
 import 'package:washer/features/alarm/presentation/states/alarm_state.dart';
@@ -113,22 +114,44 @@ class _AlarmListBody extends ConsumerWidget {
 List<({String date, List<_AlarmData> alarms})> _buildDateSections(
   List<AlarmModel> alarms,
 ) {
+  final sortedAlarms = [...alarms]
+    ..sort((a, b) {
+      final aParsed = DateTime.tryParse(a.time);
+      final bParsed = DateTime.tryParse(b.time);
+
+      if (aParsed != null && bParsed != null) {
+        return bParsed.compareTo(aParsed);
+      }
+
+      if (aParsed != null) {
+        return -1;
+      }
+
+      if (bParsed != null) {
+        return 1;
+      }
+
+      return b.time.compareTo(a.time);
+    });
+
   final grouped = <String, List<_AlarmData>>{};
 
-  for (final alarm in alarms) {
+  for (final alarm in sortedAlarms) {
     final parsed = DateTime.tryParse(alarm.time);
-    final sectionDate = parsed != null
-        ? _formatDate(parsed)
-        : (alarm.time.length >= 8 ? alarm.time.substring(0, 8) : alarm.time);
-    final time = parsed != null ? _formatDateTime(parsed) : alarm.time;
+    final sectionDate = DateTimeFormatter.formatToShortDate(alarm.time);
+    final time = DateTimeFormatter.formatToShortWithTime(alarm.time);
 
     grouped
-        .putIfAbsent(sectionDate, () => <_AlarmData>[])
+        .putIfAbsent(
+          sectionDate.isNotEmpty ? sectionDate : alarm.time,
+          () => <_AlarmData>[],
+        )
         .add(
           _AlarmData(
             status: alarm.status,
-            time: time,
+            time: time.isNotEmpty ? time : alarm.time,
             description: alarm.description,
+            createdAt: parsed,
           ),
         );
   }
@@ -136,17 +159,4 @@ List<({String date, List<_AlarmData> alarms})> _buildDateSections(
   return grouped.entries
       .map((entry) => (date: entry.key, alarms: entry.value))
       .toList(growable: false);
-}
-
-String _formatDate(DateTime dateTime) {
-  final year = (dateTime.year % 100).toString().padLeft(2, '0');
-  final month = dateTime.month.toString().padLeft(2, '0');
-  final day = dateTime.day.toString().padLeft(2, '0');
-  return '$year.$month.$day';
-}
-
-String _formatDateTime(DateTime dateTime) {
-  final hour = dateTime.hour.toString().padLeft(2, '0');
-  final minute = dateTime.minute.toString().padLeft(2, '0');
-  return '${_formatDate(dateTime)} $hour:$minute';
 }

@@ -6,6 +6,7 @@ import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
 import 'package:washer/app/home/presentation/widgets/home_machine_section_widget.dart';
 import 'package:washer/app/home/presentation/widgets/home_my_reservation_widget.dart';
+import 'package:washer/features/alarm/presentation/viewModels/alarm_view_model.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
 import 'package:washer/features/user/presentation/viewmodels/my_user_view_model.dart';
 
@@ -138,6 +139,11 @@ class _HomeBodyWidgetState extends ConsumerState<HomeBodyWidget>
               ref.read(machineStatusProvider.notifier).refresh(),
               ref.read(activeReservationProvider.notifier).refresh(),
               ref.read(myUserProvider.notifier).refresh(),
+              ref
+                  .read(alarmViewModelProvider.notifier)
+                  .fetchAlarmList(
+                    force: true,
+                  ),
             ]);
           },
           child: CustomScrollView(

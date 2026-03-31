@@ -6,23 +6,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/constants/durations.dart';
 import 'package:washer/core/enums/laundry_status.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
-import 'package:washer/features/reservation/data/repositories/reservation_repository.dart';
-import 'package:washer/features/reservation/data/repositories/reservation_status_repository.dart';
+import 'package:washer/features/reservation/data/repositories/home_repository_impl.dart';
+import 'package:washer/features/reservation/data/repositories/reservation_repository_impl.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
-
-enum ReservationActionStatus { idle, loading, success, error }
-
-class ReservationActionState {
-  const ReservationActionState({
-    this.status = ReservationActionStatus.idle,
-    this.errorMessage,
-    this.reservation,
-  });
-
-  final ReservationActionStatus status;
-  final String? errorMessage;
-  final ActiveReservationModel? reservation;
-}
+import 'package:washer/features/reservation/presentation/states/reservation_action_state.dart';
 
 class ReservationViewModel extends Notifier<ReservationActionState> {
   static const Duration _reservationPollingInterval = Duration(seconds: 10);

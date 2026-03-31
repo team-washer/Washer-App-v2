@@ -1,6 +1,6 @@
-﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/features/user/data/models/my_user_model.dart';
-import 'package:washer/features/user/data/repositories/user_repository.dart';
+import 'package:washer/features/user/data/repositories/user_repository_impl.dart';
 
 final myUserProvider = AsyncNotifierProvider<MyUserNotifier, MyUserModel?>(
   MyUserNotifier.new,

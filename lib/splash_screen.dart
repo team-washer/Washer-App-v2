@@ -1,4 +1,4 @@
-﻿import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -8,7 +8,7 @@ import 'package:washer/core/network/token_utils.dart';
 import 'package:washer/core/router/route_paths.dart';
 import 'package:washer/core/theme/icon.dart';
 import 'package:washer/core/ui/base_scaffold.dart';
-import 'package:washer/features/user/data/repositories/user_repository.dart';
+import 'package:washer/features/user/data/repositories/user_repository_impl.dart';
 import 'package:washer/features/user/presentation/viewmodels/my_user_view_model.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {

@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:washer/features/auth/data/repositories/auth_repository.dart';
-import 'package:washer/features/user/data/repositories/user_repository.dart';
+import 'package:washer/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:washer/features/auth/domain/repositories/auth_repository.dart';
+import 'package:washer/features/user/data/repositories/user_repository_impl.dart';
+import 'package:washer/features/user/domain/repositories/user_repository.dart';
 import 'package:washer/features/user/presentation/viewmodels/my_user_view_model.dart';
 
 class WithdrawViewModel extends AsyncNotifier<void> {

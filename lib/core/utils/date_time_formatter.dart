@@ -1,4 +1,17 @@
 class DateTimeFormatter {
+  static String formatToShortDate(String? isoString) {
+    if (isoString == null) {
+      return '';
+    }
+
+    final parsed = DateTime.tryParse(isoString);
+    if (parsed == null) {
+      return '';
+    }
+
+    return formatDateToShort(parsed);
+  }
+
   static String formatToShortWithTime(String? isoString) {
     if (isoString == null) {
       return '';
@@ -8,13 +21,10 @@ class DateTimeFormatter {
       return '';
     }
     final localTime = parsed.toLocal();
-    final year = localTime.year % 100;
-    final month = localTime.month;
-    final day = localTime.day;
     final hour = localTime.hour.toString().padLeft(2, '0');
     final minute = localTime.minute.toString().padLeft(2, '0');
     final second = localTime.second.toString().padLeft(2, '0');
-    return '$year.$month.$day. $hour:$minute:$second';
+    return '${formatDateToShort(localTime)} $hour:$minute:$second';
   }
 
   static String formatDurationToKorean(String? value) {
@@ -140,5 +150,13 @@ class DateTimeFormatter {
     }
 
     return Duration(seconds: seconds);
+  }
+
+  static String formatDateToShort(DateTime value) {
+    final localTime = value.toLocal();
+    final year = (localTime.year % 100).toString().padLeft(2, '0');
+    final month = localTime.month.toString().padLeft(2, '0');
+    final day = localTime.day.toString().padLeft(2, '0');
+    return '$year.$month.$day';
   }
 }

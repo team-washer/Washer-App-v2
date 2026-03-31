@@ -6,8 +6,10 @@ import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
 import 'package:washer/core/ui/circle_widget.dart';
 import 'package:washer/core/ui/dialog/washer_dialog.dart';
+import 'package:washer/features/report/presentation/states/report_action_state.dart';
 import 'package:washer/features/report/presentation/viewmodels/report_view_model.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
+import 'package:washer/features/reservation/presentation/states/reservation_action_state.dart';
 import 'package:washer/features/reservation/presentation/viewmodels/reservation_view_model.dart';
 
 class LaundryActionDialog extends ConsumerStatefulWidget {

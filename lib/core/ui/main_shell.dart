@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:washer/features/alarm/presentation/viewModels/alarm_view_model.dart';
 
 import 'base_scaffold.dart';
 import 'bottom_navigation_bar.dart';
 
-class MainShell extends StatelessWidget {
+class MainShell extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
 
   const MainShell({
@@ -13,11 +15,16 @@ class MainShell extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final currentTab = NavTabType.values[navigationShell.currentIndex];
+    final hasNotification =
+        ref.watch(
+          alarmViewModelProvider.select((state) => state.alarms.isNotEmpty),
+        );
 
     return BaseScaffold(
       showAppBar: true,
+      hasNotification: hasNotification,
       body: navigationShell,
       bottomNavigationBar: WasherBottomNavigationBar(
         currentTab: currentTab,

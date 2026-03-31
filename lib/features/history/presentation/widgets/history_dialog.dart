@@ -8,6 +8,7 @@ import 'package:washer/core/ui/reservation_state_widget.dart';
 import 'package:washer/core/utils/date_time_formatter.dart';
 import 'package:washer/features/history/data/models/machine_history_response.dart';
 import 'package:washer/features/history/domain/enum/history_status_enum.dart';
+import 'package:washer/features/history/presentation/states/history_state.dart';
 import 'package:washer/features/history/presentation/viewmodels/history_view_model.dart';
 
 class HistoryDialog extends ConsumerStatefulWidget {

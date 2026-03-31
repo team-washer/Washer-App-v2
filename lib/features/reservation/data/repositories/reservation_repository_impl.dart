@@ -1,23 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/features/reservation/data/data_sources/remote/reservation_remote_data_source.dart';
-import 'package:washer/features/reservation/data/models/remote/confirm_reservation_response.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
-
-abstract class ReservationRepository {
-  /// 예약 생성 — 성공 시 생성된 예약 전체 정보 반환
-  Future<ActiveReservationModel> createReservation({
-    required int machineId,
-    required String startTime,
-  });
-
-  Future<void> cancelReservation({
-    required int id,
-  });
-
-  Future<ConfirmReservationResponse> confirmReservation({
-    required int id,
-  });
-}
+import 'package:washer/features/reservation/data/models/remote/confirm_reservation_response.dart';
+import 'package:washer/features/reservation/domain/repositories/reservation_repository.dart';
 
 class ReservationRepositoryImpl implements ReservationRepository {
   final ReservationRemoteDataSource _dataSource;

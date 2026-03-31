@@ -6,7 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/data/models/local/laundry_machine_model.dart';
-import 'package:washer/features/reservation/data/repositories/reservation_status_repository.dart';
+import 'package:washer/features/reservation/data/repositories/home_repository_impl.dart';
+import 'package:washer/features/reservation/domain/repositories/home_repository.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
 
 class FakeHomeRepository implements HomeRepository {

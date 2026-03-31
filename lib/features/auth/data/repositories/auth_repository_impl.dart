@@ -6,12 +6,7 @@ import 'package:washer/core/notifications/notification_service.dart';
 import 'package:washer/features/auth/data/data_sources/remote/auth_remote_data_source.dart';
 import 'package:washer/features/auth/data/models/request/login_request.dart';
 import 'package:washer/features/auth/data/models/request/refresh_request.dart';
-
-abstract class AuthRepository {
-  Future<void> login(String code);
-  Future<void> logout();
-  Future<void> refresh();
-}
+import 'package:washer/features/auth/domain/repositories/auth_repository.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource _dataSource;

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:washer/features/auth/data/repositories/auth_repository.dart';
+import 'package:washer/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:washer/features/auth/domain/repositories/auth_repository.dart';
 
 class LoginViewModel extends AsyncNotifier<void> {
   late final AuthRepository _authRepository;

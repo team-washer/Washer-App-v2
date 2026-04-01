@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -173,7 +174,7 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
     if (!isSuccess) {
       _isHandlingAuthCode = false;
       session.isLoading.value = false;
-      _showErrorMessage();
+      _showErrorMessage(_resolveLoginErrorMessage());
     } else {
       context.go(RoutePaths.splash);
     }
@@ -185,10 +186,29 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
     context.go(RoutePaths.login);
   }
 
-  void _showErrorMessage() {
+  String? _resolveLoginErrorMessage() {
+    final error = ref.read(authCallbackViewModelProvider).error;
+    if (error is! DioException || error.response?.statusCode != 403) {
+      return null;
+    }
+
+    final response = error.response?.data;
+    if (response is Map<String, dynamic>) {
+      final message = response['message'];
+      if (message is String && message.isNotEmpty) {
+        return message;
+      }
+    }
+
+    return null;
+  }
+
+  void _showErrorMessage([String? message]) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('로그인에 실패했습니다. 다시 시도해주세요.')),
+      SnackBar(
+        content: Text(message ?? '로그인에 실패했습니다. 다시 시도해주세요.'),
+      ),
     );
   }
 

@@ -20,6 +20,8 @@ _MachineModel _$MachineModelFromJson(Map<String, dynamic> json) =>
       remainingMinutes: (json['remainingMinutes'] as num?)?.toInt(),
       reservationId: (json['reservationId'] as num?)?.toInt(),
       userId: (json['userId'] as num?)?.toInt(),
+      userStudentId: json['userStudentId'] as String?,
+      userName: json['userName'] as String?,
       roomNumber: json['roomNumber'] as String?,
     );
 
@@ -37,6 +39,8 @@ Map<String, dynamic> _$MachineModelToJson(_MachineModel instance) =>
       'remainingMinutes': instance.remainingMinutes,
       'reservationId': instance.reservationId,
       'userId': instance.userId,
+      'userStudentId': instance.userStudentId,
+      'userName': instance.userName,
       'roomNumber': instance.roomNumber,
     };
 

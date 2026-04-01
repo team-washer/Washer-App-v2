@@ -1,30 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:washer/features/history/data/models/machine_history_response.dart';
-import 'package:washer/features/history/data/repositories/history_repository.dart';
-
-class HistoryState {
-  final bool isLoading;
-  final String? errorMessage;
-  final List<HistoryContent> historyList;
-
-  const HistoryState({
-    this.isLoading = false,
-    this.errorMessage,
-    this.historyList = const [],
-  });
-
-  HistoryState copyWith({
-    bool? isLoading,
-    String? errorMessage,
-    List<HistoryContent>? historyList,
-  }) {
-    return HistoryState(
-      isLoading: isLoading ?? this.isLoading,
-      errorMessage: errorMessage ?? this.errorMessage,
-      historyList: historyList ?? this.historyList,
-    );
-  }
-}
+import 'package:washer/features/history/data/repositories/history_repository_impl.dart';
+import 'package:washer/features/history/presentation/states/history_state.dart';
 
 class HistoryViewModel extends Notifier<HistoryState> {
   @override

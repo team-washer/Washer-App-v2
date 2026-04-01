@@ -2,6 +2,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:washer/core/constants/durations.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
 import 'package:washer/core/enums/laundry_status.dart';
 import 'package:washer/core/enums/reservation_state.dart';
@@ -10,9 +11,10 @@ import 'package:washer/core/theme/color.dart';
 import 'package:washer/core/theme/icon.dart';
 import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
-import 'package:washer/features/home/presentation/viewmodels/home_view_model.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/data/models/local/laundry_machine_model.dart';
+import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
+import 'package:washer/features/reservation/presentation/states/reservation_action_state.dart';
 import 'package:washer/features/reservation/presentation/viewmodels/reservation_view_model.dart';
 import 'package:washer/features/user/presentation/viewmodels/my_user_view_model.dart';
 import 'package:washer/features/reservation/presentation/widgets/reservation_widget.dart';
@@ -74,9 +76,6 @@ class _ReservationSectionWidgetState
 
     if (isMyMachine && activeReservation != null) {
       final myReservation = activeReservation;
-      if (myReservation.laundryStatus == LaundryStatus.confirmed) {
-        return ReservationState.confirmed;
-      }
       if (myReservation.laundryStatus == LaundryStatus.inUse ||
           myReservation.laundryStatus == LaundryStatus.completed) {
         return ReservationState.inUse;
@@ -126,21 +125,25 @@ class _ReservationSectionWidgetState
             machine.machineId,
             machine.name,
             state,
+            isOwnedByMe: isMyMachine,
             finishedAt: machine.expectedCompletionTime,
             room: room,
             reservedAt: reservedAt,
             remainDuration: null,
             reservationId: reservationId,
+            activeUserName: !isMyMachine
+                ? activeReservation?.userName ?? machine.userName
+                : null,
+            activeUserStudentId: !isMyMachine
+                ? activeReservation?.userStudentId ?? machine.userStudentId
+                : null,
           );
         })
         .toList(growable: false);
   }
 
   Future<void> _refreshReservationScreen() async {
-    await Future.wait([
-      ref.read(machineStatusProvider.notifier).refresh(),
-      ref.read(activeReservationProvider.notifier).refresh(),
-    ]);
+    await refreshReservationStatusWidgets(ref);
   }
 
   Future<void> _reserveMachine(BuildContext context, _MachineData item) async {
@@ -165,7 +168,8 @@ class _ReservationSectionWidgetState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              '${item.name} 예약이 완료되었습니다\n5분 이내에 기기를 켜주세요',
+              '${item.name} 예약이 완료되었습니다\n'
+              '$reservationExpiryMinutes분 동안 기기 연결을 확인합니다',
             ),
           ),
         );
@@ -277,6 +281,9 @@ class _ReservationSectionWidgetState
                             reservedAt: item.reservedAt,
                             remainDuration: item.remainDuration,
                             reservationId: item.reservationId,
+                            activeUserName: item.activeUserName,
+                            activeUserStudentId: item.activeUserStudentId,
+                            showActions: item.isOwnedByMe,
                             onReserve:
                                 item.state == ReservationState.available &&
                                     !isReservationActionLoading
@@ -395,19 +402,25 @@ class _MachineData {
     this.machineId,
     this.name,
     this.state, {
+    this.isOwnedByMe = false,
     this.finishedAt,
     this.room,
     this.reservedAt,
     this.remainDuration,
     this.reservationId = 0,
+    this.activeUserName,
+    this.activeUserStudentId,
   });
 
   final int machineId;
   final String name;
   final ReservationState state;
+  final bool isOwnedByMe;
   final String? finishedAt;
   final String? room;
   final String? reservedAt;
   final String? remainDuration;
   final int reservationId;
+  final String? activeUserName;
+  final String? activeUserStudentId;
 }

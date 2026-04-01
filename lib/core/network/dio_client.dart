@@ -15,6 +15,7 @@ class DioClient {
   final Dio _dio;
   final FlutterSecureStorage _storage;
   final AppEnvironment _environment;
+  late final AuthInterceptor _authInterceptor;
 
   DioClient(this._storage, this._environment) : _dio = Dio() {
     configureHttpClientAdapter(
@@ -31,14 +32,13 @@ class DioClient {
         'Accept': 'application/json',
       };
 
-    _dio.interceptors.add(
-      AuthInterceptor(
-        _dio,
-        _storage,
-        _environment,
-        onLogout: authNotifier.logout,
-      ),
+    _authInterceptor = AuthInterceptor(
+      _dio,
+      _storage,
+      _environment,
+      onLogout: authNotifier.logout,
     );
+    _dio.interceptors.add(_authInterceptor);
 
     if (kDebugMode) {
       _dio.interceptors.add(
@@ -54,6 +54,8 @@ class DioClient {
   }
 
   Dio get dio => _dio;
+
+  Future<void> clearAuthCache() => _authInterceptor.clearCache();
 }
 
 final secureStorageProvider = Provider<FlutterSecureStorage>(

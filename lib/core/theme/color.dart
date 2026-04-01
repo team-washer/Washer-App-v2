@@ -39,6 +39,7 @@ class WasherColor {
 
   /// 에러 및 경고 컬러 (빨간색)
   static const errorColor = Color(0xFFEA3B42);
+  static const negative = errorColor;
 
   // background color
   static const backgroundColor = Color(0xFFF4F4F9);

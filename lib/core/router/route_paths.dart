@@ -10,4 +10,5 @@
   static const washer = '/washer';
 
   static const alarm = '/alarm';
+  static const alarmSubRoute = 'alarm';
 }

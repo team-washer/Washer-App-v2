@@ -6,7 +6,10 @@ import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
 import 'package:washer/core/ui/circle_widget.dart';
 import 'package:washer/core/ui/dialog/washer_dialog.dart';
+import 'package:washer/features/report/presentation/states/report_action_state.dart';
 import 'package:washer/features/report/presentation/viewmodels/report_view_model.dart';
+import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
+import 'package:washer/features/reservation/presentation/states/reservation_action_state.dart';
 import 'package:washer/features/reservation/presentation/viewmodels/reservation_view_model.dart';
 
 class LaundryActionDialog extends ConsumerStatefulWidget {
@@ -56,16 +59,9 @@ class _LaundryActionDialogState extends ConsumerState<LaundryActionDialog> {
       switch (widget.actionType) {
         case LaundryActionType.reserve:
           navigator.pop();
-          final confirmState = await reservationNotifier.confirmAndWatch(
-            reservationId: widget.reservationId,
-          );
           messenger.showSnackBar(
-            SnackBar(
-              content: Text(
-                confirmState.status == ReservationActionStatus.success
-                    ? '기기 연결을 확인하고 있습니다.'
-                    : (confirmState.errorMessage ?? '시작 처리에 실패했습니다.'),
-              ),
+            const SnackBar(
+              content: Text('예약 후 자동으로 기기 연결 확인이 진행됩니다.'),
             ),
           );
           break;
@@ -74,6 +70,9 @@ class _LaundryActionDialogState extends ConsumerState<LaundryActionDialog> {
           final cancelState = await reservationNotifier.cancel(
             reservationId: widget.reservationId,
           );
+          if (cancelState.status == ReservationActionStatus.success) {
+            await refreshReservationStatusWidgets(ref);
+          }
           messenger.showSnackBar(
             SnackBar(
               content: Text(
@@ -99,6 +98,9 @@ class _LaundryActionDialogState extends ConsumerState<LaundryActionDialog> {
             machineId: widget.machineId,
             description: description,
           );
+          if (reportState.status == ReportActionStatus.success) {
+            await refreshReservationStatusWidgets(ref);
+          }
           messenger.showSnackBar(
             SnackBar(
               content: Text(

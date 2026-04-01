@@ -7,7 +7,7 @@ import 'package:washer/core/ui/main_shell.dart';
 import 'package:washer/features/alarm/presentation/screens/alarm_screen.dart';
 import 'package:washer/features/auth/presentation/screens/auth_webview_screen.dart';
 import 'package:washer/features/auth/presentation/screens/login_screen.dart';
-import 'package:washer/features/home/presentation/screens/home_screen.dart';
+import 'package:washer/app/home/presentation/screens/home_screen.dart';
 import 'package:washer/features/reservation/presentation/screens/reservation_screen.dart';
 import 'package:washer/splash_screen.dart';
 
@@ -21,7 +21,10 @@ final appRouter = GoRouter(
   redirect: (context, state) async {
     final accessToken = await _storage.read(key: 'access_token');
     final refreshToken = await _storage.read(key: 'refresh_token');
-    final hasRefreshToken = refreshToken != null && refreshToken.isNotEmpty;
+    final hasRefreshToken =
+        refreshToken != null &&
+        refreshToken.isNotEmpty &&
+        !TokenUtils.isExpired(refreshToken);
     final hasValidAccessToken =
         accessToken != null &&
         accessToken.isNotEmpty &&
@@ -75,6 +78,13 @@ final appRouter = GoRouter(
               builder: (context, state) => const ReservationScreen(
                 laundryMachineType: LaundryMachineType.dryer,
               ),
+              routes: [
+                GoRoute(
+                  path: RoutePaths.alarmSubRoute,
+                  builder: (context, state) =>
+                      const AlarmScreen(useBaseScaffold: false),
+                ),
+              ],
             ),
           ],
         ),
@@ -83,6 +93,13 @@ final appRouter = GoRouter(
             GoRoute(
               path: RoutePaths.home,
               builder: (context, state) => const HomeScreen(),
+              routes: [
+                GoRoute(
+                  path: RoutePaths.alarmSubRoute,
+                  builder: (context, state) =>
+                      const AlarmScreen(useBaseScaffold: false),
+                ),
+              ],
             ),
           ],
         ),
@@ -93,14 +110,17 @@ final appRouter = GoRouter(
               builder: (context, state) => const ReservationScreen(
                 laundryMachineType: LaundryMachineType.washer,
               ),
+              routes: [
+                GoRoute(
+                  path: RoutePaths.alarmSubRoute,
+                  builder: (context, state) =>
+                      const AlarmScreen(useBaseScaffold: false),
+                ),
+              ],
             ),
           ],
         ),
       ],
-    ),
-    GoRoute(
-      path: RoutePaths.alarm,
-      builder: (context, state) => const AlarmScreen(),
     ),
   ],
 );

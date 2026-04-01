@@ -12,6 +12,7 @@ abstract class ActiveReservationModel with _$ActiveReservationModel {
   const factory ActiveReservationModel({
     required int id,
     required int userId,
+    String? userStudentId,
     required String userName,
     required String userRoomNumber,
     required int machineId,
@@ -47,8 +48,6 @@ abstract class ActiveReservationModel with _$ActiveReservationModel {
     switch (normalizedStatus) {
       case 'RESERVED':
         return LaundryStatus.reserved;
-      case 'CONFIRMED':
-        return LaundryStatus.confirmed;
       case 'IN_USE':
       case 'RUNNING':
         return LaundryStatus.inUse;

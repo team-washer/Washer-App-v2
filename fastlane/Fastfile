@@ -9,15 +9,17 @@ platform :ios do
     export_method = ENV.fetch("IOS_EXPORT_METHOD", "app-store")
 
     sh(
-      "fvm",
-      "flutter",
-      "build",
-      "ipa",
-      "--release",
-      "--build-name=#{version_name}",
-      "--build-number=#{build_number}",
-      "--dart-define=APP_ENV=#{app_env}",
-      "--export-method=#{export_method}"
+      [
+        "fvm",
+        "flutter",
+        "build",
+        "ipa",
+        "--release",
+        "--build-name=#{version_name}",
+        "--build-number=#{build_number}",
+        "--dart-define=APP_ENV=#{app_env}",
+        "--export-method=#{export_method}",
+      ].join(" ")
     )
   end
 

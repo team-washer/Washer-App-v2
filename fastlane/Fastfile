@@ -3,19 +3,21 @@ default_platform(:ios)
 platform :ios do
   desc "Build the iOS IPA for production distribution"
   lane :build_release_ipa do
+    app_env = ENV.fetch("APP_ENV", "production")
     build_number = ENV.fetch("IOS_BUILD_NUMBER")
     version_name = ENV.fetch("IOS_VERSION_NAME")
     export_method = ENV.fetch("IOS_EXPORT_METHOD", "app-store")
 
     sh(
-      [
-        "fvm", "flutter", "build", "ipa",
-        "--release",
-        "--build-name=#{version_name}",
-        "--build-number=#{build_number}",
-        "--dart-define=APP_ENV=production",
-        "--export-method=#{export_method}"
-      ].join(" ")
+      "fvm",
+      "flutter",
+      "build",
+      "ipa",
+      "--release",
+      "--build-name=#{version_name}",
+      "--build-number=#{build_number}",
+      "--dart-define=APP_ENV=#{app_env}",
+      "--export-method=#{export_method}"
     )
   end
 

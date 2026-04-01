@@ -14,6 +14,7 @@ jobs:
     runs-on: macos-15
 
     env:
+      APP_ENV: production
       BUNDLE_IDENTIFIER: com.washer.v2
       IOS_EXPORT_METHOD: app-store
 

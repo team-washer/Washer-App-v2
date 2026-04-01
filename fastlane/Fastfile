@@ -1,16 +1,8 @@
 default_platform(:ios)
 
 platform :ios do
-  desc "Build the iOS app and upload it to TestFlight without submitting for review"
-  lane :upload_testflight do
-    app_store_connect_api_key(
-      key_id: ENV.fetch("APP_STORE_CONNECT_KEY_ID"),
-      issuer_id: ENV.fetch("APP_STORE_CONNECT_ISSUER_ID"),
-      key_content: ENV.fetch("APP_STORE_CONNECT_API_KEY"),
-      is_key_content_base64: false,
-      in_house: false
-    )
-
+  desc "Build the iOS IPA for production distribution"
+  lane :build_release_ipa do
     build_number = ENV.fetch("IOS_BUILD_NUMBER")
     version_name = ENV.fetch("IOS_VERSION_NAME")
     export_method = ENV.fetch("IOS_EXPORT_METHOD", "app-store")
@@ -25,6 +17,19 @@ platform :ios do
         "--export-method=#{export_method}"
       ].join(" ")
     )
+  end
+
+  desc "Build the iOS app and upload it to TestFlight without submitting for review"
+  lane :upload_testflight do
+    app_store_connect_api_key(
+      key_id: ENV.fetch("APP_STORE_CONNECT_KEY_ID"),
+      issuer_id: ENV.fetch("APP_STORE_CONNECT_ISSUER_ID"),
+      key_content: ENV.fetch("APP_STORE_CONNECT_API_KEY"),
+      is_key_content_base64: false,
+      in_house: false
+    )
+
+    build_release_ipa
 
     upload_to_testflight(
       ipa: "build/ios/ipa/Runner.ipa",

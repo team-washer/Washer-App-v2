@@ -10,10 +10,16 @@ class LoginViewModel extends AsyncNotifier<void> {
     _authRepository = ref.watch(authRepositoryProvider);
   }
 
-  Future<void> loginWithCode(String authCode) async {
+  Future<void> loginWithCode({
+    required String authCode,
+    required String redirectUri,
+  }) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(
-      () => _authRepository.login(authCode),
+      () => _authRepository.login(
+        authCode: authCode,
+        redirectUri: redirectUri,
+      ),
     );
   }
 }

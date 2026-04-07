@@ -12,11 +12,17 @@ class AuthCallbackViewModel extends AsyncNotifier<void> {
     _authRepository = ref.watch(authRepositoryProvider);
   }
 
-  Future<bool> handleAuthCode(String authCode) async {
+  Future<bool> handleAuthCode({
+    required String authCode,
+    required String redirectUri,
+  }) async {
     state = const AsyncLoading();
 
     try {
-      await _authRepository.login(authCode);
+      await _authRepository.login(
+        authCode: authCode,
+        redirectUri: redirectUri,
+      );
       state = const AsyncData(null);
       return true;
     } catch (error, stackTrace) {

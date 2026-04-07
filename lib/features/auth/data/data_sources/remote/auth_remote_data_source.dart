@@ -41,9 +41,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<LoginResponse> login(LoginRequest request) async {
-    final payload = {
-      'authCode': request.code,
-    };
+    final payload = await runInBackground(request.toJson);
     final response = await _api.login(payload);
     final data = extractDataMap(castJsonMap(response.data));
 

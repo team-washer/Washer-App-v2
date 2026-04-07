@@ -1,5 +1,8 @@
 abstract class AuthRepository {
-  Future<void> login(String code);
+  Future<void> login({
+    required String authCode,
+    required String redirectUri,
+  });
   Future<void> logout();
   Future<void> refresh();
 }

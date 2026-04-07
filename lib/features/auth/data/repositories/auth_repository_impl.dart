@@ -22,9 +22,12 @@ class AuthRepositoryImpl implements AuthRepository {
   );
 
   @override
-  Future<void> login(String code) async {
+  Future<void> login({
+    required String authCode,
+    required String redirectUri,
+  }) async {
     final response = await _dataSource.login(
-      LoginRequest(code: code),
+      LoginRequest(authCode: authCode, redirectUri: redirectUri),
     );
     await Future.wait([
       _storage.write(key: 'access_token', value: response.accessToken),

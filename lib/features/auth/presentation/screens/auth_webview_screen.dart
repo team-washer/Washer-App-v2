@@ -167,7 +167,7 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
 
     final isSuccess = await ref
         .read(authCallbackViewModelProvider.notifier)
-        .handleAuthCode(authCode);
+        .handleAuthCode(authCode: authCode, redirectUri: _redirectUri);
 
     if (!mounted) return;
 

@@ -8,6 +8,7 @@ class BaseScaffold extends StatelessWidget {
   final bool showAppBar;
   final bool hasNotification;
   final Widget? bottomNavigationBar;
+  final bool useSafeArea;
 
   const BaseScaffold({
     super.key,
@@ -15,24 +16,29 @@ class BaseScaffold extends StatelessWidget {
     this.showAppBar = false,
     this.hasNotification = false,
     this.bottomNavigationBar,
+    this.useSafeArea = true,
   });
 
   @override
   Widget build(BuildContext context) {
+    final content = Padding(
+      padding: AppPadding.screenHPadding.copyWith(
+        top: showAppBar ? AppSpacing.v12 : 0,
+      ),
+      child: body,
+    );
+
     return Scaffold(
       backgroundColor: WasherColor.backgroundColor,
       appBar: showAppBar
           ? WasherAppbar(hasNotification: hasNotification)
           : null,
-      body: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: AppPadding.screenHPadding.copyWith(
-            top: showAppBar ? AppSpacing.v12 : 0,
-          ),
-          child: body,
-        ),
-      ),
+      body: useSafeArea
+          ? SafeArea(
+              bottom: false,
+              child: content,
+            )
+          : content,
       bottomNavigationBar: bottomNavigationBar,
     );
   }

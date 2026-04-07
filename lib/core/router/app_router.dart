@@ -81,8 +81,9 @@ final appRouter = GoRouter(
               routes: [
                 GoRoute(
                   path: RoutePaths.alarmSubRoute,
-                  builder: (context, state) =>
-                      const AlarmScreen(useBaseScaffold: false),
+                  pageBuilder: (context, state) => const NoTransitionPage(
+                    child: AlarmScreen(),
+                  ),
                 ),
               ],
             ),
@@ -96,8 +97,9 @@ final appRouter = GoRouter(
               routes: [
                 GoRoute(
                   path: RoutePaths.alarmSubRoute,
-                  builder: (context, state) =>
-                      const AlarmScreen(useBaseScaffold: false),
+                  pageBuilder: (context, state) => const NoTransitionPage(
+                    child: AlarmScreen(),
+                  ),
                 ),
               ],
             ),
@@ -113,8 +115,9 @@ final appRouter = GoRouter(
               routes: [
                 GoRoute(
                   path: RoutePaths.alarmSubRoute,
-                  builder: (context, state) =>
-                      const AlarmScreen(useBaseScaffold: false),
+                  pageBuilder: (context, state) => const NoTransitionPage(
+                    child: AlarmScreen(),
+                  ),
                 ),
               ],
             ),

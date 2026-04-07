@@ -70,7 +70,8 @@ class _LaundryActionDialogState extends ConsumerState<LaundryActionDialog> {
           final cancelState = await reservationNotifier.cancel(
             reservationId: widget.reservationId,
           );
-          if (cancelState.status == ReservationActionStatus.success) {
+          if (mounted &&
+              cancelState.status == ReservationActionStatus.success) {
             await refreshReservationStatusWidgets(ref);
           }
           messenger.showSnackBar(
@@ -98,7 +99,7 @@ class _LaundryActionDialogState extends ConsumerState<LaundryActionDialog> {
             machineId: widget.machineId,
             description: description,
           );
-          if (reportState.status == ReportActionStatus.success) {
+          if (mounted && reportState.status == ReportActionStatus.success) {
             await refreshReservationStatusWidgets(ref);
           }
           messenger.showSnackBar(

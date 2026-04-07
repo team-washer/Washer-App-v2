@@ -61,7 +61,7 @@ class WasherAppbar extends ConsumerWidget implements PreferredSizeWidget {
                               if (shouldLogout != true) {
                                 return;
                               }
-
+                              // 로그아웃 처리
                               await ref
                                   .read(logoutViewModelProvider.notifier)
                                   .logout();

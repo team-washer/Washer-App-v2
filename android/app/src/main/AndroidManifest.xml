@@ -42,7 +42,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data
-                    android:scheme="com.washer"
+                    android:scheme="com.washer.v2"
                     android:host="auth" />
             </intent-filter>
         </activity>
@@ -59,4 +59,3 @@
         </intent>
     </queries>
 </manifest>
-

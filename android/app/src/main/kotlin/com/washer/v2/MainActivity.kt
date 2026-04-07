@@ -1,4 +1,4 @@
-﻿package com.washer
+﻿package com.washer.v2
 
 import io.flutter.embedding.android.FlutterActivity
 

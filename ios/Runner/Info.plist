@@ -29,7 +29,7 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.washer</string>
+				<string>com.washer.v2</string>
 			</array>
 		</dict>
 	</array>

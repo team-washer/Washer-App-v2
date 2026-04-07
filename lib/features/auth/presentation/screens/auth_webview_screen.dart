@@ -11,8 +11,8 @@ import 'package:washer/features/auth/presentation/viewmodels/auth_callback_view_
 import 'package:washer/features/auth/presentation/widgets/auth_base_scaffold.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
-const _redirectUri = 'com.washer://auth/callback';
-const _callbackScheme = 'com.washer';
+const _redirectUri = 'com.washer.v2://auth/callback';
+const _callbackScheme = 'com.washer.v2';
 const _webViewKey = ValueKey('auth-webview');
 
 class _AuthWebViewSession {

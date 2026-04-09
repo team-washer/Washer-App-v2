@@ -16,6 +16,7 @@ import 'package:washer/core/utils/date_time_formatter.dart';
 import 'package:washer/core/utils/room_formatter.dart';
 import 'package:washer/core/utils/user_formatter.dart';
 import 'package:washer/features/history/presentation/widgets/history_dialog.dart';
+import 'package:washer/features/report/presentation/widgets/report_broken_dialog.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
 
 class ReservationWidget extends StatelessWidget {
@@ -331,11 +332,9 @@ class _AvailableBottom extends StatelessWidget {
                 showDialog(
                   context: context,
                   builder: (context) => Dialog(
-                    child: LaundryActionDialog(
-                      actionType: LaundryActionType.reportBroken,
+                    child: ReportBrokenDialog(
                       machineId: machineId,
                       deviceId: machineName,
-                      reservationId: 0,
                     ),
                   ),
                 );

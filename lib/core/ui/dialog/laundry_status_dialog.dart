@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/constants/durations.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
+import 'package:washer/core/enums/laundry_status.dart';
 import 'package:washer/core/enums/machine_state.dart';
 import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
@@ -48,11 +49,18 @@ class LaundryStatusDialog extends ConsumerWidget {
       activeReservations,
       machineId,
     );
+    final isReserved =
+        syncedReservation?.laundryStatus == LaundryStatus.reserved;
     final isAvailable = !isUsed && !isUnavailable;
     final title = machineType == LaundryMachineType.washer
         ? '세탁기 현황'
         : '건조기 현황';
-    final statusText = _buildStatusText(isUnavailable, isUsed, machineState);
+    final statusText = _buildStatusText(
+      isUnavailable,
+      isUsed,
+      machineState,
+      isReserved: isReserved,
+    );
     final roomText = RoomFormatter.formatRoomNumber(
       syncedReservation?.userRoomNumber ?? roomNumber,
     );
@@ -61,6 +69,8 @@ class LaundryStatusDialog extends ConsumerWidget {
       isUnavailable: isUnavailable,
       machineState: machineState,
       expectedTime: syncedReservation?.expectedCompletionTime ?? expectedTime,
+      reservedAt: syncedReservation?.reservedAt,
+      isReserved: isReserved,
       now: now,
     );
 
@@ -133,9 +143,11 @@ class LaundryStatusDialog extends ConsumerWidget {
   static String _buildStatusText(
     bool isUnavailable,
     bool isUsed,
-    MachineState? machineState,
-  ) {
+    MachineState? machineState, {
+    required bool isReserved,
+  }) {
     if (isUnavailable) return '사용 불가(기기고장)';
+    if (isReserved) return '예약중';
     if (!isUsed) return '사용 가능';
     if (machineState != null) return '사용중 (${machineState.text})';
     return '사용중';
@@ -146,6 +158,8 @@ class LaundryStatusDialog extends ConsumerWidget {
     required bool isUnavailable,
     required MachineState? machineState,
     required String? expectedTime,
+    required String? reservedAt,
+    required bool isReserved,
     required DateTime now,
   }) {
     if (isUnavailable) {
@@ -153,6 +167,26 @@ class LaundryStatusDialog extends ConsumerWidget {
           ? '세탁기'
           : '건조기';
       return '$machineTypeText 사용 불가';
+    }
+
+    if (isReserved) {
+      final reservedDateTime = reservedAt != null
+          ? DateTime.tryParse(reservedAt)
+          : null;
+      final reservationExpiryTime = reservedDateTime?.add(
+        reservationExpiryDuration,
+      );
+      if (reservationExpiryTime == null) {
+        return '예약 만료까지: 확인 중';
+      }
+
+      final formattedReservationTime =
+          DateTimeFormatter.formatRemainingTimeToKorean(
+            reservationExpiryTime.toIso8601String(),
+            now: now,
+            expiredText: '만료됨',
+          );
+      return '예약 만료까지: $formattedReservationTime';
     }
 
     if (expectedTime == null || expectedTime.trim().isEmpty) return '분석중';

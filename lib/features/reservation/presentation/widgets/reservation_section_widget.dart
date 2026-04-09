@@ -16,6 +16,7 @@ import 'package:washer/features/reservation/data/models/local/laundry_machine_mo
 import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
 import 'package:washer/features/reservation/presentation/states/reservation_action_state.dart';
 import 'package:washer/features/reservation/presentation/viewmodels/reservation_view_model.dart';
+import 'package:washer/features/reservation/presentation/widgets/laundry_layout_dialog.dart';
 import 'package:washer/features/user/presentation/viewmodels/my_user_view_model.dart';
 import 'package:washer/features/reservation/presentation/widgets/reservation_widget.dart';
 
@@ -183,6 +184,21 @@ class _ReservationSectionWidgetState
     }
   }
 
+  void _showLaundryLayoutDialog(
+    BuildContext context, {
+    required int floor,
+    required List<MachineModel> machines,
+  }) {
+    showDialog<void>(
+      context: context,
+      builder: (_) => LaundryLayoutDialog(
+        laundryMachineType: widget.laundryMachineType,
+        floor: floor,
+        machines: machines,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final machineAsync = ref.watch(machineStatusProvider);
@@ -240,7 +256,17 @@ class _ReservationSectionWidgetState
               floors: floors,
               selectedFloor: currentFloor,
               onFloorChanged: (floor) => setState(() => _selectedFloor = floor),
-              onMapTap: widget.onMapTap,
+              onMapTap: () {
+                if (widget.onMapTap != null) {
+                  widget.onMapTap!();
+                  return;
+                }
+                _showLaundryLayoutDialog(
+                  context,
+                  floor: currentFloor,
+                  machines: typedMachines,
+                );
+              },
             ),
             AppGap.v16,
             Expanded(

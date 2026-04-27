@@ -11,13 +11,13 @@ import 'package:washer/core/theme/color.dart';
 import 'package:washer/core/theme/icon.dart';
 import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
+import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/data/models/local/laundry_machine_model.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
-import 'package:washer/features/reservation/presentation/states/reservation_action_state.dart';
-import 'package:washer/features/reservation/presentation/viewmodels/reservation_view_model.dart';
+import 'package:washer/features/reservation/presentation/providers/reservation_action_provider.dart';
 import 'package:washer/features/reservation/presentation/widgets/laundry_layout_dialog.dart';
-import 'package:washer/features/user/presentation/viewmodels/my_user_view_model.dart';
+import 'package:washer/features/user/presentation/providers/my_user_provider.dart';
 import 'package:washer/features/reservation/presentation/widgets/reservation_widget.dart';
 
 class ReservationSectionWidget extends ConsumerStatefulWidget {
@@ -149,15 +149,18 @@ class _ReservationSectionWidgetState
 
   Future<void> _reserveMachine(BuildContext context, _MachineData item) async {
     try {
-      final reservationState = await ref
-          .read(reservationViewModelProvider.notifier)
+      final reservation = await ref
+          .read(reservationActionProvider.notifier)
           .reserve(machineId: item.machineId);
 
-      if (reservationState.status == ReservationActionStatus.error) {
+      if (reservation == null) {
         if (context.mounted) {
+          final error = ref.read(reservationActionProvider).error;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('예약 실패: ${reservationState.errorMessage}'),
+              content: Text(
+                '예약 실패: ${reservationActionErrorMessage(error, fallback: '예약에 실패했습니다. 다시 시도해주세요.')}',
+              ),
             ),
           );
         }
@@ -175,7 +178,13 @@ class _ReservationSectionWidgetState
           ),
         );
       }
-    } catch (error) {
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        '예약 섹션 예약 처리 중 오류가 발생했습니다.',
+        name: 'ReservationSectionWidget',
+        error: error,
+        stackTrace: stackTrace,
+      );
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('오류: $error')),
@@ -203,8 +212,8 @@ class _ReservationSectionWidgetState
   Widget build(BuildContext context) {
     final machineAsync = ref.watch(machineStatusProvider);
     final isReservationActionLoading = ref.watch(
-      reservationViewModelProvider.select(
-        (state) => state.status == ReservationActionStatus.loading,
+      reservationActionProvider.select(
+        (state) => state.isLoading,
       ),
     );
     final activeReservations =

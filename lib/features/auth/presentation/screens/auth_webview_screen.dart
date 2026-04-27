@@ -7,7 +7,8 @@ import 'package:go_router/go_router.dart';
 import 'package:washer/core/env/app_environment.dart';
 import 'package:washer/core/router/route_paths.dart';
 import 'package:washer/core/theme/color.dart';
-import 'package:washer/features/auth/presentation/viewmodels/auth_callback_view_model.dart';
+import 'package:washer/core/utils/app_logger.dart';
+import 'package:washer/features/auth/presentation/providers/auth_callback_provider.dart';
 import 'package:washer/features/auth/presentation/widgets/auth_base_scaffold.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -77,7 +78,13 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
     try {
       _attachNavigationDelegate(session);
       session.controller.loadRequest(_buildAuthUri());
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        '인증 WebView 초기화 중 오류가 발생했습니다.',
+        name: 'AuthWebViewScreen',
+        error: error,
+        stackTrace: stackTrace,
+      );
       WidgetsBinding.instance.addPostFrameCallback((_) => _onError());
     }
   }
@@ -166,7 +173,7 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
     session.isLoading.value = true;
 
     final isSuccess = await ref
-        .read(authCallbackViewModelProvider.notifier)
+        .read(authCallbackProvider.notifier)
         .handleAuthCode(authCode: authCode, redirectUri: _redirectUri);
 
     if (!mounted) return;
@@ -187,7 +194,7 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
   }
 
   String? _resolveLoginErrorMessage() {
-    final error = ref.read(authCallbackViewModelProvider).error;
+    final error = ref.read(authCallbackProvider).error;
     if (error is! DioException || error.response?.statusCode != 403) {
       return null;
     }
@@ -219,7 +226,7 @@ class _AuthWebViewScreenState extends ConsumerState<AuthWebViewScreen> {
       return const AuthBaseScaffold(body: SizedBox.shrink());
     }
 
-    final isProcessing = ref.watch(authCallbackViewModelProvider).isLoading;
+    final isProcessing = ref.watch(authCallbackProvider).isLoading;
 
     return AuthBaseScaffold(
       body: Stack(

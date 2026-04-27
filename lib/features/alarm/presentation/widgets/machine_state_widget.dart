@@ -3,7 +3,7 @@ import 'package:washer/core/theme/color.dart';
 import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
 import 'package:washer/core/ui/circle_widget.dart';
-import 'package:washer/features/alarm/domain/enums/alarm_type.dart';
+import 'package:washer/features/alarm/data/models/alarm_type.dart';
 
 /// 기계 상태 알람을 카드 형태로 표시하는 위젯
 ///

@@ -8,12 +8,12 @@ import 'package:washer/core/enums/machine_state.dart';
 import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
 import 'package:washer/core/ui/dialog/washer_dialog.dart';
+import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/core/utils/date_time_formatter.dart';
 import 'package:washer/core/utils/room_formatter.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
-import 'package:washer/features/reservation/presentation/states/reservation_action_state.dart';
-import 'package:washer/features/reservation/presentation/viewmodels/reservation_view_model.dart';
+import 'package:washer/features/reservation/presentation/providers/reservation_action_provider.dart';
 
 class LaundryStatusDialog extends ConsumerWidget {
   const LaundryStatusDialog({
@@ -84,22 +84,22 @@ class LaundryStatusDialog extends ConsumerWidget {
                 final messenger = ScaffoldMessenger.of(context);
                 final navigator = Navigator.of(context);
                 final reservationNotifier = ref.read(
-                  reservationViewModelProvider.notifier,
+                  reservationActionProvider.notifier,
                 );
 
                 navigator.pop();
 
                 try {
-                  final reservationState = await reservationNotifier.reserve(
+                  final reservation = await reservationNotifier.reserve(
                     machineId: machineId,
                   );
 
-                  if (reservationState.status ==
-                      ReservationActionStatus.error) {
+                  if (reservation == null) {
+                    final error = ref.read(reservationActionProvider).error;
                     messenger.showSnackBar(
                       SnackBar(
                         content: Text(
-                          '예약 실패: ${reservationState.errorMessage}',
+                          '예약 실패: ${reservationActionErrorMessage(error, fallback: '예약에 실패했습니다. 다시 시도해주세요.')}',
                         ),
                       ),
                     );
@@ -114,9 +114,15 @@ class LaundryStatusDialog extends ConsumerWidget {
                       ),
                     ),
                   );
-                } catch (e) {
+                } catch (error, stackTrace) {
+                  AppLogger.error(
+                    '세탁 상태 다이얼로그 예약 처리 중 오류가 발생했습니다.',
+                    name: 'LaundryStatusDialog',
+                    error: error,
+                    stackTrace: stackTrace,
+                  );
                   messenger.showSnackBar(
-                    SnackBar(content: Text('예약 실패: $e')),
+                    SnackBar(content: Text('예약 실패: $error')),
                   );
                 }
               }

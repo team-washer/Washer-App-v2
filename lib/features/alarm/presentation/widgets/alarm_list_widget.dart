@@ -4,10 +4,10 @@ import 'package:washer/core/theme/color.dart';
 import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
 import 'package:washer/core/utils/date_time_formatter.dart';
-import 'package:washer/features/alarm/domain/entities/alarm_model.dart';
-import 'package:washer/features/alarm/domain/enums/alarm_type.dart';
+import 'package:washer/features/alarm/data/models/local/alarm_model.dart';
+import 'package:washer/features/alarm/data/models/alarm_type.dart';
 import 'package:washer/features/alarm/presentation/states/alarm_state.dart';
-import 'package:washer/features/alarm/presentation/viewModels/alarm_view_model.dart';
+import 'package:washer/features/alarm/presentation/providers/alarm_provider.dart';
 import 'package:washer/features/alarm/presentation/widgets/machine_state_widget.dart';
 
 part 'local_widgets/alarm_date_section.dart';
@@ -24,7 +24,7 @@ class AlarmListWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(alarmViewModelProvider);
+    final state = ref.watch(alarmProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -74,7 +74,7 @@ class _AlarmListBody extends ConsumerWidget {
               TextButton(
                 onPressed: () {
                   ref
-                      .read(alarmViewModelProvider.notifier)
+                      .read(alarmProvider.notifier)
                       .fetchAlarmList(
                         force: true,
                       );

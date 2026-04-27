@@ -4,9 +4,10 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/data/models/local/laundry_machine_model.dart';
-import 'package:washer/features/reservation/data/repositories/home_repository_impl.dart';
+import 'package:washer/features/reservation/data/data_sources/remote/reservation_status_remote_data_source.dart';
 
 final clockProvider = StreamProvider<DateTime>((ref) {
   return Stream.periodic(const Duration(seconds: 1), (_) => DateTime.now());
@@ -69,8 +70,14 @@ class MachineStatusNotifier extends AsyncNotifier<MachineStatusResponse> {
   Future<MachineStatusResponse> build() async {
     ref.keepAlive();
     try {
-      return await ref.read(homeRepositoryProvider).getMachineStatus();
-    } on DioException catch (e) {
+      return await ref.read(homeRemoteDataSourceProvider).getMachineStatus();
+    } on DioException catch (e, st) {
+      AppLogger.error(
+        '기기 상태를 불러오는 중 오류가 발생했습니다.',
+        name: 'MachineStatusNotifier',
+        error: e,
+        stackTrace: st,
+      );
       final message = _pollingErrorMessageFor(e);
       if (message != null) {
         ref.read(pollingErrorProvider.notifier).state = message;
@@ -83,16 +90,28 @@ class MachineStatusNotifier extends AsyncNotifier<MachineStatusResponse> {
     state = const AsyncLoading();
     try {
       final machineStatus = await ref
-          .read(homeRepositoryProvider)
+          .read(homeRemoteDataSourceProvider)
           .getMachineStatus();
       state = AsyncData(machineStatus);
     } on DioException catch (e, st) {
+      AppLogger.error(
+        '기기 상태를 새로고침하는 중 오류가 발생했습니다.',
+        name: 'MachineStatusNotifier',
+        error: e,
+        stackTrace: st,
+      );
       final message = _pollingErrorMessageFor(e);
       if (message != null) {
         ref.read(pollingErrorProvider.notifier).state = message;
       }
       state = AsyncError(e, st);
     } catch (e, st) {
+      AppLogger.error(
+        '기기 상태를 새로고침하는 중 오류가 발생했습니다.',
+        name: 'MachineStatusNotifier',
+        error: e,
+        stackTrace: st,
+      );
       state = AsyncError(e, st);
     }
   }
@@ -115,8 +134,16 @@ class ActiveReservationNotifier
     ref.keepAlive();
     try {
       _hasFetched = true;
-      return await ref.read(homeRepositoryProvider).getActiveReservations();
-    } on DioException catch (e) {
+      return await ref
+          .read(homeRemoteDataSourceProvider)
+          .getActiveReservations();
+    } on DioException catch (e, st) {
+      AppLogger.error(
+        '활성 예약을 불러오는 중 오류가 발생했습니다.',
+        name: 'ActiveReservationNotifier',
+        error: e,
+        stackTrace: st,
+      );
       final message = _pollingErrorMessageFor(e);
       if (message != null) {
         ref.read(pollingErrorProvider.notifier).state = message;
@@ -138,16 +165,28 @@ class ActiveReservationNotifier
     try {
       _hasFetched = true;
       final reservations = await ref
-          .read(homeRepositoryProvider)
+          .read(homeRemoteDataSourceProvider)
           .getActiveReservations();
       state = AsyncData(reservations);
     } on DioException catch (e, st) {
+      AppLogger.error(
+        '활성 예약을 새로고침하는 중 오류가 발생했습니다.',
+        name: 'ActiveReservationNotifier',
+        error: e,
+        stackTrace: st,
+      );
       final message = _pollingErrorMessageFor(e);
       if (message != null) {
         ref.read(pollingErrorProvider.notifier).state = message;
       }
       state = AsyncError(e, st);
     } catch (e, st) {
+      AppLogger.error(
+        '활성 예약을 새로고침하는 중 오류가 발생했습니다.',
+        name: 'ActiveReservationNotifier',
+        error: e,
+        stackTrace: st,
+      );
       state = AsyncError(e, st);
     }
   }

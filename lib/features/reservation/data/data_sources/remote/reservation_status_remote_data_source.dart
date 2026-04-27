@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:retrofit/retrofit.dart';
 import 'package:washer/core/network/api_response_parser.dart';
 import 'package:washer/core/network/dio_client.dart';
-import 'package:washer/core/utils/background_task.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/data/models/local/laundry_machine_model.dart';
 
@@ -35,7 +34,7 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
     final response = await _api.getMachineStatus();
     final data = extractDataMap(castJsonMap(response.data));
 
-    return runInBackground(() => MachineStatusResponse.fromJson(data));
+    return MachineStatusResponse.fromJson(data);
   }
 
   @override
@@ -53,11 +52,9 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
         return const [];
       }
 
-      return runInBackground(
-        () => reservations
-            .map((item) => ActiveReservationModel.fromJson(castJsonMap(item)))
-            .toList(growable: false),
-      );
+      return reservations
+          .map((item) => ActiveReservationModel.fromJson(castJsonMap(item)))
+          .toList(growable: false);
     } on DioException catch (e) {
       if (e.response?.statusCode == 404 || e.response?.statusCode == 204) {
         return const [];

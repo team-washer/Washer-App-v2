@@ -32,10 +32,10 @@ class AppEnvironment {
 
     instance = AppEnvironment._(
       flavor: flavor,
-      apiBaseUrl: dotenv.get('API_BASE_URL'),
+      apiBaseUrl: _resolveUrl('API_BASE_URL', flavor),
       refreshTokenEndpoint:
           dotenv.env['REFRESH_TOKEN_ENDPOINT'] ?? '/auth/refresh',
-      oauthBaseUrl: dotenv.env['OAUTH_BASE_URL'] ?? '',
+      oauthBaseUrl: _resolveOptionalUrl('OAUTH_BASE_URL', flavor),
       oauthClientId: dotenv.env['OAUTH_CLIENT_ID'] ?? '',
       allowBadCertificates: _resolveAllowBadCertificates(flavor),
     );
@@ -56,10 +56,45 @@ class AppEnvironment {
   }
 
   static bool _resolveAllowBadCertificates(AppFlavor flavor) {
+    if (flavor == AppFlavor.production) {
+      return false;
+    }
+
     final rawValue =
         dotenv.env['ALLOW_BAD_CERTIFICATES']?.trim().toLowerCase() ?? '';
 
     return rawValue == 'true' || rawValue == '1' || rawValue == 'yes';
+  }
+
+  static String _resolveUrl(String key, AppFlavor flavor) {
+    final value = dotenv.get(key);
+    _ensureProductionHttps(key, value, flavor);
+    return value;
+  }
+
+  static String _resolveOptionalUrl(String key, AppFlavor flavor) {
+    final value = dotenv.env[key] ?? '';
+    if (value.isEmpty) {
+      return value;
+    }
+
+    _ensureProductionHttps(key, value, flavor);
+    return value;
+  }
+
+  static void _ensureProductionHttps(
+    String key,
+    String value,
+    AppFlavor flavor,
+  ) {
+    if (flavor != AppFlavor.production) {
+      return;
+    }
+
+    final uri = Uri.tryParse(value);
+    if (uri == null || uri.scheme.toLowerCase() != 'https') {
+      throw StateError('$key must use HTTPS in production.');
+    }
   }
 }
 

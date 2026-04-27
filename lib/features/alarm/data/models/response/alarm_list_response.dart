@@ -1,5 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:washer/features/alarm/domain/enums/alarm_type.dart';
+import 'package:washer/features/alarm/data/models/alarm_type.dart';
 
 part 'alarm_list_response.freezed.dart';
 part 'alarm_list_response.g.dart';

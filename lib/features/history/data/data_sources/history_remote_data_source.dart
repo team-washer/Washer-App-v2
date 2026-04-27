@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:retrofit/retrofit.dart';
 import 'package:washer/core/network/api_response_parser.dart';
 import 'package:washer/core/network/dio_client.dart';
-import 'package:washer/core/utils/background_task.dart';
 import 'package:washer/features/history/data/models/machine_history_response.dart';
 
 part 'history_remote_data_source.g.dart';
@@ -54,10 +53,12 @@ class HistoryRemoteDataSourceImpl implements HistoryRemoteDataSource {
     );
     final data = extractDataMap(castJsonMap(response.data));
 
-    return runInBackground(() => MachineHistoryResponse.fromJson(data));
+    return MachineHistoryResponse.fromJson(data);
   }
 }
 
-final historyRemoteDataSourceProvider = Provider<HistoryRemoteDataSource>((ref) {
+final historyRemoteDataSourceProvider = Provider<HistoryRemoteDataSource>((
+  ref,
+) {
   return HistoryRemoteDataSourceImpl(HistoryApiService(ref.watch(dioProvider)));
 });

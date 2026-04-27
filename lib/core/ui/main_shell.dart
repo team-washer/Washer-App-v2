@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:washer/features/alarm/presentation/viewModels/alarm_view_model.dart';
+import 'package:washer/features/alarm/presentation/providers/alarm_provider.dart';
 
 import 'base_scaffold.dart';
 import 'bottom_navigation_bar.dart';
@@ -19,7 +19,7 @@ class MainShell extends ConsumerWidget {
     final currentTab = NavTabType.values[navigationShell.currentIndex];
     final hasNotification =
         ref.watch(
-          alarmViewModelProvider.select((state) => state.alarms.isNotEmpty),
+          alarmProvider.select((state) => state.alarms.isNotEmpty),
         );
 
     return BaseScaffold(

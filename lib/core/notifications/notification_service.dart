@@ -3,11 +3,11 @@ import 'dart:io';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:washer/core/network/dio_client.dart';
+import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/firebase_options.dart';
 
 const fcmTokenStorageKey = 'fcm_token';
@@ -44,9 +44,10 @@ class NotificationService {
 
     _tokenRefreshSubscription ??= _messaging.onTokenRefresh.listen((token) {
       unawaited(_storage.write(key: fcmTokenStorageKey, value: token));
-      if (kDebugMode) {
-        debugPrint('FCM token refreshed: $token');
-      }
+      AppLogger.debug(
+        'FCM token refreshed: $token',
+        name: 'NotificationService',
+      );
     });
 
     _isInitialized = true;
@@ -94,20 +95,17 @@ class NotificationService {
     if (token == null || token.isEmpty) return;
 
     await _storage.write(key: fcmTokenStorageKey, value: token);
-    if (kDebugMode) {
-      debugPrint('FCM token: $token');
-    }
+    AppLogger.debug('FCM token: $token', name: 'NotificationService');
   }
 
   Future<void> _saveFcmTokenWhenReady() async {
     if (Platform.isIOS) {
       final apnsTokenReady = await _waitForApnsToken();
       if (!apnsTokenReady) {
-        if (kDebugMode) {
-          debugPrint(
-            'APNS token is not ready yet. Skipping initial FCM token save.',
-          );
-        }
+        AppLogger.debug(
+          'APNS token is not ready yet. Skipping initial FCM token save.',
+          name: 'NotificationService',
+        );
         return;
       }
     }
@@ -116,11 +114,18 @@ class NotificationService {
       await _saveFcmToken();
     } on FirebaseException catch (e) {
       if (_isApnsTokenNotSetError(e)) {
-        if (kDebugMode) {
-          debugPrint('FCM token skipped until APNS token is available.');
-        }
+        AppLogger.debug(
+          'FCM token skipped until APNS token is available.',
+          name: 'NotificationService',
+        );
         return;
       }
+      AppLogger.error(
+        'FCM 토큰 저장 중 Firebase 오류가 발생했습니다.',
+        name: 'NotificationService',
+        error: e,
+        stackTrace: e.stackTrace,
+      );
       rethrow;
     }
   }
@@ -130,13 +135,20 @@ class NotificationService {
       try {
         final token = await _messaging.getAPNSToken();
         if (token != null && token.isNotEmpty) {
-          if (kDebugMode) {
-            debugPrint('APNS token received.');
-          }
+          AppLogger.debug(
+            'APNS token received.',
+            name: 'NotificationService',
+          );
           return true;
         }
       } on FirebaseException catch (e) {
         if (!_isApnsTokenNotSetError(e)) {
+          AppLogger.error(
+            'APNS 토큰 확인 중 Firebase 오류가 발생했습니다.',
+            name: 'NotificationService',
+            error: e,
+            stackTrace: e.stackTrace,
+          );
           rethrow;
         }
       }

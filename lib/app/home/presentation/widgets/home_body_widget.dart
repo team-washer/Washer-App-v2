@@ -6,9 +6,9 @@ import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
 import 'package:washer/app/home/presentation/widgets/home_machine_section_widget.dart';
 import 'package:washer/app/home/presentation/widgets/home_my_reservation_widget.dart';
-import 'package:washer/features/alarm/presentation/viewModels/alarm_view_model.dart';
+import 'package:washer/features/alarm/presentation/providers/alarm_provider.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
-import 'package:washer/features/user/presentation/viewmodels/my_user_view_model.dart';
+import 'package:washer/features/user/presentation/providers/my_user_provider.dart';
 
 class HomeBodyWidget extends ConsumerStatefulWidget {
   const HomeBodyWidget({super.key});
@@ -140,7 +140,7 @@ class _HomeBodyWidgetState extends ConsumerState<HomeBodyWidget>
               ref.read(activeReservationProvider.notifier).refresh(),
               ref.read(myUserProvider.notifier).refresh(),
               ref
-                  .read(alarmViewModelProvider.notifier)
+                  .read(alarmProvider.notifier)
                   .fetchAlarmList(
                     force: true,
                   ),

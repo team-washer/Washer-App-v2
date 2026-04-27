@@ -10,8 +10,8 @@ import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
 import 'package:washer/core/ui/circle_widget.dart';
 import 'package:washer/core/ui/dialog/washer_dialog.dart';
-import 'package:washer/features/auth/presentation/viewmodels/logout_view_model.dart';
-import 'package:washer/features/user/presentation/viewmodels/withdraw_view_model.dart';
+import 'package:washer/features/auth/presentation/providers/logout_provider.dart';
+import 'package:washer/features/user/presentation/providers/withdraw_provider.dart';
 
 class WasherAppbar extends ConsumerWidget implements PreferredSizeWidget {
   static const double _toolbarHeight = 72;
@@ -62,9 +62,7 @@ class WasherAppbar extends ConsumerWidget implements PreferredSizeWidget {
                                 return;
                               }
                               // 로그아웃 처리
-                              await ref
-                                  .read(logoutViewModelProvider.notifier)
-                                  .logout();
+                              await ref.read(logoutProvider.notifier).logout();
                               if (!context.mounted) {
                                 return;
                               }
@@ -82,7 +80,7 @@ class WasherAppbar extends ConsumerWidget implements PreferredSizeWidget {
                               }
 
                               final didWithdraw = await ref
-                                  .read(withdrawViewModelProvider.notifier)
+                                  .read(withdrawProvider.notifier)
                                   .withdraw();
                               if (!didWithdraw) {
                                 return;

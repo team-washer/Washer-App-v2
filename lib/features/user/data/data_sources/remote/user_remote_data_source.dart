@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:retrofit/retrofit.dart';
 import 'package:washer/core/network/api_response_parser.dart';
 import 'package:washer/core/network/dio_client.dart';
-import 'package:washer/core/utils/background_task.dart';
 import 'package:washer/features/user/data/models/my_user_model.dart';
 
 part 'user_remote_data_source.g.dart';
@@ -38,7 +37,7 @@ class UserRemoteDataSourceImpl implements UserRemoteDataSource {
         return null;
       }
 
-      return runInBackground(() => MyUserModel.fromJson(data));
+      return MyUserModel.fromJson(data);
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) {
         return null;

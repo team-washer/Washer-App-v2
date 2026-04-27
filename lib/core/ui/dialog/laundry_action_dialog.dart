@@ -5,9 +5,9 @@ import 'package:washer/core/theme/color.dart';
 import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
 import 'package:washer/core/ui/dialog/washer_dialog.dart';
+import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
-import 'package:washer/features/reservation/presentation/states/reservation_action_state.dart';
-import 'package:washer/features/reservation/presentation/viewmodels/reservation_view_model.dart';
+import 'package:washer/features/reservation/presentation/providers/reservation_action_provider.dart';
 
 class LaundryActionDialog extends ConsumerStatefulWidget {
   const LaundryActionDialog({
@@ -32,7 +32,7 @@ class _LaundryActionDialogState extends ConsumerState<LaundryActionDialog> {
   Future<void> _handleConfirm() async {
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
-    final reservationNotifier = ref.read(reservationViewModelProvider.notifier);
+    final reservationNotifier = ref.read(reservationActionProvider.notifier);
 
     try {
       switch (widget.actionType) {
@@ -46,19 +46,22 @@ class _LaundryActionDialogState extends ConsumerState<LaundryActionDialog> {
           break;
         case LaundryActionType.cancelReservation:
           navigator.pop();
-          final cancelState = await reservationNotifier.cancel(
+          final didCancel = await reservationNotifier.cancel(
             reservationId: widget.reservationId,
           );
-          if (mounted &&
-              cancelState.status == ReservationActionStatus.success) {
+          if (mounted && didCancel) {
             await refreshReservationStatusWidgets(ref);
           }
+          final error = ref.read(reservationActionProvider).error;
           messenger.showSnackBar(
             SnackBar(
               content: Text(
-                cancelState.status == ReservationActionStatus.success
+                didCancel
                     ? '예약이 취소되었습니다.'
-                    : (cancelState.errorMessage ?? '예약 취소에 실패했습니다.'),
+                    : reservationActionErrorMessage(
+                        error,
+                        fallback: '예약 취소에 실패했습니다.',
+                      ),
               ),
             ),
           );
@@ -66,9 +69,15 @@ class _LaundryActionDialogState extends ConsumerState<LaundryActionDialog> {
         case LaundryActionType.reportBroken:
           throw UnsupportedError('ReportBrokenDialog를 사용해주세요.');
       }
-    } catch (e) {
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        '세탁 액션 처리 중 오류가 발생했습니다.',
+        name: 'LaundryActionDialog',
+        error: error,
+        stackTrace: stackTrace,
+      );
       messenger.showSnackBar(
-        SnackBar(content: Text('오류: $e')),
+        SnackBar(content: Text('오류: $error')),
       );
     }
   }

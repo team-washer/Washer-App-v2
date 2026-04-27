@@ -5,8 +5,8 @@ import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
 import 'package:washer/core/ui/circle_widget.dart';
 import 'package:washer/core/ui/dialog/washer_dialog.dart';
-import 'package:washer/features/report/presentation/states/report_action_state.dart';
-import 'package:washer/features/report/presentation/viewmodels/report_view_model.dart';
+import 'package:washer/core/utils/app_logger.dart';
+import 'package:washer/features/report/presentation/providers/report_provider.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
 
 class ReportBrokenDialog extends ConsumerStatefulWidget {
@@ -56,28 +56,33 @@ class _ReportBrokenDialogState extends ConsumerState<ReportBrokenDialog> {
 
     try {
       navigator.pop();
-      final reportState = await ref
-          .read(reportViewModelProvider.notifier)
+      final didReport = await ref
+          .read(reportProvider.notifier)
           .createMalfunctionReport(
             machineId: widget.machineId,
             description: description,
           );
 
-      if (mounted && reportState.status == ReportActionStatus.success) {
+      if (mounted && didReport) {
         await refreshReservationStatusWidgets(ref);
       }
 
+      final error = ref.read(reportProvider).error;
       messenger.showSnackBar(
         SnackBar(
           content: Text(
-            reportState.status == ReportActionStatus.success
-                ? '신고가 완료되었습니다.'
-                : (reportState.errorMessage ?? '고장 신고에 실패했습니다.'),
+            didReport ? '신고가 완료되었습니다.' : reportErrorMessage(error),
           ),
         ),
       );
-    } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('오류: $e')));
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        '고장 신고 다이얼로그 처리 중 오류가 발생했습니다.',
+        name: 'ReportBrokenDialog',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      messenger.showSnackBar(SnackBar(content: Text('오류: $error')));
     }
   }
 

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:washer/core/env/app_environment.dart';
 import 'package:washer/core/network/token_utils.dart';
+import 'package:washer/core/utils/app_logger.dart';
 
 import 'insecure_http_client_adapter.dart';
 
@@ -90,9 +91,21 @@ class AuthInterceptor extends Interceptor {
         await _handleRefreshFailure();
         return handler.next(err);
       } on DioException catch (e) {
+        AppLogger.error(
+          '토큰 갱신 후 요청 재시도 중 Dio 오류가 발생했습니다.',
+          name: 'AuthInterceptor',
+          error: e,
+          stackTrace: e.stackTrace,
+        );
         await _handleRefreshFailure();
         return handler.next(e);
-      } catch (_) {
+      } catch (error, stackTrace) {
+        AppLogger.error(
+          '토큰 갱신 후 요청 재시도 중 오류가 발생했습니다.',
+          name: 'AuthInterceptor',
+          error: error,
+          stackTrace: stackTrace,
+        );
         await _handleRefreshFailure();
         return handler.next(err);
       }
@@ -104,7 +117,13 @@ class AuthInterceptor extends Interceptor {
   Future<String?> _tryRefreshBeforeRequest() async {
     try {
       return await _refreshToken();
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        '요청 전 토큰 갱신 중 오류가 발생했습니다.',
+        name: 'AuthInterceptor',
+        error: error,
+        stackTrace: stackTrace,
+      );
       return null;
     }
   }

@@ -56,9 +56,13 @@ platform :android do
       ].join(" ")
     )
 
+    aab_path = Dir.glob("build/app/outputs/bundle/release/*.aab").first
+    UI.user_error!("AAB not found in build/app/outputs/bundle/release/") if aab_path.nil?
+
     upload_to_play_store(
       track: "internal",
-      aab: "build/app/outputs/bundle/release/app-release.aab",
+      json_key_data: ENV["GOOGLE_PLAY_JSON_KEY"],
+      aab: aab_path,
       skip_upload_apk: true,
       skip_upload_metadata: true,
       skip_upload_changelogs: true,

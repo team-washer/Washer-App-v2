@@ -1,0 +1,101 @@
+name: CD - Android Play Store
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Build & Upload to Play Store
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Dart
+        uses: dart-lang/setup-dart@v1
+
+      - name: Install FVM
+        run: |
+          dart pub global activate fvm
+          echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH"
+
+      - name: Install Flutter via FVM
+        run: |
+          fvm install
+          fvm use --force
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+
+      - name: Flutter pub get
+        run: fvm flutter pub get
+
+      - name: Restore release signing files
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEY_PROPERTIES: ${{ secrets.ANDROID_KEY_PROPERTIES }}
+          ANDROID_GOOGLE_SERVICES_JSON: ${{ secrets.ANDROID_GOOGLE_SERVICES_JSON }}
+          ENV_PRODUCTION: ${{ secrets.ENV_PRODUCTION }}
+        run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ] || [ -z "$ANDROID_KEY_PROPERTIES" ] || \
+             [ -z "$ANDROID_GOOGLE_SERVICES_JSON" ] || [ -z "$ENV_PRODUCTION" ]; then
+            echo "::error::Required release secrets are missing."
+            exit 1
+          fi
+
+          # 공백/개행 제거 후 디코딩 (build.gradle.kts: storeFile = file("../upload-keystore.jks"))
+          # android/app/build.gradle.kts 기준 ../upload-keystore.jks → android/upload-keystore.jks
+          KEYSTORE_CLEAN=$(printf '%s' "$ANDROID_KEYSTORE_BASE64" | tr -d '\r\n\t ')
+          if ! printf '%s' "$KEYSTORE_CLEAN" | base64 --decode > android/upload-keystore.jks; then
+            echo "::error::ANDROID_KEYSTORE_BASE64 is not valid base64."
+            exit 1
+          fi
+
+          printf '%s' "$ANDROID_KEY_PROPERTIES" > android/key.properties
+          printf '%s' "$ANDROID_GOOGLE_SERVICES_JSON" > android/app/google-services.json
+          printf '%s' "$ENV_PRODUCTION" > .env.production
+
+      - name: Resolve Android version metadata
+        run: |
+          VERSION_LINE="$(grep '^version:' pubspec.yaml | head -n 1 | awk '{print $2}')"
+          VERSION_NAME="${VERSION_LINE%%+*}"
+
+          if [ -z "$VERSION_NAME" ]; then
+            echo "::error::Unable to parse version from pubspec.yaml"
+            exit 1
+          fi
+
+          echo "ANDROID_VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
+          # pubspec의 build number 대신 run number를 사용해 Play Store 중복을 방지
+          echo "ANDROID_BUILD_NUMBER=${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+
+      - name: Upload to Play Store
+        env:
+          # Google Play API 서비스 계정 키 (google-services.json과 다른 별도 키)
+          # Google Play Console → 설정 → API 액세스 → 서비스 계정에서 발급
+          SUPPLY_JSON_KEY_DATA: ${{ secrets.GOOGLE_PLAY_JSON_KEY }}
+        run: bundle exec fastlane android upload_play_store
+
+      - name: Cleanup sensitive files
+        if: always()
+        run: |
+          rm -f android/upload-keystore.jks
+          rm -f android/key.properties
+          rm -f android/app/google-services.json
+          rm -f .env.production

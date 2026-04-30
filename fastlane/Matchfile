@@ -1,0 +1,28 @@
+# Match는 인증서/프로비저닝 프로파일을 private Git 레포에 암호화해서 저장·공유합니다.
+#
+# 현재 CD(cd-ios.yml)는 GitHub Secrets의 IOS_BUILD_CERTIFICATE_BASE64 /
+# IOS_BUILD_PROVISION_PROFILE_BASE64를 직접 설치하는 방식으로 동작합니다.
+#
+# Match 방식으로 전환하려면:
+#   1. 인증서 저장용 private repo 생성 (예: github.com/YOUR_ORG/ios-certificates)
+#   2. git_url을 해당 repo URL로 변경
+#   3. GitHub Secrets에 MATCH_PASSWORD 추가 (repo 암호화 비밀번호)
+#   4. CI에서 Match repo 접근용 Personal Access Token 또는 SSH 키 설정
+#   5. 로컬 최초 실행: bundle exec fastlane match appstore
+#   6. cd-ios.yml의 수동 cert 설치 스텝을 아래로 교체:
+#
+#        - name: Download certificates via Match
+#          env:
+#            MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+#            MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_TOKEN_BASE64 }}
+#          run: bundle exec fastlane match appstore --readonly
+
+git_url("https://github.com/YOUR_ORG/ios-certificates.git")
+
+storage_mode("git")
+type("appstore")
+
+app_identifier(["com.washer.v2"])
+username("YOUR_APPLE_ID@example.com")
+
+# MATCH_PASSWORD는 환경변수로 주입 (GitHub Secret: MATCH_PASSWORD)

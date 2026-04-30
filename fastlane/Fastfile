@@ -13,7 +13,6 @@ platform :ios do
 
     build_number = ENV.fetch("IOS_BUILD_NUMBER")
     version_name = ENV.fetch("IOS_VERSION_NAME")
-    export_method = ENV.fetch("IOS_EXPORT_METHOD", "app-store")
 
     sh(
       [
@@ -22,16 +21,53 @@ platform :ios do
         "--build-name=#{version_name}",
         "--build-number=#{build_number}",
         "--dart-define=APP_ENV=production",
-        "--export-method=#{export_method}"
+        # Flutter 3.22+에서 --export-method 제거됨. ExportOptions.plist로 대체.
+        "--export-options-plist=ios/ExportOptions.plist"
       ].join(" ")
     )
 
+    # flutter build ipa는 CFBundleName 기준으로 IPA 파일명을 생성하므로 glob으로 탐색
+    ipa_path = Dir.glob("build/ios/ipa/*.ipa").first
+    UI.user_error!("IPA not found in build/ios/ipa/") if ipa_path.nil?
+
     upload_to_testflight(
-      ipa: "build/ios/ipa/Runner.ipa",
+      ipa: ipa_path,
       skip_waiting_for_build_processing: true,
       distribute_external: false,
       notify_external_testers: false,
       changelog: ENV["TESTFLIGHT_CHANGELOG"]
+    )
+  end
+end
+
+platform :android do
+  desc "Build the Android app and upload it to Google Play Store (internal track)"
+  lane :upload_play_store do
+    build_number = ENV.fetch("ANDROID_BUILD_NUMBER")
+    version_name = ENV.fetch("ANDROID_VERSION_NAME")
+
+    sh(
+      [
+        "fvm", "flutter", "build", "appbundle",
+        "--release",
+        "--build-name=#{version_name}",
+        "--build-number=#{build_number}",
+        "--dart-define=APP_ENV=production"
+      ].join(" ")
+    )
+
+    aab_path = Dir.glob("build/app/outputs/bundle/release/*.aab").first
+    UI.user_error!("AAB not found in build/app/outputs/bundle/release/") if aab_path.nil?
+
+    upload_to_play_store(
+      track: "internal",
+      json_key_data: ENV["GOOGLE_PLAY_JSON_KEY"],
+      aab: aab_path,
+      skip_upload_apk: true,
+      skip_upload_metadata: true,
+      skip_upload_changelogs: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
     )
   end
 end

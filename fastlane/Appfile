@@ -1,2 +1,6 @@
+    # iOS
 app_identifier("com.washer.v2")
 team_id("UB2797YAAH")
+
+# Android
+package_name("com.washer.v2")

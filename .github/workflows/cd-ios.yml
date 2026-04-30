@@ -3,7 +3,7 @@ name: CD - iOS TestFlight
 on:
   push:
     branches:
-      - 'release/**'
+      - main
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -102,7 +102,7 @@ jobs:
           echo "IOS_VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
           # pubspec의 build number 대신 run number를 사용해 TestFlight 중복을 방지
           echo "IOS_BUILD_NUMBER=${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
-          echo "TESTFLIGHT_CHANGELOG=release branch build #${GITHUB_RUN_NUMBER} (${GITHUB_REF_NAME})" >> "$GITHUB_ENV"
+          echo "TESTFLIGHT_CHANGELOG=main branch build #${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
 
       - name: Upload to TestFlight
         env:

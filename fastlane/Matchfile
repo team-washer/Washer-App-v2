@@ -17,7 +17,7 @@
 #            MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_TOKEN_BASE64 }}
 #          run: bundle exec fastlane match appstore --readonly
 
-git_url("https://github.com/YOUR_ORG/ios-certificates.git")
+git_url(ENV["MATCH_GIT_URL"])
 
 storage_mode("git")
 type("appstore")

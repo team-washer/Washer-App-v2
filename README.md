@@ -128,17 +128,3 @@ flutter run
 ```
 
 예시는 `.env.development.example`, `.env.production.example`을 참고하세요.
-
-## 배포/CI
-
-- Android release 빌드와 iOS TestFlight/Google Play 업로드 워크플로우가 포함되어 있습니다.
-- 모바일 스토어 CD 설정은 [docs/mobile_store_cd.md](docs/mobile_store_cd.md)를 참고하세요.
-- iOS Xcode Cloud 사용 시 `ios/ci_scripts/ci_post_clone.sh`가 Flutter SDK 설치, env 파일 생성, `flutter pub get`, `pod install`을 수행합니다.
-
-필요한 주요 GitHub Actions secrets:
-
-- `ANDROID_KEY_PROPERTIES`
-- `ANDROID_KEYSTORE_BASE64`
-- `ANDROID_GOOGLE_SERVICES_JSON`
-- `ENV_PRODUCTION`
-- `ENV_DEVELOPMENT` (선택)

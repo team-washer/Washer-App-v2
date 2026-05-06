@@ -3,6 +3,10 @@ name: iOS TestFlight CD
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 concurrency:
   group: ios-testflight-${{ github.ref }}
@@ -86,8 +90,17 @@ jobs:
           PROFILE_PATH="$RUNNER_TEMP/build_pp.mobileprovision"
           KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
 
-          printf '%s' "$BUILD_CERTIFICATE_BASE64" | base64 --decode > "$CERTIFICATE_PATH"
-          printf '%s' "$BUILD_PROVISION_PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH"
+          CERTIFICATE_BASE64_CLEAN=$(printf '%s' "$BUILD_CERTIFICATE_BASE64" | tr -d '\r\n\t ')
+          PROFILE_BASE64_CLEAN=$(printf '%s' "$BUILD_PROVISION_PROFILE_BASE64" | tr -d '\r\n\t ')
+
+          if ! printf '%s' "$CERTIFICATE_BASE64_CLEAN" | base64 --decode > "$CERTIFICATE_PATH"; then
+            echo "::error::IOS_BUILD_CERTIFICATE_BASE64 is not valid base64."
+            exit 1
+          fi
+          if ! printf '%s' "$PROFILE_BASE64_CLEAN" | base64 --decode > "$PROFILE_PATH"; then
+            echo "::error::IOS_BUILD_PROVISION_PROFILE_BASE64 is not valid base64."
+            exit 1
+          fi
 
           security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
@@ -103,9 +116,8 @@ jobs:
         run: |
           VERSION_LINE="$(grep '^version:' pubspec.yaml | head -n 1 | awk '{print $2}')"
           VERSION_NAME="${VERSION_LINE%%+*}"
-          VERSION_CODE="${VERSION_LINE##*+}"
 
-          if [ -z "$VERSION_NAME" ] || [ -z "$VERSION_CODE" ]; then
+          if [ -z "$VERSION_NAME" ]; then
             echo "::error::Unable to parse version from pubspec.yaml"
             exit 1
           fi
@@ -119,4 +131,10 @@ jobs:
           APP_STORE_CONNECT_ISSUER_ID: ${{ vars.APP_STORE_CONNECT_ISSUER_ID }}
           APP_STORE_CONNECT_KEY_ID: ${{ vars.APP_STORE_CONNECT_KEY_ID }}
           APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
-        run: bundle exec fastlane ios upload_testflight
+        run: |
+          if [ -z "$APP_STORE_CONNECT_ISSUER_ID" ] || [ -z "$APP_STORE_CONNECT_KEY_ID" ] || [ -z "$APP_STORE_CONNECT_API_KEY" ]; then
+            echo "::error::App Store Connect credentials are missing."
+            exit 1
+          fi
+
+          bundle exec fastlane ios upload_testflight

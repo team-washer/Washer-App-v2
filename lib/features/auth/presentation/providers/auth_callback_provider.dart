@@ -41,3 +41,4 @@ class AuthCallbackNotifier extends AsyncNotifier<void> {
 final authCallbackProvider = AsyncNotifierProvider<AuthCallbackNotifier, void>(
   AuthCallbackNotifier.new,
 );
+ 

@@ -1,2 +1,6 @@
 app_identifier("com.washer.v2")
 team_id("UB2797YAAH")
+
+for_platform :android do
+  package_name("com.washer.v2")
+end

@@ -44,3 +44,42 @@ platform :ios do
     )
   end
 end
+
+platform :android do
+  desc "Build the Android App Bundle for production distribution"
+  lane :build_release_aab do
+    app_env = ENV.fetch("APP_ENV", "production")
+    build_number = ENV.fetch("ANDROID_BUILD_NUMBER")
+    version_name = ENV.fetch("ANDROID_VERSION_NAME")
+
+    sh(
+      [
+        "fvm",
+        "flutter",
+        "build",
+        "appbundle",
+        "--release",
+        "--build-name=#{version_name}",
+        "--build-number=#{build_number}",
+        "--dart-define=APP_ENV=#{app_env}",
+      ].join(" ")
+    )
+  end
+
+  desc "Build the Android app and upload it to Google Play"
+  lane :upload_play_store do
+    build_release_aab
+
+    upload_to_play_store(
+      aab: "build/app/outputs/bundle/release/app-release.aab",
+      json_key: ENV.fetch("PLAY_STORE_JSON_KEY_PATH"),
+      package_name: "com.washer.v2",
+      track: ENV.fetch("PLAY_STORE_TRACK", "internal"),
+      release_status: ENV.fetch("PLAY_STORE_RELEASE_STATUS", "completed"),
+      skip_upload_metadata: true,
+      skip_upload_changelogs: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+  end
+end

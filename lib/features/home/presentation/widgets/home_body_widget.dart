@@ -4,9 +4,9 @@ import 'package:washer/core/enums/laundry_machine_type.dart';
 import 'package:washer/core/theme/color.dart';
 import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
-import 'package:washer/app/home/presentation/widgets/home_machine_section_widget.dart';
-import 'package:washer/app/home/presentation/widgets/home_my_reservation_widget.dart';
 import 'package:washer/features/alarm/presentation/providers/alarm_provider.dart';
+import 'package:washer/features/home/presentation/widgets/home_machine_section_widget.dart';
+import 'package:washer/features/home/presentation/widgets/home_my_reservation_widget.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
 import 'package:washer/features/user/presentation/providers/my_user_provider.dart';
 

@@ -27,8 +27,10 @@ platform :ios do
     )
 
     # flutter build ipa는 CFBundleName 기준으로 IPA 파일명을 생성하므로 glob으로 탐색
-    ipa_path = Dir.glob("build/ios/ipa/*.ipa").first
-    UI.user_error!("IPA not found in build/ios/ipa/") if ipa_path.nil?
+    # CI 환경에서 작업 디렉토리가 다를 수 있으므로 절대경로로 탐색
+    workspace = ENV.fetch("GITHUB_WORKSPACE", File.expand_path("..", __dir__))
+    ipa_path = Dir.glob("#{workspace}/build/ios/ipa/*.ipa").first
+    UI.user_error!("IPA not found in #{workspace}/build/ios/ipa/") if ipa_path.nil?
 
     upload_to_testflight(
       ipa: ipa_path,
@@ -56,8 +58,10 @@ platform :android do
       ].join(" ")
     )
 
-    aab_path = Dir.glob("build/app/outputs/bundle/release/*.aab").first
-    UI.user_error!("AAB not found in build/app/outputs/bundle/release/") if aab_path.nil?
+    # CI 환경에서 작업 디렉토리가 다를 수 있으므로 절대경로로 탐색
+    workspace = ENV.fetch("GITHUB_WORKSPACE", File.expand_path("..", __dir__))
+    aab_path = Dir.glob("#{workspace}/build/app/outputs/bundle/release/*.aab").first
+    UI.user_error!("AAB not found in #{workspace}/build/app/outputs/bundle/release/") if aab_path.nil?
 
     upload_to_play_store(
       track: "internal",

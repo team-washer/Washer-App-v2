@@ -52,9 +52,11 @@ jobs:
           ANDROID_KEY_PROPERTIES: ${{ secrets.ANDROID_KEY_PROPERTIES }}
           ANDROID_GOOGLE_SERVICES_JSON: ${{ secrets.ANDROID_GOOGLE_SERVICES_JSON }}
           ENV_PRODUCTION: ${{ secrets.ENV_PRODUCTION }}
+          ENV_DEVELOPMENT: ${{ secrets.ENV_DEVELOPMENT }}
         run: |
           if [ -z "$ANDROID_KEYSTORE_BASE64" ] || [ -z "$ANDROID_KEY_PROPERTIES" ] || \
-             [ -z "$ANDROID_GOOGLE_SERVICES_JSON" ] || [ -z "$ENV_PRODUCTION" ]; then
+             [ -z "$ANDROID_GOOGLE_SERVICES_JSON" ] || [ -z "$ENV_PRODUCTION" ] || \
+             [ -z "$ENV_DEVELOPMENT" ]; then
             echo "::error::Required release secrets are missing."
             exit 1
           fi
@@ -70,6 +72,7 @@ jobs:
           printf '%s' "$ANDROID_KEY_PROPERTIES" > android/key.properties
           printf '%s' "$ANDROID_GOOGLE_SERVICES_JSON" > android/app/google-services.json
           printf '%s' "$ENV_PRODUCTION" > .env.production
+          printf '%s' "$ENV_DEVELOPMENT" > .env.development
 
       - name: Resolve Android version metadata
         run: |
@@ -99,3 +102,4 @@ jobs:
           rm -f android/key.properties
           rm -f android/app/google-services.json
           rm -f .env.production
+          rm -f .env.development

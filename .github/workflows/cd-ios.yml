@@ -45,6 +45,9 @@ jobs:
       - name: Flutter pub get
         run: fvm flutter pub get
 
+      - name: Flutter precache iOS artifacts
+        run: fvm flutter precache --ios
+
       - name: Install CocoaPods dependencies
         working-directory: ios
         run: pod install

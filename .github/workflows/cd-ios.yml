@@ -48,6 +48,11 @@ jobs:
       - name: Flutter precache iOS artifacts
         run: fvm flutter precache --ios
 
+      - name: Reinstall CocoaPods
+        run: |
+          sudo gem uninstall cocoapods --all --ignore-dependencies
+          sudo gem install cocoapods
+
       - name: Install CocoaPods dependencies
         working-directory: ios
         run: pod install

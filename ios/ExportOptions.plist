@@ -7,12 +7,20 @@
     <key>teamID</key>
     <string>UB2797YAAH</string>
     <key>signingStyle</key>
-    <string>automatic</string>
+    <string>manual</string>
+    <key>signingCertificate</key>
+    <string>Apple Distribution</string>
     <key>stripSwiftSymbols</key>
     <true/>
     <key>uploadBitcode</key>
     <false/>
     <key>uploadSymbols</key>
     <true/>
+    <!-- provisioningProfiles UUID는 CI에서 IOS_PROVISIONING_PROFILE_UUID 환경변수로 동적 주입됨 (Fastfile export_options Hash 참고) -->
+    <key>provisioningProfiles</key>
+    <dict>
+        <key>com.washer.v2</key>
+        <string>$(IOS_PROVISIONING_PROFILE_UUID)</string>
+    </dict>
 </dict>
 </plist>

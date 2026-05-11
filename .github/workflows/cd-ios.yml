@@ -92,14 +92,32 @@ jobs:
           security create-keychain -p "$IOS_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
           security unlock-keychain -p "$IOS_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security import "$CERTIFICATE_PATH" -P "$IOS_P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
-          security list-keychain -d user -s "$KEYCHAIN_PATH"
+          security import "$CERTIFICATE_PATH" -P "$IOS_P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH" || {
+            echo "::error::Failed to import certificate into keychain."
+            exit 1
+          }
+          security list-keychain -d user -s "$KEYCHAIN_PATH" $(security list-keychain -d user | tr -d '"')
           security set-key-partition-list -S apple-tool:,apple: -k "$IOS_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          CERT_OUTPUT=$(security find-identity -v -p codesigning "$KEYCHAIN_PATH")
+          echo "$CERT_OUTPUT"
+          if echo "$CERT_OUTPUT" | grep -qE "^\s+0 valid identities found"; then
+            echo "::error::No valid signing certificate found in keychain."
+            exit 1
+          fi
 
           mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
           cp "$PROFILE_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles"
 
           PROFILE_UUID=$(security cms -D -i "$PROFILE_PATH" | plutil -extract UUID raw -)
+          if [ -z "$PROFILE_UUID" ]; then
+            echo "::error::Failed to extract UUID from provisioning profile."
+            exit 1
+          fi
+          if [ ! -f "$HOME/Library/MobileDevice/Provisioning Profiles/build_pp.mobileprovision" ]; then
+            echo "::error::Provisioning profile not found in Provisioning Profiles directory."
+            exit 1
+          fi
           echo "IOS_PROVISIONING_PROFILE_UUID=$PROFILE_UUID" >> "$GITHUB_ENV"
 
       - name: Resolve iOS version metadata
@@ -116,6 +134,24 @@ jobs:
           # pubspec의 build number 대신 run number를 사용해 TestFlight 중복을 방지
           echo "IOS_BUILD_NUMBER=${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
           echo "TESTFLIGHT_CHANGELOG=main branch build #${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+
+      - name: Verify signing prerequisites
+        run: |
+          if [ -z "$IOS_PROVISIONING_PROFILE_UUID" ]; then
+            echo "::error::IOS_PROVISIONING_PROFILE_UUID is empty."
+            exit 1
+          fi
+          if [ -z "$IOS_VERSION_NAME" ]; then
+            echo "::error::IOS_VERSION_NAME is empty."
+            exit 1
+          fi
+          if [ -z "$IOS_BUILD_NUMBER" ]; then
+            echo "::error::IOS_BUILD_NUMBER is empty."
+            exit 1
+          fi
+          echo "Version: $IOS_VERSION_NAME"
+          echo "Build number: $IOS_BUILD_NUMBER"
+          echo "Profile UUID: $IOS_PROVISIONING_PROFILE_UUID"
 
       - name: Build & Upload to TestFlight
         env:

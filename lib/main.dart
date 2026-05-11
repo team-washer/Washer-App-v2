@@ -10,7 +10,7 @@ import 'package:washer/firebase_options.dart';
 import 'core/router/app_router.dart';
 
 
-// 테스트
+// 테스트2
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AppEnvironment.initialize();

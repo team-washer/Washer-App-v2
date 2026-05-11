@@ -5,10 +5,17 @@ default_platform(:ios)
 platform :ios do
   desc "Build the iOS app and upload it to TestFlight without submitting for review"
   lane :upload_testflight do
-    api_key = app_store_connect_api_key(
-      key_id: ENV.fetch("APP_STORE_CONNECT_KEY_ID"),
-      issuer_id: ENV.fetch("APP_STORE_CONNECT_ISSUER_ID"),
-      key_content: ENV.fetch("APP_STORE_CONNECT_API_KEY"),
+    key_id = ENV.fetch("APP_STORE_CONNECT_KEY_ID")
+    issuer_id = ENV.fetch("APP_STORE_CONNECT_ISSUER_ID")
+    key_content = ENV.fetch("APP_STORE_CONNECT_API_KEY")
+
+    api_key_path = File.join(Dir.tmpdir, "AuthKey_#{key_id}.p8")
+    File.write(api_key_path, key_content)
+
+    app_store_connect_api_key(
+      key_id: key_id,
+      issuer_id: issuer_id,
+      key_content: key_content,
       is_key_content_base64: false,
       in_house: false
     )
@@ -37,9 +44,9 @@ platform :ios do
       clean: true,
       xcargs: [
         "-allowProvisioningUpdates",
-        "-authenticationKeyPath #{api_key[:key_filepath]}",
-        "-authenticationKeyID #{api_key[:key_id]}",
-        "-authenticationKeyIssuerID #{api_key[:issuer_id]}"
+        "-authenticationKeyPath #{api_key_path}",
+        "-authenticationKeyID #{key_id}",
+        "-authenticationKeyIssuerID #{issuer_id}"
       ].join(" ")
     )
 

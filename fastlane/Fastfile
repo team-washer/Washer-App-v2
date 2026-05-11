@@ -18,23 +18,23 @@ platform :ios do
 
     sh(
       [
-        "fvm", "flutter", "build", "ipa",
+        "fvm", "flutter", "build", "ios",
         "--release",
+        "--no-codesign",
         "--build-name=#{version_name}",
         "--build-number=#{build_number}",
-        "--dart-define=APP_ENV=production",
-        # Flutter 3.22+에서 --export-method 제거됨. ExportOptions.plist로 대체.
-        "--export-options-plist=\"#{File.join(WORKSPACE, 'ios', 'ExportOptions.plist')}\""
+        "--dart-define=APP_ENV=production"
       ].join(" ")
     )
 
-    # flutter build ipa는 CFBundleName 기준으로 IPA 파일명을 생성하므로 glob으로 탐색
-    ipa_search_path = File.join(WORKSPACE, "build/ios/ipa")
-    ipa_path = Dir.glob(File.join(ipa_search_path, "*.ipa")).max_by { |f| File.mtime(f) }
-    UI.user_error!("IPA not found in #{ipa_search_path}") if ipa_path.nil?
+    build_app(
+      workspace: File.join(WORKSPACE, "ios", "Runner.xcworkspace"),
+      scheme: "Runner",
+      export_method: "app-store",
+      export_options: File.join(WORKSPACE, "ios", "ExportOptions.plist")
+    )
 
     upload_to_testflight(
-      ipa: ipa_path,
       skip_waiting_for_build_processing: true,
       distribute_external: false,
       notify_external_testers: false,

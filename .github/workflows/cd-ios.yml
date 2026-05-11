@@ -39,7 +39,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.2'
+          ruby-version: '3.3'
           bundler-cache: true
 
       - name: Flutter pub get
@@ -47,11 +47,6 @@ jobs:
 
       - name: Flutter precache iOS artifacts
         run: fvm flutter precache --ios
-
-      - name: Reinstall CocoaPods
-        run: |
-          sudo gem uninstall cocoapods --all --ignore-dependencies
-          sudo gem install cocoapods
 
       - name: Install CocoaPods dependencies
         working-directory: ios

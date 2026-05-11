@@ -30,8 +30,11 @@ platform :ios do
     build_app(
       workspace: File.join(WORKSPACE, "ios", "Runner.xcworkspace"),
       scheme: "Runner",
+      configuration: "Release",
       export_method: "app-store",
-      export_options: File.join(WORKSPACE, "ios", "ExportOptions.plist")
+      export_options: File.join(WORKSPACE, "ios", "ExportOptions.plist"),
+      output_directory: File.join(WORKSPACE, "build", "ios", "ipa"),
+      clean: true
     )
 
     upload_to_testflight(

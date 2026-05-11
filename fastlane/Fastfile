@@ -37,7 +37,9 @@ platform :ios do
       export_options: File.join(WORKSPACE, "ios", "ExportOptions.plist"),
       output_directory: File.join(WORKSPACE, "build", "ios", "ipa"),
       clean: true,
-      xcargs: "OTHER_CODE_SIGN_FLAGS='--keychain \"#{keychain_path}\"'"
+      xcargs: {
+        "OTHER_CODE_SIGN_FLAGS" => "$(inherited) --keychain \"#{keychain_path}\""
+      }
     )
 
     upload_to_testflight(

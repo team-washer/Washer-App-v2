@@ -28,6 +28,7 @@ platform :ios do
     )
 
     keychain_path = File.join(ENV.fetch("RUNNER_TEMP", Dir.tmpdir), "app-signing.keychain-db")
+    keychain_password = ENV.fetch("IOS_KEYCHAIN_PASSWORD", "")
 
     build_app(
       workspace: File.join(WORKSPACE, "ios", "Runner.xcworkspace"),
@@ -37,7 +38,8 @@ platform :ios do
       export_options: File.join(WORKSPACE, "ios", "ExportOptions.plist"),
       output_directory: File.join(WORKSPACE, "build", "ios", "ipa"),
       clean: true,
-      xcargs: "OTHER_CODE_SIGN_FLAGS='--keychain #{keychain_path}'"
+      keychain_path: keychain_path,
+      keychain_password: keychain_password
     )
 
     upload_to_testflight(

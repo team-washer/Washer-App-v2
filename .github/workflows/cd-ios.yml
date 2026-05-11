@@ -3,7 +3,7 @@ name: CD - iOS TestFlight
 on:
   push:
     branches:
-      - main
+      - fix/#180-ios-ci-trigger-develop-for-testing
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

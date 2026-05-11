@@ -24,7 +24,7 @@ platform :ios do
         "--build-number=#{build_number}",
         "--dart-define=APP_ENV=production",
         # Flutter 3.22+에서 --export-method 제거됨. ExportOptions.plist로 대체.
-        "--export-options-plist=#{File.join(WORKSPACE, 'ios/ExportOptions.plist')}"
+        "--export-options-plist=\"#{File.join(WORKSPACE, 'ios', 'ExportOptions.plist')}\""
       ].join(" ")
     )
 

@@ -12,50 +12,54 @@ platform :ios do
     api_key_path = File.join(Dir.tmpdir, "AuthKey_#{key_id}.p8")
     File.write(api_key_path, key_content)
 
-    app_store_connect_api_key(
-      key_id: key_id,
-      issuer_id: issuer_id,
-      key_content: key_content,
-      is_key_content_base64: false,
-      in_house: false
-    )
+    begin
+      app_store_connect_api_key(
+        key_id: key_id,
+        issuer_id: issuer_id,
+        key_content: key_content,
+        is_key_content_base64: false,
+        in_house: false
+      )
 
-    build_number = ENV.fetch("IOS_BUILD_NUMBER")
-    version_name = ENV.fetch("IOS_VERSION_NAME")
+      build_number = ENV.fetch("IOS_BUILD_NUMBER")
+      version_name = ENV.fetch("IOS_VERSION_NAME")
 
-    sh(
-      [
-        "fvm", "flutter", "build", "ios",
-        "--release",
-        "--no-codesign",
-        "--build-name=#{version_name}",
-        "--build-number=#{build_number}",
-        "--dart-define=APP_ENV=production"
-      ].join(" ")
-    )
+      sh(
+        [
+          "fvm", "flutter", "build", "ios",
+          "--release",
+          "--no-codesign",
+          "--build-name=#{version_name}",
+          "--build-number=#{build_number}",
+          "--dart-define=APP_ENV=production"
+        ].join(" ")
+      )
 
-    build_app(
-      workspace: File.join(WORKSPACE, "ios", "Runner.xcworkspace"),
-      scheme: "Runner",
-      configuration: "Release",
-      export_method: "app-store",
-      export_options: File.join(WORKSPACE, "ios", "ExportOptions.plist"),
-      output_directory: File.join(WORKSPACE, "build", "ios", "ipa"),
-      clean: true,
-      xcargs: [
-        "-allowProvisioningUpdates",
-        "-authenticationKeyPath #{api_key_path}",
-        "-authenticationKeyID #{key_id}",
-        "-authenticationKeyIssuerID #{issuer_id}"
-      ].join(" ")
-    )
+      build_app(
+        workspace: File.join(WORKSPACE, "ios", "Runner.xcworkspace"),
+        scheme: "Runner",
+        configuration: "Release",
+        export_method: "app-store",
+        export_options: File.join(WORKSPACE, "ios", "ExportOptions.plist"),
+        output_directory: File.join(WORKSPACE, "build", "ios", "ipa"),
+        clean: true,
+        xcargs: [
+          "-allowProvisioningUpdates",
+          "-authenticationKeyPath #{api_key_path}",
+          "-authenticationKeyID #{key_id}",
+          "-authenticationKeyIssuerID #{issuer_id}"
+        ].join(" ")
+      )
 
-    upload_to_testflight(
-      skip_waiting_for_build_processing: true,
-      distribute_external: false,
-      notify_external_testers: false,
-      changelog: ENV["TESTFLIGHT_CHANGELOG"]
-    )
+      upload_to_testflight(
+        skip_waiting_for_build_processing: true,
+        distribute_external: false,
+        notify_external_testers: false,
+        changelog: ENV["TESTFLIGHT_CHANGELOG"]
+      )
+    ensure
+      File.delete(api_key_path) if File.exist?(api_key_path)
+    end
   end
 end
 

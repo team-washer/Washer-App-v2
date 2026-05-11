@@ -9,6 +9,10 @@ platform :ios do
     issuer_id = ENV.fetch("APP_STORE_CONNECT_ISSUER_ID")
     key_content = ENV.fetch("APP_STORE_CONNECT_API_KEY")
 
+    UI.user_error!("APP_STORE_CONNECT_KEY_ID is empty") if key_id.empty?
+    UI.user_error!("APP_STORE_CONNECT_ISSUER_ID is empty") if issuer_id.empty?
+    UI.user_error!("APP_STORE_CONNECT_API_KEY is empty") if key_content.empty?
+
     api_key_path = File.join(Dir.tmpdir, "AuthKey_#{key_id}.p8")
     File.open(api_key_path, "w", 0o600) { |f| f.write(key_content) }
 

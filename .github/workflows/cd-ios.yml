@@ -120,7 +120,7 @@ jobs:
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           # APP_STORE_CONNECT_ISSUER_ID는 민감하지 않아 GitHub Variables(vars)로 관리 권장
           # secrets 사용 시: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          APP_STORE_CONNECT_ISSUER_ID: ${{ vars.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: bundle exec fastlane ios upload_testflight
 
       - name: Clean up keychain and provisioning profile

@@ -92,13 +92,16 @@ jobs:
           security create-keychain -p "$IOS_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
           security unlock-keychain -p "$IOS_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security import "$CERTIFICATE_PATH" -P "$IOS_P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
-          security list-keychain -d user -s "$KEYCHAIN_PATH"
+          security import "$CERTIFICATE_PATH" -P "$IOS_P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH" || {
+            echo "::error::Failed to import certificate into keychain."
+            exit 1
+          }
+          security list-keychain -d user -s "$KEYCHAIN_PATH" $(security list-keychain -d user | tr -d '"')
           security set-key-partition-list -S apple-tool:,apple: -k "$IOS_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
 
           CERT_OUTPUT=$(security find-identity -v -p codesigning "$KEYCHAIN_PATH")
           echo "$CERT_OUTPUT"
-          if echo "$CERT_OUTPUT" | grep -q "0 valid identities found"; then
+          if echo "$CERT_OUTPUT" | grep -qE "^\s+0 valid identities found"; then
             echo "::error::No valid signing certificate found in keychain."
             exit 1
           fi

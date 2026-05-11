@@ -96,6 +96,8 @@ jobs:
             echo "::error::Failed to import certificate into keychain."
             exit 1
           }
+          echo "Imported certificate subject:"
+          security find-certificate -a -p "$KEYCHAIN_PATH" | openssl x509 -noout -subject
           security list-keychain -d user -s "$KEYCHAIN_PATH"
           security set-key-partition-list -S apple-tool:,apple: -k "$IOS_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
 

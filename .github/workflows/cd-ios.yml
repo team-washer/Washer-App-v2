@@ -112,7 +112,7 @@ jobs:
           echo "IOS_BUILD_NUMBER=${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
           echo "TESTFLIGHT_CHANGELOG=main branch build #${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
 
-      - name: Upload to TestFlight
+      - name: Build & Upload to TestFlight
         env:
           APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}

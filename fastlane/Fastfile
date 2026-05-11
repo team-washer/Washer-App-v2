@@ -35,7 +35,7 @@ platform :ios do
       export_options: File.join(WORKSPACE, "ios", "ExportOptions.plist"),
       output_directory: File.join(WORKSPACE, "build", "ios", "ipa"),
       clean: true,
-      allow_provisioning_updates: true
+      xcargs: "-allowProvisioningUpdates"
     )
 
     upload_to_testflight(

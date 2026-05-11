@@ -13,57 +13,54 @@ platform :ios do
     UI.user_error!("APP_STORE_CONNECT_ISSUER_ID is empty") if issuer_id.strip.empty?
     UI.user_error!("APP_STORE_CONNECT_API_KEY is empty") if key_content.strip.empty?
 
-    api_key_path = File.join(Dir.tmpdir, "AuthKey_#{key_id}.p8")
-    File.open(api_key_path, "w", 0o600) { |f| f.write(key_content) }
+    app_store_connect_api_key(
+      key_id: key_id,
+      issuer_id: issuer_id,
+      key_content: key_content,
+      is_key_content_base64: false,
+      in_house: false
+    )
 
-    begin
-      app_store_connect_api_key(
-        key_id: key_id,
-        issuer_id: issuer_id,
-        key_content: key_content,
-        is_key_content_base64: false,
-        in_house: false
-      )
+    build_number = ENV.fetch("IOS_BUILD_NUMBER")
+    version_name = ENV.fetch("IOS_VERSION_NAME")
+    profile_uuid = ENV.fetch("IOS_PROVISIONING_PROFILE_UUID")
 
-      build_number = ENV.fetch("IOS_BUILD_NUMBER")
-      version_name = ENV.fetch("IOS_VERSION_NAME")
+    sh(
+      [
+        "fvm", "flutter", "build", "ios",
+        "--release",
+        "--no-codesign",
+        "--build-name=#{version_name}",
+        "--build-number=#{build_number}",
+        "--dart-define=APP_ENV=production"
+      ].join(" ")
+    )
 
-      sh(
-        [
-          "fvm", "flutter", "build", "ios",
-          "--release",
-          "--no-codesign",
-          "--build-name=#{version_name}",
-          "--build-number=#{build_number}",
-          "--dart-define=APP_ENV=production"
-        ].join(" ")
-      )
+    build_app(
+      workspace: File.join(WORKSPACE, "ios", "Runner.xcworkspace"),
+      scheme: "Runner",
+      configuration: "Release",
+      export_options: {
+        method: "app-store",
+        teamID: "UB2797YAAH",
+        signingStyle: "manual",
+        signingCertificate: "Apple Distribution",
+        stripSwiftSymbols: true,
+        uploadBitcode: false,
+        uploadSymbols: true,
+        provisioningProfiles: { "com.washer.v2" => profile_uuid }
+      },
+      output_directory: File.join(WORKSPACE, "build", "ios", "ipa"),
+      clean: true,
+      xcargs: "CODE_SIGN_STYLE=Manual PROVISIONING_PROFILE=#{profile_uuid} CODE_SIGN_IDENTITY='Apple Distribution'"
+    )
 
-      build_app(
-        workspace: File.join(WORKSPACE, "ios", "Runner.xcworkspace"),
-        scheme: "Runner",
-        configuration: "Release",
-        export_method: "app-store",
-        export_options: File.join(WORKSPACE, "ios", "ExportOptions.plist"),
-        output_directory: File.join(WORKSPACE, "build", "ios", "ipa"),
-        clean: true,
-        xcargs: [
-          "-allowProvisioningUpdates",
-          "-authenticationKeyPath #{api_key_path}",
-          "-authenticationKeyID #{key_id}",
-          "-authenticationKeyIssuerID #{issuer_id}"
-        ].join(" ")
-      )
-
-      upload_to_testflight(
-        skip_waiting_for_build_processing: true,
-        distribute_external: false,
-        notify_external_testers: false,
-        changelog: ENV["TESTFLIGHT_CHANGELOG"]
-      )
-    ensure
-      File.delete(api_key_path) if File.exist?(api_key_path)
-    end
+    upload_to_testflight(
+      skip_waiting_for_build_processing: true,
+      distribute_external: false,
+      notify_external_testers: false,
+      changelog: ENV["TESTFLIGHT_CHANGELOG"]
+    )
   end
 end
 

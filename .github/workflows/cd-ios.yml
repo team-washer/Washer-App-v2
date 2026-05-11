@@ -99,6 +99,9 @@ jobs:
           mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
           cp "$PROFILE_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles"
 
+          PROFILE_UUID=$(security cms -D -i "$PROFILE_PATH" | plutil -extract UUID raw -)
+          echo "IOS_PROVISIONING_PROFILE_UUID=$PROFILE_UUID" >> "$GITHUB_ENV"
+
       - name: Resolve iOS version metadata
         run: |
           VERSION_LINE="$(grep '^version:' pubspec.yaml | head -n 1 | awk '{print $2}')"
@@ -118,8 +121,6 @@ jobs:
         env:
           APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          # APP_STORE_CONNECT_ISSUER_ID는 민감하지 않아 GitHub Variables(vars)로 관리 권장
-          # secrets 사용 시: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: bundle exec fastlane ios upload_testflight
 

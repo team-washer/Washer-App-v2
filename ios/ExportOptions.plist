@@ -8,6 +8,11 @@
     <string>UB2797YAAH</string>
     <key>signingStyle</key>
     <string>manual</string>
+    <key>provisioningProfiles</key>
+    <dict>
+        <key>com.washer.v2</key>
+        <string>washer</string>
+    </dict>
     <key>stripSwiftSymbols</key>
     <true/>
     <key>uploadBitcode</key>

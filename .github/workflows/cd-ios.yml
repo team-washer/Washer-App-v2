@@ -60,12 +60,14 @@ jobs:
       - name: Restore production env
         env:
           ENV_PRODUCTION: ${{ secrets.ENV_PRODUCTION }}
+          ENV_DEVELOPMENT: ${{ secrets.ENV_DEVELOPMENT }}
         run: |
-          if [ -z "$ENV_PRODUCTION" ]; then
-            echo "::error::ENV_PRODUCTION secret is missing."
+          if [ -z "$ENV_PRODUCTION" ] || [ -z "$ENV_DEVELOPMENT" ]; then
+            echo "::error::ENV_PRODUCTION or ENV_DEVELOPMENT secret is missing."
             exit 1
           fi
           printf '%s' "$ENV_PRODUCTION" > .env.production
+          printf '%s' "$ENV_DEVELOPMENT" > .env.development
 
       - name: Install Apple certificate and provisioning profile
         env:
@@ -127,3 +129,5 @@ jobs:
           security delete-keychain "$RUNNER_TEMP/app-signing.keychain-db" || true
           rm -f "$RUNNER_TEMP/build_certificate.p12"
           rm -f "$RUNNER_TEMP/build_pp.mobileprovision"
+          rm -f .env.production
+          rm -f .env.development

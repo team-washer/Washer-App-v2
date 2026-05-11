@@ -10,7 +10,7 @@ platform :ios do
     key_content = ENV.fetch("APP_STORE_CONNECT_API_KEY")
 
     api_key_path = File.join(Dir.tmpdir, "AuthKey_#{key_id}.p8")
-    File.write(api_key_path, key_content)
+    File.open(api_key_path, "w", 0o600) { |f| f.write(key_content) }
 
     begin
       app_store_connect_api_key(

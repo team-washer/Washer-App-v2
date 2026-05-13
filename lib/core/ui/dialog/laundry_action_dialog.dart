@@ -6,7 +6,6 @@ import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
 import 'package:washer/core/ui/dialog/washer_dialog.dart';
 import 'package:washer/core/utils/app_logger.dart';
-import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_action_provider.dart';
 
 class LaundryActionDialog extends ConsumerStatefulWidget {
@@ -32,6 +31,7 @@ class _LaundryActionDialogState extends ConsumerState<LaundryActionDialog> {
   Future<void> _handleConfirm() async {
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
+    final container = ProviderScope.containerOf(context);
     final reservationNotifier = ref.read(reservationActionProvider.notifier);
 
     try {
@@ -49,17 +49,13 @@ class _LaundryActionDialogState extends ConsumerState<LaundryActionDialog> {
           final didCancel = await reservationNotifier.cancel(
             reservationId: widget.reservationId,
           );
-          if (mounted && didCancel) {
-            await refreshReservationStatusWidgets(ref);
-          }
-          final error = ref.read(reservationActionProvider).error;
           messenger.showSnackBar(
             SnackBar(
               content: Text(
                 didCancel
                     ? '예약이 취소되었습니다.'
                     : reservationActionErrorMessage(
-                        error,
+                        container.read(reservationActionProvider).error,
                         fallback: '예약 취소에 실패했습니다.',
                       ),
               ),

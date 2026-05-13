@@ -22,7 +22,16 @@ class ReportNotifier extends AsyncNotifier<void> {
             description: description,
           );
 
-      await refreshReservationStatusProviders(ref);
+      try {
+        await refreshReservationStatusProviders(ref);
+      } catch (error, stackTrace) {
+        AppLogger.error(
+          '고장 신고 후 상태 새로고침 중 오류가 발생했습니다.',
+          name: 'ReportNotifier',
+          error: error,
+          stackTrace: stackTrace,
+        );
+      }
 
       state = const AsyncData(null);
       return true;

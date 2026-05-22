@@ -135,7 +135,7 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       title,
-      style: WasherTypography.h2(WasherColor.baseGray700),
+      style: WasherTypography.subTitle1(WasherColor.baseGray700),
     );
   }
 }

@@ -12,7 +12,7 @@ class ReservationTitleWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       '${laundryMachineType.text}기 예약 현황',
-      style: WasherTypography.h2(),
+      style: WasherTypography.subTitle1(),
     );
   }
 }

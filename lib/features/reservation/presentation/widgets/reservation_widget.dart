@@ -80,7 +80,7 @@ class ReservationWidget extends StatelessWidget {
                       child: Text(
                         machineName,
                         style: WasherTypography.subTitle3(
-                          WasherColor.baseGray700,
+                          WasherColor.baseGray800,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -222,24 +222,24 @@ class _InUseBottom extends ConsumerWidget {
         children: [
           Text(
             '${laundryMachineType.text} 사용 중',
-            style: WasherTypography.body2(WasherColor.baseGray400),
+            style: WasherTypography.body2(WasherColor.baseGray500),
           ),
           AppGap.v4,
           Text(
             '분석중',
-            style: WasherTypography.body2(WasherColor.baseGray400),
+            style: WasherTypography.body2(WasherColor.baseGray500),
           ),
           AppGap.v4,
           if (room != null)
             Text(
               '사용 호실: ${RoomFormatter.formatRoom(room)}',
-              style: WasherTypography.body2(WasherColor.baseGray400),
+              style: WasherTypography.body2(WasherColor.baseGray500),
             ),
           if (activeUserLabel != null) ...[
             AppGap.v4,
             Text(
               '$activeUserLabel 이용중...',
-              style: WasherTypography.body2(WasherColor.baseGray400),
+              style: WasherTypography.body2(WasherColor.baseGray500),
             ),
           ],
         ],
@@ -259,24 +259,24 @@ class _InUseBottom extends ConsumerWidget {
       children: [
         Text(
           '${laundryMachineType.text} 사용 중',
-          style: WasherTypography.body2(WasherColor.baseGray400),
+          style: WasherTypography.body2(WasherColor.baseGray500),
         ),
         AppGap.v4,
         Text(
           '남은 ${laundryMachineType == LaundryMachineType.washer ? '세탁' : '건조'} 시간: $countdown',
-          style: WasherTypography.body2(WasherColor.baseGray400),
+          style: WasherTypography.body2(WasherColor.baseGray500),
         ),
         AppGap.v4,
         if (room != null)
           Text(
             '사용 호실: ${RoomFormatter.formatRoom(room)}',
-            style: WasherTypography.body2(WasherColor.baseGray400),
+            style: WasherTypography.body2(WasherColor.baseGray500),
           ),
         if (activeUserLabel != null) ...[
           AppGap.v4,
           Text(
             '$activeUserLabel 이용중...',
-            style: WasherTypography.body2(WasherColor.baseGray400),
+            style: WasherTypography.body2(WasherColor.baseGray500),
           ),
         ],
       ],
@@ -308,7 +308,7 @@ class _AvailableBottom extends StatelessWidget {
       children: [
         Text(
           '미사용 중',
-          style: WasherTypography.body2(WasherColor.baseGray400),
+          style: WasherTypography.body2(WasherColor.baseGray500),
         ),
         AppGap.v12,
         Row(

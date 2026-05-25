@@ -398,10 +398,10 @@ class _FloorSelectorRow extends StatelessWidget {
                       ),
                       child: Text(
                         '$floor층',
-                        style: WasherTypography.body4(
+                        style: WasherTypography.subTitle3(
                           selectedFloor == floor
                               ? Colors.white
-                              : WasherColor.baseGray600,
+                              : WasherColor.baseGray800,
                         ),
                       ),
                     ),
@@ -416,13 +416,13 @@ class _FloorSelectorRow extends StatelessWidget {
             children: [
               Text(
                 '배치도 보기',
-                style: WasherTypography.body4(WasherColor.baseGray300),
+                style: WasherTypography.body2(WasherColor.baseGray500),
               ),
               AppGap.h4,
               const WasherIcon(
                 type: WasherIconType.map,
                 size: 20,
-                color: WasherColor.baseGray300,
+                color: WasherColor.baseGray500,
               ),
             ],
           ),

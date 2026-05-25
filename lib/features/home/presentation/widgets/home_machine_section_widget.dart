@@ -101,8 +101,8 @@ class HomeMachineSectionWidget extends StatelessWidget {
             padding: EdgeInsets.symmetric(vertical: AppSpacing.v16),
             child: Center(
               child: Text(
-                '기기 정보가 없습니다.',
-                style: WasherTypography.body1(WasherColor.baseGray300),
+                '현재 예약하거나 사용중인 기기가 없습니다.',
+                style: WasherTypography.body1(WasherColor.baseGray500),
               ),
             ),
           )
@@ -135,7 +135,7 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       title,
-      style: WasherTypography.subTitle1(WasherColor.baseGray700),
+      style: WasherTypography.subTitle1(WasherColor.baseGray800),
     );
   }
 }
@@ -155,13 +155,13 @@ class _ViewAll extends StatelessWidget {
         children: [
           Text(
             '전체보기',
-            style: WasherTypography.body2(WasherColor.baseGray300),
+            style: WasherTypography.body2(WasherColor.baseGray500),
           ),
           AppGap.h4,
           const WasherIcon(
             type: WasherIconType.back,
             size: 16,
-            color: WasherColor.baseGray300,
+            color: WasherColor.baseGray500,
           ),
         ],
       ),
@@ -214,8 +214,8 @@ class HomeMachineSectionSliver extends StatelessWidget {
               padding: EdgeInsets.symmetric(vertical: AppSpacing.v16),
               child: Center(
                 child: Text(
-                  '기기 정보가 없습니다.',
-                  style: WasherTypography.body1(WasherColor.baseGray300),
+                  '현재 예약하거나 사용중인 기기가 없습니다.',
+                  style: WasherTypography.body1(WasherColor.baseGray500),
                 ),
               ),
             ),
@@ -292,8 +292,8 @@ class _StatusItem extends StatelessWidget {
                 machine.name,
                 style: WasherTypography.body1(
                   isAvailable
-                      ? WasherColor.baseGray700
-                      : WasherColor.baseGray300,
+                      ? WasherColor.baseGray800
+                      : WasherColor.baseGray500,
                 ),
               ),
             ],

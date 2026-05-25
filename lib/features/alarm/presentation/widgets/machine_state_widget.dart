@@ -77,7 +77,7 @@ class _TitleWithStatus extends StatelessWidget {
           child: Text(
             _titleFor(laundryStatus),
             style: WasherTypography.subTitle3(
-              WasherColor.baseGray700,
+              WasherColor.baseGray800,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -139,7 +139,7 @@ class _DateText extends StatelessWidget {
     return Text(
       date,
       style: WasherTypography.body4(
-        WasherColor.baseGray300,
+        WasherColor.baseGray500,
       ),
     );
   }
@@ -158,7 +158,7 @@ class _DescriptionText extends StatelessWidget {
     return Text(
       descriptionText,
       style: WasherTypography.body1(
-        WasherColor.baseGray400,
+        WasherColor.baseGray500,
       ),
     );
   }

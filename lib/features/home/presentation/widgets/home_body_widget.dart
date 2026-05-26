@@ -4,6 +4,7 @@ import 'package:washer/core/enums/laundry_machine_type.dart';
 import 'package:washer/core/theme/color.dart';
 import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
+import 'package:washer/core/utils/room_formatter.dart';
 import 'package:washer/features/alarm/presentation/providers/alarm_provider.dart';
 import 'package:washer/features/home/presentation/widgets/home_machine_section_widget.dart';
 import 'package:washer/features/home/presentation/widgets/home_my_reservation_widget.dart';
@@ -23,28 +24,6 @@ class _HomeBodyWidgetState extends ConsumerState<HomeBodyWidget>
 
   AppLifecycleState? _lastLifecycleState;
   DateTime? _lastResumeRefreshAt;
-
-  int? _targetFloorFromRoomNumber(String? roomNumber) {
-    if (roomNumber == null) {
-      return null;
-    }
-
-    final normalized = roomNumber.trim();
-    if (normalized.isEmpty) {
-      return null;
-    }
-
-    final digitsOnly = normalized.replaceAll(RegExp(r'[^0-9]'), '');
-    if (digitsOnly.length < 3) {
-      final floor = int.tryParse(digitsOnly);
-      if (floor != null && (floor == 3 || floor == 4)) {
-        return floor;
-      }
-      return null;
-    }
-
-    return int.tryParse(digitsOnly.substring(0, digitsOnly.length - 2));
-  }
 
   @override
   void initState() {
@@ -115,7 +94,7 @@ class _HomeBodyWidgetState extends ConsumerState<HomeBodyWidget>
                   ? reservations.first.userRoomNumber
                   : null,
             );
-        final targetFloor = _targetFloorFromRoomNumber(roomNumber);
+        final targetFloor = RoomFormatter.floorFromRoomNumber(roomNumber);
         final visibleMachines = targetFloor == null
             ? data.machines
             : data.machines

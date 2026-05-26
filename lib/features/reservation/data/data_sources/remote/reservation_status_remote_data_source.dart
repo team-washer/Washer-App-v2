@@ -31,10 +31,17 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
 
   @override
   Future<MachineStatusResponse> getMachineStatus() async {
-    final response = await _api.getMachineStatus();
-    final data = extractDataMap(castJsonMap(response.data));
+    try {
+      final response = await _api.getMachineStatus();
+      final data = extractDataMap(castJsonMap(response.data));
 
-    return MachineStatusResponse.fromJson(data);
+      return MachineStatusResponse.fromJson(data);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 451) {
+        return const MachineStatusResponse(machines: [], totalCount: 0);
+      }
+      rethrow;
+    }
   }
 
   @override
@@ -56,7 +63,8 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
           .map((item) => ActiveReservationModel.fromJson(castJsonMap(item)))
           .toList(growable: false);
     } on DioException catch (e) {
-      if (e.response?.statusCode == 404 || e.response?.statusCode == 204) {
+      final statusCode = e.response?.statusCode;
+      if (statusCode == 404 || statusCode == 204 || statusCode == 451) {
         return const [];
       }
       rethrow;

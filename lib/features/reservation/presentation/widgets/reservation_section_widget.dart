@@ -12,6 +12,7 @@ import 'package:washer/core/theme/icon.dart';
 import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
 import 'package:washer/core/utils/app_logger.dart';
+import 'package:washer/core/utils/room_formatter.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/data/models/local/laundry_machine_model.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
@@ -54,9 +55,15 @@ class _ReservationSectionWidgetState
         .toList(growable: false);
   }
 
-  List<int> _floorsFrom(List<MachineModel> machines) {
-    return machines.map((m) => m.floorNumber).whereType<int>().toSet().toList()
-      ..sort();
+  List<int> _floorsFrom(List<MachineModel> machines, int? userFloor) {
+    final floors = machines
+        .map((m) => m.floorNumber)
+        .whereType<int>()
+        .toSet();
+    if (userFloor != null) {
+      floors.add(userFloor);
+    }
+    return floors.toList()..sort();
   }
 
   ReservationState _toReservationState(
@@ -221,11 +228,13 @@ class _ReservationSectionWidgetState
             .watch(activeReservationProvider)
             .whenOrNull(data: (reservations) => reservations) ??
         const <ActiveReservationModel>[];
-    final myUserId = ref
+    final myUser = ref
         .watch(myUserProvider)
         .whenOrNull(
-          data: (user) => user?.id,
+          data: (user) => user,
         );
+    final myUserId = myUser?.id;
+    final userFloor = RoomFormatter.floorFromRoomNumber(myUser?.roomNumber);
 
     return machineAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -248,7 +257,7 @@ class _ReservationSectionWidgetState
       ),
       data: (data) {
         final typedMachines = _machinesForType(data.machines);
-        final floors = _floorsFrom(typedMachines);
+        final floors = _floorsFrom(typedMachines, userFloor);
         final currentFloor =
             _selectedFloor ?? (floors.isNotEmpty ? floors.first : 0);
         final items = _buildItems(

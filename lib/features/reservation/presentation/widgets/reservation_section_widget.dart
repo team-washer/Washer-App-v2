@@ -228,11 +228,7 @@ class _ReservationSectionWidgetState
             .watch(activeReservationProvider)
             .whenOrNull(data: (reservations) => reservations) ??
         const <ActiveReservationModel>[];
-    final myUser = ref
-        .watch(myUserProvider)
-        .whenOrNull(
-          data: (user) => user,
-        );
+    final myUser = ref.watch(myUserProvider).value;
     final myUserId = myUser?.id;
     final userFloor = RoomFormatter.floorFromRoomNumber(myUser?.roomNumber);
 

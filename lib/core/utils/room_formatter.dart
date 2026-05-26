@@ -39,10 +39,11 @@ class RoomFormatter {
       return null;
     }
 
-    final digitsOnly = normalized.replaceAll(RegExp(r'[^0-9]'), '');
-    if (digitsOnly.isEmpty) {
+    final match = RegExp(r'\d+').firstMatch(normalized);
+    if (match == null) {
       return null;
     }
+    final digitsOnly = match.group(0)!;
 
     final int? floor;
     if (digitsOnly.length < 3) {

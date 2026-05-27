@@ -13,7 +13,7 @@ platform :ios do
     UI.user_error!("APP_STORE_CONNECT_ISSUER_ID is empty") if issuer_id.strip.empty?
     UI.user_error!("APP_STORE_CONNECT_API_KEY is empty") if key_content.strip.empty?
 
-    app_store_connect_api_key(
+    api_key = app_store_connect_api_key(
       key_id: key_id,
       issuer_id: issuer_id,
       key_content: key_content,
@@ -56,6 +56,7 @@ platform :ios do
     )
 
     upload_to_testflight(
+      api_key: api_key,
       skip_waiting_for_build_processing: true,
       distribute_external: false,
       notify_external_testers: false,

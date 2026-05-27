@@ -42,6 +42,16 @@ jobs:
           ruby-version: '3.3'
           bundler-cache: true
 
+      - name: Patch spaceship for OpenSSL 3.x compatibility
+        run: |
+          SPACESHIP_TOKEN=$(find vendor/bundle -name "token.rb" -path "*/connect_api/token.rb" 2>/dev/null | head -1)
+          if [ -n "$SPACESHIP_TOKEN" ]; then
+            sed -i '' 's/OpenSSL::PKey::EC\.new(key)/OpenSSL::PKey.read(key)/g' "$SPACESHIP_TOKEN"
+            echo "Patched: $SPACESHIP_TOKEN"
+          else
+            echo "::warning::spaceship token.rb not found — skipping patch"
+          fi
+
       - name: Export CocoaPods bin to PATH
         run: |
           bundle binstubs cocoapods

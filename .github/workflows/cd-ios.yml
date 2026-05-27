@@ -155,9 +155,17 @@ jobs:
           echo "Build number: $IOS_BUILD_NUMBER"
           echo "Profile UUID: $IOS_PROVISIONING_PROFILE_UUID"
 
-      - name: Build & Upload to TestFlight
+      - name: Write App Store Connect API Key to file
         env:
           APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+        run: |
+          KEY_PATH="$RUNNER_TEMP/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8"
+          printf '%s' "$APP_STORE_CONNECT_API_KEY" > "$KEY_PATH"
+          echo "APP_STORE_CONNECT_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
+
+      - name: Build & Upload to TestFlight
+        env:
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: bundle exec fastlane ios upload_testflight
@@ -168,5 +176,6 @@ jobs:
           security delete-keychain "$RUNNER_TEMP/app-signing.keychain-db" || true
           rm -f "$RUNNER_TEMP/build_certificate.p12"
           rm -f "$RUNNER_TEMP/build_pp.mobileprovision"
+          rm -f "$RUNNER_TEMP/AuthKey_"*.p8
           rm -f .env.production
           rm -f .env.development

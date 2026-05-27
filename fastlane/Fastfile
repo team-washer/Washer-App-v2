@@ -7,7 +7,7 @@ platform :ios do
   lane :upload_testflight do
     key_id = ENV["APP_STORE_CONNECT_KEY_ID"].to_s
     issuer_id = ENV["APP_STORE_CONNECT_ISSUER_ID"].to_s
-    key_content = ENV["APP_STORE_CONNECT_API_KEY"].to_s
+    key_content = ENV["APP_STORE_CONNECT_API_KEY"].to_s.gsub('\n', "\n")
 
     UI.user_error!("APP_STORE_CONNECT_KEY_ID is empty") if key_id.strip.empty?
     UI.user_error!("APP_STORE_CONNECT_ISSUER_ID is empty") if issuer_id.strip.empty?

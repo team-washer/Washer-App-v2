@@ -211,6 +211,13 @@ class AuthInterceptor extends Interceptor {
     onLogout?.call();
   }
 
+  /// 스토리지 토큰은 유지하고 메모리 캐시만 초기화
+  void clearInMemoryCache() {
+    _cachedAccessToken = null;
+    _refreshFuture = null;
+  }
+
+  /// 로그아웃 시 메모리 캐시 + 스토리지 토큰 모두 삭제
   Future<void> clearCache() async {
     _cachedAccessToken = null;
     _refreshFuture = null;

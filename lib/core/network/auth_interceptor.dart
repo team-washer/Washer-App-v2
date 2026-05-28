@@ -139,11 +139,7 @@ class AuthInterceptor extends Interceptor {
     final refreshEndpoint = _environment.refreshTokenEndpoint;
     final response = await _refreshDio.post(
       refreshEndpoint,
-      options: Options(
-        headers: {
-          'Authorization': 'Bearer $refreshToken',
-        },
-      ),
+      data: {'refreshToken': refreshToken},
     );
 
     final responseData = response.data;

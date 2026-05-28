@@ -81,11 +81,11 @@ class AuthRepositoryImpl implements AuthRepository {
     if (refreshToken == null) return;
     final response = await _dataSource.refresh(
       RefreshRequest(refreshToken: refreshToken),
+    );
     await Future.wait([
       _storage.write(key: 'access_token', value: response.accessToken),
       _storage.write(key: 'refresh_token', value: response.refreshToken),
     ]);
-    _dioClient.clearInMemoryCache();
     _dioClient.clearInMemoryCache();
   }
 }

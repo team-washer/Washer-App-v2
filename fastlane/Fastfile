@@ -5,21 +5,32 @@ default_platform(:ios)
 platform :ios do
   desc "Build the iOS app and upload it to TestFlight without submitting for review"
   lane :upload_testflight do
-    key_id = ENV["APP_STORE_CONNECT_KEY_ID"].to_s
-    issuer_id = ENV["APP_STORE_CONNECT_ISSUER_ID"].to_s
-    key_content = ENV["APP_STORE_CONNECT_API_KEY"].to_s
+    # 로컬에서 archive 단계만 검증할 때는 SKIP_TESTFLIGHT_UPLOAD=true 로 업로드를 건너뛴다.
+    # (App Store Connect API 키 없이도 빌드/서명 단계를 그대로 재현할 수 있다.)
+    skip_upload = ENV["SKIP_TESTFLIGHT_UPLOAD"] == "true"
 
-    UI.user_error!("APP_STORE_CONNECT_KEY_ID is empty") if key_id.strip.empty?
-    UI.user_error!("APP_STORE_CONNECT_ISSUER_ID is empty") if issuer_id.strip.empty?
-    UI.user_error!("APP_STORE_CONNECT_API_KEY is empty") if key_content.strip.empty?
+    api_key = nil
+    unless skip_upload
+      key_id = ENV["APP_STORE_CONNECT_KEY_ID"].to_s
+      issuer_id = ENV["APP_STORE_CONNECT_ISSUER_ID"].to_s
+      key_content = ENV["APP_STORE_CONNECT_API_KEY"].to_s
 
-    app_store_connect_api_key(
-      key_id: key_id,
-      issuer_id: issuer_id,
-      key_content: key_content,
-      is_key_content_base64: false,
-      in_house: false
-    )
+      UI.user_error!("APP_STORE_CONNECT_KEY_ID is empty") if key_id.strip.empty?
+      UI.user_error!("APP_STORE_CONNECT_ISSUER_ID is empty") if issuer_id.strip.empty?
+      UI.user_error!("APP_STORE_CONNECT_API_KEY is empty") if key_content.strip.empty?
+
+      # 반환된 Hash 를 upload_to_testflight 에 명시적으로 전달한다.
+      # APP_STORE_CONNECT_API_KEY 환경변수(원시 .p8 문자열)가 pilot 의 api_key 옵션과
+      # 이름이 겹쳐, 명시 전달하지 않으면 ENV 문자열이 api_key 로 들어가
+      # "'api_key' value must be a Hash! Found String instead." 로 실패한다.
+      api_key = app_store_connect_api_key(
+        key_id: key_id,
+        issuer_id: issuer_id,
+        key_content: key_content,
+        is_key_content_base64: false,
+        in_house: false
+      )
+    end
 
     build_number = ENV.fetch("IOS_BUILD_NUMBER")
     version_name = ENV.fetch("IOS_VERSION_NAME")
@@ -34,6 +45,20 @@ platform :ios do
         "--build-number=#{build_number}",
         "--dart-define=APP_ENV=production"
       ].join(" ")
+    )
+
+    # 수동 서명 설정을 Runner 타겟에만 적용한다.
+    # 과거엔 build_app의 xcargs로 PROVISIONING_PROFILE/CODE_SIGN_IDENTITY를 전역 주입했는데,
+    # 그러면 CocoaPods 라이브러리 타겟(nanopb, Firebase*, GoogleUtilities 등)에까지
+    # 프로비저닝 프로파일이 강제돼 "does not support provisioning profiles"로 archive가 실패한다.
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: File.join(WORKSPACE, "ios", "Runner.xcodeproj"),
+      team_id: "UB2797YAAH",
+      code_sign_identity: "Apple Distribution",
+      profile_name: profile_uuid,
+      targets: ["Runner"],
+      build_configurations: ["Release"]
     )
 
     build_app(
@@ -51,11 +76,16 @@ platform :ios do
         provisioningProfiles: { "com.washer.v2" => profile_uuid }
       },
       output_directory: File.join(WORKSPACE, "build", "ios", "ipa"),
-      clean: true,
-      xcargs: "CODE_SIGN_STYLE=Manual PROVISIONING_PROFILE=#{profile_uuid} CODE_SIGN_IDENTITY='Apple Distribution' DEVELOPMENT_TEAM=UB2797YAAH"
+      clean: true
     )
 
+    if skip_upload
+      UI.success("SKIP_TESTFLIGHT_UPLOAD=true — archive 검증 완료, TestFlight 업로드는 건너뜀")
+      next
+    end
+
     upload_to_testflight(
+      api_key: api_key,
       skip_waiting_for_build_processing: true,
       distribute_external: false,
       notify_external_testers: false,
@@ -84,9 +114,11 @@ platform :android do
     aab_path = Dir.glob(File.join(aab_search_path, "*.aab")).max_by { |f| File.mtime(f) }
     UI.user_error!("AAB not found in #{aab_search_path}") if aab_path.nil?
 
+    # cd-android.yml에서 시크릿을 SUPPLY_JSON_KEY_DATA 환경변수로 주입한다.
+    # 과거엔 ENV["GOOGLE_PLAY_JSON_KEY"](미설정 → 빈 문자열)를 읽어 JSON 파싱이 깨졌다.
     upload_to_play_store(
       track: "internal",
-      json_key_data: ENV["GOOGLE_PLAY_JSON_KEY"],
+      json_key_data: ENV.fetch("SUPPLY_JSON_KEY_DATA"),
       aab: aab_path,
       skip_upload_apk: true,
       skip_upload_metadata: true,

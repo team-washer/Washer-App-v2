@@ -33,12 +33,24 @@ platform :ios do
     )
   end
 
-  desc "Build the iOS app and submit it to App Store review (vX.Y.Z 태그 push 시)"
+  desc "Build the iOS app and submit it to App Store review (main 머지마다)"
   lane :release_appstore do
     api_key = load_asc_api_key
+    setup_connect_api(api_key: api_key)
+
+    # 이미 심사 대기/진행 중인 버전이 있으면 새 제출을 건너뛴다.
+    # (Apple 은 한 번에 한 버전만 심사 → main 에 자주 머지돼도 실패하지 않고 스킵)
+    if appstore_review_in_progress
+      UI.important("이미 심사 대기/진행 중인 버전이 있어 이번 App Store 제출은 건너뜁니다. (TestFlight 는 cd-ios.yml 이 처리)")
+      next
+    end
+
+    # 마케팅 버전은 App Store Connect 의 현재 최고 버전 +패치로 자동 증가시킨다.
+    # (main 머지마다 새 버전을 올려야 train 닫힘으로 실패하지 않음)
+    version_name = resolve_next_appstore_version
 
     build_signed_ipa(
-      version_name: ENV.fetch("IOS_VERSION_NAME"),
+      version_name: version_name,
       build_number: ENV.fetch("IOS_BUILD_NUMBER"),
       profile_uuid: ENV.fetch("IOS_PROVISIONING_PROFILE_UUID")
     )
@@ -48,7 +60,7 @@ platform :ios do
     # - automatic_release: false → 심사 승인 후 출시는 수동(안전). 승인 즉시 자동 출시하려면 true.
     # - skip_metadata: false → fastlane/metadata/<locale>/release_notes.txt 의 "What's New" 만 업로드.
     #   (다른 메타데이터 파일이 없으면 deliver 가 해당 필드를 건드리지 않음 = 기존 값 유지)
-    #   release_notes.txt 는 release-ios.yml 이 태그 메시지로부터 빌드 직전에 생성한다.
+    #   release_notes.txt 는 release-ios.yml 이 머지 커밋 메시지로부터 빌드 직전에 생성한다.
     # - skip_screenshots: 스크린샷은 관리하지 않음(이미 스토어에 존재).
     # - submission_information: IDFA 사용 여부 응답. 광고 SDK(IDFA) 사용 시 true 로 바꿔야 함.
     upload_to_app_store(
@@ -86,6 +98,52 @@ platform :ios do
       is_key_content_base64: false,
       in_house: false
     )
+  end
+
+  # App Store Connect API 토큰을 Spaceship 에 설정한다. (직접 Spaceship 조회 전에 1회 호출)
+  private_lane :setup_connect_api do |options|
+    api_key = options.fetch(:api_key)
+    require "spaceship"
+    Spaceship::ConnectAPI.token = Spaceship::ConnectAPI::Token.create(
+      key_id: api_key[:key_id],
+      issuer_id: api_key[:issuer_id],
+      key: api_key[:key]
+    )
+  end
+
+  # 심사 대기/진행 중이라 새 제출이 막히는 버전이 있는지 확인한다. (setup_connect_api 선행 필요)
+  private_lane :appstore_review_in_progress do
+    app = Spaceship::ConnectAPI::App.find(BUNDLE_ID)
+    if app.nil?
+      false
+    else
+      blocking = %w[
+        WAITING_FOR_REVIEW
+        IN_REVIEW
+        PENDING_APPLE_RELEASE
+        PROCESSING_FOR_APP_STORE
+      ]
+      app.get_app_store_versions.any? { |v| blocking.include?(v.app_store_state) }
+    end
+  end
+
+  # App Store Connect 의 현재 최고 마케팅 버전을 조회해 patch +1 한 버전 문자열을 반환한다.
+  # (라이브/심사중/편집중 버전을 모두 포함한 최댓값 기준 → 진행 중 버전과 충돌 방지)
+  # setup_connect_api 선행 필요.
+  private_lane :resolve_next_appstore_version do
+    app = Spaceship::ConnectAPI::App.find(BUNDLE_ID)
+    UI.user_error!("App #{BUNDLE_ID} 를 App Store Connect 에서 찾지 못했습니다") if app.nil?
+
+    versions = app.get_app_store_versions
+    current = versions.map { |v| Gem::Version.new(v.version_string) }.max || Gem::Version.new("1.0.0")
+
+    seg = current.segments.dup
+    seg << 0 while seg.size < 3
+    seg[2] += 1
+    next_version = seg[0, 3].join(".")
+
+    UI.message("App Store 다음 버전 자동 결정: #{next_version} (현재 최고 #{current})")
+    next_version
   end
 
   # Flutter 빌드 + 수동 서명 아카이브로 app-store IPA 를 만든다. (TestFlight·App Store 공용)

@@ -46,8 +46,10 @@ platform :ios do
     # 바이너리를 App Store Connect 에 올리고 심사까지 자동 제출한다.
     # - submit_for_review: 심사 제출까지 자동
     # - automatic_release: false → 심사 승인 후 출시는 수동(안전). 승인 즉시 자동 출시하려면 true.
-    # - skip_metadata/skip_screenshots: 메타데이터·스크린샷은 fastlane 으로 관리하지 않음(이미 스토어에 존재).
-    #   ⚠️ 신규 버전의 "What's New(릴리스 노트)"는 App Store Connect 에서 채워야 심사 통과됨.
+    # - skip_metadata: false → fastlane/metadata/<locale>/release_notes.txt 의 "What's New" 만 업로드.
+    #   (다른 메타데이터 파일이 없으면 deliver 가 해당 필드를 건드리지 않음 = 기존 값 유지)
+    #   release_notes.txt 는 release-ios.yml 이 태그 메시지로부터 빌드 직전에 생성한다.
+    # - skip_screenshots: 스크린샷은 관리하지 않음(이미 스토어에 존재).
     # - submission_information: IDFA 사용 여부 응답. 광고 SDK(IDFA) 사용 시 true 로 바꿔야 함.
     upload_to_app_store(
       api_key: api_key,
@@ -56,7 +58,7 @@ platform :ios do
       automatic_release: false,
       force: true,
       run_precheck_before_submit: false,
-      skip_metadata: true,
+      skip_metadata: false,
       skip_screenshots: true,
       submission_information: {
         add_id_info_uses_idfa: false

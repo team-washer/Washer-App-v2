@@ -119,8 +119,10 @@ jobs:
           fi
 
           echo "ANDROID_VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
-          # pubspec의 build number 대신 run number를 사용해 Play Store 중복을 방지
-          echo "ANDROID_BUILD_NUMBER=${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+          # versionCode 는 업로드마다 단조 증가해야 하며 Play 의 기존 최고값보다 커야 한다.
+          # run number 만 쓰면 과거(내부 트랙/수동) 업로드가 쓴 낮은 코드와 충돌하므로
+          # 1000 오프셋을 더해 기존 코드 위로 띄운다. (run number 가 계속 증가하므로 단조성 유지)
+          echo "ANDROID_BUILD_NUMBER=$((1000 + GITHUB_RUN_NUMBER))" >> "$GITHUB_ENV"
 
       - name: Release to Play Store (production)
         env:

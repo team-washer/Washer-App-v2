@@ -56,14 +56,24 @@ android {
 
     buildTypes {
         release {
-            if (!hasKeystore) {
-                throw GradleException(
-                    "Release signing requires android/key.properties. " +
-                        "Copy android/key.properties.example and set your keystore values.",
-                )
-            }
-
             signingConfig = signingConfigs.getByName("release")
+        }
+    }
+}
+
+// Enforce a real keystore only when a release artifact is actually built.
+// profile/debug builds (e.g. `flutter run --profile`) do not need it.
+if (!hasKeystore) {
+    gradle.taskGraph.whenReady {
+        val needsReleaseSigning = allTasks.any { task ->
+            task.name.contains("Release") &&
+                (task.name.startsWith("assemble") || task.name.startsWith("bundle"))
+        }
+        if (needsReleaseSigning) {
+            throw GradleException(
+                "Release signing requires android/key.properties. " +
+                    "Copy android/key.properties.example and set your keystore values.",
+            )
         }
     }
 }

@@ -14,8 +14,30 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # GOOGLE_PLAY_JSON_KEY(서비스 계정) 미설정이면 배포를 건너뛴다.
+  # (Android Play Store 설정 전까지 워크플로우가 빨갛게 실패하지 않도록 — 키 등록 시 자동 활성화)
+  guard:
+    name: Check Play Store credentials
+    runs-on: ubuntu-latest
+    outputs:
+      configured: ${{ steps.check.outputs.configured }}
+    steps:
+      - name: Check GOOGLE_PLAY_JSON_KEY
+        id: check
+        env:
+          GOOGLE_PLAY_JSON_KEY: ${{ secrets.GOOGLE_PLAY_JSON_KEY }}
+        run: |
+          if [ -n "$GOOGLE_PLAY_JSON_KEY" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::GOOGLE_PLAY_JSON_KEY 미설정 — Android production 배포를 건너뜁니다. (시크릿 등록 시 자동 활성화)"
+          fi
+
   release:
     name: Build & Release to Play Store (production)
+    needs: guard
+    if: needs.guard.outputs.configured == 'true'
     runs-on: ubuntu-latest
 
     steps:

@@ -36,7 +36,9 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.washer"
+        // 배포 ID 는 Play Console 등록 패키지(com.washer.v2)에 맞춘다.
+        // namespace(코드용 R/BuildConfig)는 com.washer 유지 — MainActivity 패키지/매니페스트와 정합.
+        applicationId = "com.washer.v2"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

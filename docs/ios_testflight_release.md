@@ -2,7 +2,7 @@
 
 ## 1. What this automation does
 
-When code is merged into `main`, `.github/workflows/ios-testflight.yaml` runs on GitHub Actions and:
+When code is merged into `main`, `.github/workflows/ios-testflight.yaml` runs on GitHub Actions. It can also be run manually with `workflow_dispatch`. The workflow:
 
 - builds an iOS IPA with Flutter
 - uploads the build to App Store Connect / TestFlight with `fastlane`
@@ -29,7 +29,12 @@ When code is merged into `main`, `.github/workflows/ios-testflight.yaml` runs on
 - `APP_STORE_CONNECT_ISSUER_ID`
 - `APP_STORE_CONNECT_KEY_ID`
 
-## 5. Create the certificate and provisioning profile
+## 5. Trigger
+
+- Automatic: merge a PR into `main` or push directly to `main`
+- Manual retry: GitHub Actions → `iOS TestFlight CD` → `Run workflow`
+
+## 6. Create the certificate and provisioning profile
 
 You need these Apple Developer assets for `com.washer.v2`:
 
@@ -48,7 +53,7 @@ base64 certificate.p12 | tr -d '\n'
 base64 profile.mobileprovision | tr -d '\n'
 ```
 
-## 6. App Store Connect API key
+## 7. App Store Connect API key
 
 Create an App Store Connect API key with permission to upload builds, then store:
 
@@ -56,7 +61,7 @@ Create an App Store Connect API key with permission to upload builds, then store
 - the key id in `APP_STORE_CONNECT_KEY_ID`
 - the issuer id in `APP_STORE_CONNECT_ISSUER_ID`
 
-## 7. Versioning
+## 8. Versioning
 
 The workflow reads the app version from `pubspec.yaml`.
 
@@ -68,5 +73,6 @@ version: 1.0.0+1
 
 - `1.0.0` becomes the iOS version name
 - `GITHUB_RUN_NUMBER` becomes the iOS build number uploaded to TestFlight
+- TestFlight changelog is set to the GitHub Actions run number and commit SHA
 
 If you need a new App Store version, update `pubspec.yaml` before merging to `main`.

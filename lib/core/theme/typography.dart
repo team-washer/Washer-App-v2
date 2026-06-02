@@ -11,14 +11,12 @@ class WasherTypography {
   static TextStyle _suitBase({
     required double fontSize,
     required FontWeight fontWeight,
-    double height = 1,
     Color? color,
   }) {
     return TextStyle(
       fontFamily: _fontFamily,
       fontWeight: fontWeight,
       fontSize: fontSize.sp,
-      height: height,
       color: color ?? _defaultColor,
     );
   }
@@ -38,7 +36,7 @@ class WasherTypography {
   // Subtitle Styles
   static TextStyle subTitle1([Color? color]) => _suitBase(
     fontSize: 20,
-    fontWeight: FontWeight.normal,
+    fontWeight: FontWeight.w500,
     color: color,
   );
   static TextStyle subTitle2([Color? color]) => _suitBase(
@@ -48,7 +46,7 @@ class WasherTypography {
   );
   static TextStyle subTitle3([Color? color]) => _suitBase(
     fontSize: 18,
-    fontWeight: FontWeight.normal,
+    fontWeight: FontWeight.w500,
     color: color,
   );
   static TextStyle subTitle4([Color? color]) => _suitBase(
@@ -60,12 +58,12 @@ class WasherTypography {
   // Body Styles
   static TextStyle body1([Color? color]) => _suitBase(
     fontSize: 16,
-    fontWeight: FontWeight.normal,
+    fontWeight: FontWeight.w500,
     color: color,
   );
   static TextStyle body2([Color? color]) => _suitBase(
     fontSize: 15,
-    fontWeight: FontWeight.normal,
+    fontWeight: FontWeight.w500,
     color: color,
   );
   static TextStyle body3([Color? color]) => _suitBase(
@@ -75,14 +73,14 @@ class WasherTypography {
   );
   static TextStyle body4([Color? color]) => _suitBase(
     fontSize: 14,
-    fontWeight: FontWeight.normal,
+    fontWeight: FontWeight.w500,
     color: color,
   );
 
   // Caption Style
   static TextStyle caption([Color? color]) => _suitBase(
     fontSize: 12,
-    fontWeight: FontWeight.normal,
+    fontWeight: FontWeight.w500,
     color: color,
   );
 }

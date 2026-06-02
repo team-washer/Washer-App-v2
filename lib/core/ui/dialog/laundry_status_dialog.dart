@@ -3,16 +3,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/constants/durations.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
+import 'package:washer/core/enums/laundry_status.dart';
 import 'package:washer/core/enums/machine_state.dart';
 import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
 import 'package:washer/core/ui/dialog/washer_dialog.dart';
+import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/core/utils/date_time_formatter.dart';
 import 'package:washer/core/utils/room_formatter.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
-import 'package:washer/features/reservation/presentation/states/reservation_action_state.dart';
-import 'package:washer/features/reservation/presentation/viewmodels/reservation_view_model.dart';
+import 'package:washer/features/reservation/presentation/providers/reservation_action_provider.dart';
 
 class LaundryStatusDialog extends ConsumerWidget {
   const LaundryStatusDialog({
@@ -48,11 +49,18 @@ class LaundryStatusDialog extends ConsumerWidget {
       activeReservations,
       machineId,
     );
+    final isReserved =
+        syncedReservation?.laundryStatus == LaundryStatus.reserved;
     final isAvailable = !isUsed && !isUnavailable;
     final title = machineType == LaundryMachineType.washer
         ? '세탁기 현황'
         : '건조기 현황';
-    final statusText = _buildStatusText(isUnavailable, isUsed, machineState);
+    final statusText = _buildStatusText(
+      isUnavailable,
+      isUsed,
+      machineState,
+      isReserved: isReserved,
+    );
     final roomText = RoomFormatter.formatRoomNumber(
       syncedReservation?.userRoomNumber ?? roomNumber,
     );
@@ -61,6 +69,8 @@ class LaundryStatusDialog extends ConsumerWidget {
       isUnavailable: isUnavailable,
       machineState: machineState,
       expectedTime: syncedReservation?.expectedCompletionTime ?? expectedTime,
+      reservedAt: syncedReservation?.reservedAt,
+      isReserved: isReserved,
       now: now,
     );
 
@@ -74,22 +84,22 @@ class LaundryStatusDialog extends ConsumerWidget {
                 final messenger = ScaffoldMessenger.of(context);
                 final navigator = Navigator.of(context);
                 final reservationNotifier = ref.read(
-                  reservationViewModelProvider.notifier,
+                  reservationActionProvider.notifier,
                 );
 
                 navigator.pop();
 
                 try {
-                  final reservationState = await reservationNotifier.reserve(
+                  final reservation = await reservationNotifier.reserve(
                     machineId: machineId,
                   );
 
-                  if (reservationState.status ==
-                      ReservationActionStatus.error) {
+                  if (reservation == null) {
+                    final error = ref.read(reservationActionProvider).error;
                     messenger.showSnackBar(
                       SnackBar(
                         content: Text(
-                          '예약 실패: ${reservationState.errorMessage}',
+                          '예약 실패: ${reservationActionErrorMessage(error, fallback: '예약에 실패했습니다. 다시 시도해주세요.')}',
                         ),
                       ),
                     );
@@ -104,9 +114,15 @@ class LaundryStatusDialog extends ConsumerWidget {
                       ),
                     ),
                   );
-                } catch (e) {
+                } catch (error, stackTrace) {
+                  AppLogger.error(
+                    '세탁 상태 다이얼로그 예약 처리 중 오류가 발생했습니다.',
+                    name: 'LaundryStatusDialog',
+                    error: error,
+                    stackTrace: stackTrace,
+                  );
                   messenger.showSnackBar(
-                    SnackBar(content: Text('예약 실패: $e')),
+                    SnackBar(content: Text('예약 실패: $error')),
                   );
                 }
               }
@@ -133,9 +149,11 @@ class LaundryStatusDialog extends ConsumerWidget {
   static String _buildStatusText(
     bool isUnavailable,
     bool isUsed,
-    MachineState? machineState,
-  ) {
+    MachineState? machineState, {
+    required bool isReserved,
+  }) {
     if (isUnavailable) return '사용 불가(기기고장)';
+    if (isReserved) return '예약중';
     if (!isUsed) return '사용 가능';
     if (machineState != null) return '사용중 (${machineState.text})';
     return '사용중';
@@ -146,6 +164,8 @@ class LaundryStatusDialog extends ConsumerWidget {
     required bool isUnavailable,
     required MachineState? machineState,
     required String? expectedTime,
+    required String? reservedAt,
+    required bool isReserved,
     required DateTime now,
   }) {
     if (isUnavailable) {
@@ -153,6 +173,26 @@ class LaundryStatusDialog extends ConsumerWidget {
           ? '세탁기'
           : '건조기';
       return '$machineTypeText 사용 불가';
+    }
+
+    if (isReserved) {
+      final reservedDateTime = reservedAt != null
+          ? DateTime.tryParse(reservedAt)
+          : null;
+      final reservationExpiryTime = reservedDateTime?.add(
+        reservationExpiryDuration,
+      );
+      if (reservationExpiryTime == null) {
+        return '예약 만료까지: 확인 중';
+      }
+
+      final formattedReservationTime =
+          DateTimeFormatter.formatRemainingTimeToKorean(
+            reservationExpiryTime.toIso8601String(),
+            now: now,
+            expiredText: '만료됨',
+          );
+      return '예약 만료까지: $formattedReservationTime';
     }
 
     if (expectedTime == null || expectedTime.trim().isEmpty) return '분석중';

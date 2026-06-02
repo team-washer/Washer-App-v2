@@ -7,7 +7,7 @@ import 'package:washer/core/ui/main_shell.dart';
 import 'package:washer/features/alarm/presentation/screens/alarm_screen.dart';
 import 'package:washer/features/auth/presentation/screens/auth_webview_screen.dart';
 import 'package:washer/features/auth/presentation/screens/login_screen.dart';
-import 'package:washer/app/home/presentation/screens/home_screen.dart';
+import 'package:washer/features/home/presentation/screens/home_screen.dart';
 import 'package:washer/features/reservation/presentation/screens/reservation_screen.dart';
 import 'package:washer/splash_screen.dart';
 
@@ -81,8 +81,9 @@ final appRouter = GoRouter(
               routes: [
                 GoRoute(
                   path: RoutePaths.alarmSubRoute,
-                  builder: (context, state) =>
-                      const AlarmScreen(useBaseScaffold: false),
+                  pageBuilder: (context, state) => const NoTransitionPage(
+                    child: AlarmScreen(),
+                  ),
                 ),
               ],
             ),
@@ -96,8 +97,9 @@ final appRouter = GoRouter(
               routes: [
                 GoRoute(
                   path: RoutePaths.alarmSubRoute,
-                  builder: (context, state) =>
-                      const AlarmScreen(useBaseScaffold: false),
+                  pageBuilder: (context, state) => const NoTransitionPage(
+                    child: AlarmScreen(),
+                  ),
                 ),
               ],
             ),
@@ -113,8 +115,9 @@ final appRouter = GoRouter(
               routes: [
                 GoRoute(
                   path: RoutePaths.alarmSubRoute,
-                  builder: (context, state) =>
-                      const AlarmScreen(useBaseScaffold: false),
+                  pageBuilder: (context, state) => const NoTransitionPage(
+                    child: AlarmScreen(),
+                  ),
                 ),
               ],
             ),

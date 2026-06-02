@@ -16,6 +16,7 @@ import 'package:washer/core/utils/date_time_formatter.dart';
 import 'package:washer/core/utils/room_formatter.dart';
 import 'package:washer/core/utils/user_formatter.dart';
 import 'package:washer/features/history/presentation/widgets/history_dialog.dart';
+import 'package:washer/features/report/presentation/widgets/report_broken_dialog.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
 
 class ReservationWidget extends StatelessWidget {
@@ -79,7 +80,7 @@ class ReservationWidget extends StatelessWidget {
                       child: Text(
                         machineName,
                         style: WasherTypography.subTitle3(
-                          WasherColor.baseGray700,
+                          WasherColor.baseGray800,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -221,24 +222,24 @@ class _InUseBottom extends ConsumerWidget {
         children: [
           Text(
             '${laundryMachineType.text} 사용 중',
-            style: WasherTypography.body2(WasherColor.baseGray400),
+            style: WasherTypography.body2(WasherColor.baseGray500),
           ),
           AppGap.v4,
           Text(
             '분석중',
-            style: WasherTypography.body2(WasherColor.baseGray400),
+            style: WasherTypography.body2(WasherColor.baseGray500),
           ),
           AppGap.v4,
           if (room != null)
             Text(
               '사용 호실: ${RoomFormatter.formatRoom(room)}',
-              style: WasherTypography.body2(WasherColor.baseGray400),
+              style: WasherTypography.body2(WasherColor.baseGray500),
             ),
           if (activeUserLabel != null) ...[
             AppGap.v4,
             Text(
               '$activeUserLabel 이용중...',
-              style: WasherTypography.body2(WasherColor.baseGray400),
+              style: WasherTypography.body2(WasherColor.baseGray500),
             ),
           ],
         ],
@@ -258,24 +259,24 @@ class _InUseBottom extends ConsumerWidget {
       children: [
         Text(
           '${laundryMachineType.text} 사용 중',
-          style: WasherTypography.body2(WasherColor.baseGray400),
+          style: WasherTypography.body2(WasherColor.baseGray500),
         ),
         AppGap.v4,
         Text(
           '남은 ${laundryMachineType == LaundryMachineType.washer ? '세탁' : '건조'} 시간: $countdown',
-          style: WasherTypography.body2(WasherColor.baseGray400),
+          style: WasherTypography.body2(WasherColor.baseGray500),
         ),
         AppGap.v4,
         if (room != null)
           Text(
             '사용 호실: ${RoomFormatter.formatRoom(room)}',
-            style: WasherTypography.body2(WasherColor.baseGray400),
+            style: WasherTypography.body2(WasherColor.baseGray500),
           ),
         if (activeUserLabel != null) ...[
           AppGap.v4,
           Text(
             '$activeUserLabel 이용중...',
-            style: WasherTypography.body2(WasherColor.baseGray400),
+            style: WasherTypography.body2(WasherColor.baseGray500),
           ),
         ],
       ],
@@ -307,7 +308,7 @@ class _AvailableBottom extends StatelessWidget {
       children: [
         Text(
           '미사용 중',
-          style: WasherTypography.body2(WasherColor.baseGray400),
+          style: WasherTypography.body2(WasherColor.baseGray500),
         ),
         AppGap.v12,
         Row(
@@ -331,11 +332,9 @@ class _AvailableBottom extends StatelessWidget {
                 showDialog(
                   context: context,
                   builder: (context) => Dialog(
-                    child: LaundryActionDialog(
-                      actionType: LaundryActionType.reportBroken,
+                    child: ReportBrokenDialog(
                       machineId: machineId,
                       deviceId: machineName,
-                      reservationId: 0,
                     ),
                   ),
                 );

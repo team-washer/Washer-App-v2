@@ -64,3 +64,6 @@ GoogleService-Info.plist
 android/key.properties
 *.jks
 *.keystore
+
+.codex/
+.omx/

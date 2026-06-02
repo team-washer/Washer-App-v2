@@ -42,5 +42,5 @@ class WasherColor {
   static const negative = errorColor;
 
   // background color
-  static const backgroundColor = Color(0xFFF4F4F9);
+  static const backgroundColor = Color(0xFFF4F5F9);
 }

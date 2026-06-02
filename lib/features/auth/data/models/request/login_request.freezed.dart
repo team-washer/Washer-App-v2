@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$LoginRequest {
 
- String get code;
+ String get authCode; String get redirectUri;
 /// Create a copy of LoginRequest
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $LoginRequestCopyWith<LoginRequest> get copyWith => _$LoginRequestCopyWithImpl<L
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is LoginRequest&&(identical(other.code, code) || other.code == code));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is LoginRequest&&(identical(other.authCode, authCode) || other.authCode == authCode)&&(identical(other.redirectUri, redirectUri) || other.redirectUri == redirectUri));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,code);
+int get hashCode => Object.hash(runtimeType,authCode,redirectUri);
 
 @override
 String toString() {
-  return 'LoginRequest(code: $code)';
+  return 'LoginRequest(authCode: $authCode, redirectUri: $redirectUri)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $LoginRequestCopyWith<$Res>  {
   factory $LoginRequestCopyWith(LoginRequest value, $Res Function(LoginRequest) _then) = _$LoginRequestCopyWithImpl;
 @useResult
 $Res call({
- String code
+ String authCode, String redirectUri
 });
 
 
@@ -65,9 +65,10 @@ class _$LoginRequestCopyWithImpl<$Res>
 
 /// Create a copy of LoginRequest
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? code = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? authCode = null,Object? redirectUri = null,}) {
   return _then(_self.copyWith(
-code: null == code ? _self.code : code // ignore: cast_nullable_to_non_nullable
+authCode: null == authCode ? _self.authCode : authCode // ignore: cast_nullable_to_non_nullable
+as String,redirectUri: null == redirectUri ? _self.redirectUri : redirectUri // ignore: cast_nullable_to_non_nullable
 as String,
   ));
 }
@@ -153,10 +154,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String code)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String authCode,  String redirectUri)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _LoginRequest() when $default != null:
-return $default(_that.code);case _:
+return $default(_that.authCode,_that.redirectUri);case _:
   return orElse();
 
 }
@@ -174,10 +175,10 @@ return $default(_that.code);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String code)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String authCode,  String redirectUri)  $default,) {final _that = this;
 switch (_that) {
 case _LoginRequest():
-return $default(_that.code);case _:
+return $default(_that.authCode,_that.redirectUri);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -194,10 +195,10 @@ return $default(_that.code);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String code)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String authCode,  String redirectUri)?  $default,) {final _that = this;
 switch (_that) {
 case _LoginRequest() when $default != null:
-return $default(_that.code);case _:
+return $default(_that.authCode,_that.redirectUri);case _:
   return null;
 
 }
@@ -209,10 +210,11 @@ return $default(_that.code);case _:
 @JsonSerializable()
 
 class _LoginRequest implements LoginRequest {
-  const _LoginRequest({required this.code});
+  const _LoginRequest({required this.authCode, required this.redirectUri});
   factory _LoginRequest.fromJson(Map<String, dynamic> json) => _$LoginRequestFromJson(json);
 
-@override final  String code;
+@override final  String authCode;
+@override final  String redirectUri;
 
 /// Create a copy of LoginRequest
 /// with the given fields replaced by the non-null parameter values.
@@ -227,16 +229,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LoginRequest&&(identical(other.code, code) || other.code == code));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LoginRequest&&(identical(other.authCode, authCode) || other.authCode == authCode)&&(identical(other.redirectUri, redirectUri) || other.redirectUri == redirectUri));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,code);
+int get hashCode => Object.hash(runtimeType,authCode,redirectUri);
 
 @override
 String toString() {
-  return 'LoginRequest(code: $code)';
+  return 'LoginRequest(authCode: $authCode, redirectUri: $redirectUri)';
 }
 
 
@@ -247,7 +249,7 @@ abstract mixin class _$LoginRequestCopyWith<$Res> implements $LoginRequestCopyWi
   factory _$LoginRequestCopyWith(_LoginRequest value, $Res Function(_LoginRequest) _then) = __$LoginRequestCopyWithImpl;
 @override @useResult
 $Res call({
- String code
+ String authCode, String redirectUri
 });
 
 
@@ -264,9 +266,10 @@ class __$LoginRequestCopyWithImpl<$Res>
 
 /// Create a copy of LoginRequest
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? code = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? authCode = null,Object? redirectUri = null,}) {
   return _then(_LoginRequest(
-code: null == code ? _self.code : code // ignore: cast_nullable_to_non_nullable
+authCode: null == authCode ? _self.authCode : authCode // ignore: cast_nullable_to_non_nullable
+as String,redirectUri: null == redirectUri ? _self.redirectUri : redirectUri // ignore: cast_nullable_to_non_nullable
 as String,
   ));
 }

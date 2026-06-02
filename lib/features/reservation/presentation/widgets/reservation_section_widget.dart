@@ -11,12 +11,14 @@ import 'package:washer/core/theme/color.dart';
 import 'package:washer/core/theme/icon.dart';
 import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
+import 'package:washer/core/utils/app_logger.dart';
+import 'package:washer/core/utils/room_formatter.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/data/models/local/laundry_machine_model.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
-import 'package:washer/features/reservation/presentation/states/reservation_action_state.dart';
-import 'package:washer/features/reservation/presentation/viewmodels/reservation_view_model.dart';
-import 'package:washer/features/user/presentation/viewmodels/my_user_view_model.dart';
+import 'package:washer/features/reservation/presentation/providers/reservation_action_provider.dart';
+import 'package:washer/features/reservation/presentation/widgets/laundry_layout_dialog.dart';
+import 'package:washer/features/user/presentation/providers/my_user_provider.dart';
 import 'package:washer/features/reservation/presentation/widgets/reservation_widget.dart';
 
 class ReservationSectionWidget extends ConsumerStatefulWidget {
@@ -53,9 +55,15 @@ class _ReservationSectionWidgetState
         .toList(growable: false);
   }
 
-  List<int> _floorsFrom(List<MachineModel> machines) {
-    return machines.map((m) => m.floorNumber).whereType<int>().toSet().toList()
-      ..sort();
+  List<int> _floorsFrom(List<MachineModel> machines, int? userFloor) {
+    final floors = machines
+        .map((m) => m.floorNumber)
+        .whereType<int>()
+        .toSet();
+    if (userFloor != null) {
+      floors.add(userFloor);
+    }
+    return floors.toList()..sort();
   }
 
   ReservationState _toReservationState(
@@ -148,15 +156,18 @@ class _ReservationSectionWidgetState
 
   Future<void> _reserveMachine(BuildContext context, _MachineData item) async {
     try {
-      final reservationState = await ref
-          .read(reservationViewModelProvider.notifier)
+      final reservation = await ref
+          .read(reservationActionProvider.notifier)
           .reserve(machineId: item.machineId);
 
-      if (reservationState.status == ReservationActionStatus.error) {
+      if (reservation == null) {
         if (context.mounted) {
+          final error = ref.read(reservationActionProvider).error;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('예약 실패: ${reservationState.errorMessage}'),
+              content: Text(
+                '예약 실패: ${reservationActionErrorMessage(error, fallback: '예약에 실패했습니다. 다시 시도해주세요.')}',
+              ),
             ),
           );
         }
@@ -174,7 +185,13 @@ class _ReservationSectionWidgetState
           ),
         );
       }
-    } catch (error) {
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        '예약 섹션 예약 처리 중 오류가 발생했습니다.',
+        name: 'ReservationSectionWidget',
+        error: error,
+        stackTrace: stackTrace,
+      );
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('오류: $error')),
@@ -183,12 +200,27 @@ class _ReservationSectionWidgetState
     }
   }
 
+  void _showLaundryLayoutDialog(
+    BuildContext context, {
+    required int floor,
+    required List<MachineModel> machines,
+  }) {
+    showDialog<void>(
+      context: context,
+      builder: (_) => LaundryLayoutDialog(
+        laundryMachineType: widget.laundryMachineType,
+        floor: floor,
+        machines: machines,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final machineAsync = ref.watch(machineStatusProvider);
     final isReservationActionLoading = ref.watch(
-      reservationViewModelProvider.select(
-        (state) => state.status == ReservationActionStatus.loading,
+      reservationActionProvider.select(
+        (state) => state.isLoading,
       ),
     );
     final activeReservations =
@@ -196,11 +228,9 @@ class _ReservationSectionWidgetState
             .watch(activeReservationProvider)
             .whenOrNull(data: (reservations) => reservations) ??
         const <ActiveReservationModel>[];
-    final myUserId = ref
-        .watch(myUserProvider)
-        .whenOrNull(
-          data: (user) => user?.id,
-        );
+    final myUser = ref.watch(myUserProvider).value;
+    final myUserId = myUser?.id;
+    final userFloor = RoomFormatter.floorFromRoomNumber(myUser?.roomNumber);
 
     return machineAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -223,7 +253,7 @@ class _ReservationSectionWidgetState
       ),
       data: (data) {
         final typedMachines = _machinesForType(data.machines);
-        final floors = _floorsFrom(typedMachines);
+        final floors = _floorsFrom(typedMachines, userFloor);
         final currentFloor =
             _selectedFloor ?? (floors.isNotEmpty ? floors.first : 0);
         final items = _buildItems(
@@ -240,7 +270,17 @@ class _ReservationSectionWidgetState
               floors: floors,
               selectedFloor: currentFloor,
               onFloorChanged: (floor) => setState(() => _selectedFloor = floor),
-              onMapTap: widget.onMapTap,
+              onMapTap: () {
+                if (widget.onMapTap != null) {
+                  widget.onMapTap!();
+                  return;
+                }
+                _showLaundryLayoutDialog(
+                  context,
+                  floor: currentFloor,
+                  machines: typedMachines,
+                );
+              },
             ),
             AppGap.v16,
             Expanded(
@@ -363,10 +403,10 @@ class _FloorSelectorRow extends StatelessWidget {
                       ),
                       child: Text(
                         '$floor층',
-                        style: WasherTypography.body4(
+                        style: WasherTypography.subTitle3(
                           selectedFloor == floor
                               ? Colors.white
-                              : WasherColor.baseGray600,
+                              : WasherColor.baseGray800,
                         ),
                       ),
                     ),
@@ -381,13 +421,13 @@ class _FloorSelectorRow extends StatelessWidget {
             children: [
               Text(
                 '배치도 보기',
-                style: WasherTypography.body4(WasherColor.baseGray300),
+                style: WasherTypography.body2(WasherColor.baseGray500),
               ),
               AppGap.h4,
               const WasherIcon(
                 type: WasherIconType.map,
                 size: 20,
-                color: WasherColor.baseGray300,
+                color: WasherColor.baseGray500,
               ),
             ],
           ),

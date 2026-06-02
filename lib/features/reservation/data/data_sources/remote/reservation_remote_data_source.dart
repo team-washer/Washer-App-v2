@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:retrofit/retrofit.dart';
 import 'package:washer/core/network/api_response_parser.dart';
 import 'package:washer/core/network/dio_client.dart';
-import 'package:washer/core/utils/background_task.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/data/models/remote/confirm_reservation_response.dart';
 
@@ -58,7 +57,7 @@ class ReservationRemoteDataSourceImpl implements ReservationRemoteDataSource {
     final response = await _api.createReservation(payload);
     final data = extractDataMap(castJsonMap(response.data));
 
-    return runInBackground(() => ActiveReservationModel.fromJson(data));
+    return ActiveReservationModel.fromJson(data);
   }
 
   @override
@@ -75,7 +74,7 @@ class ReservationRemoteDataSourceImpl implements ReservationRemoteDataSource {
     final response = await _api.confirmReservation(id);
     final data = castJsonMap(response.data);
 
-    return runInBackground(() => ConfirmReservationResponse.fromJson(data));
+    return ConfirmReservationResponse.fromJson(data);
   }
 }
 

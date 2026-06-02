@@ -7,9 +7,9 @@ import 'package:washer/core/ui/dialog/washer_dialog.dart';
 import 'package:washer/core/ui/reservation_state_widget.dart';
 import 'package:washer/core/utils/date_time_formatter.dart';
 import 'package:washer/features/history/data/models/machine_history_response.dart';
-import 'package:washer/features/history/domain/enum/history_status_enum.dart';
+import 'package:washer/features/history/presentation/models/history_status.dart';
 import 'package:washer/features/history/presentation/states/history_state.dart';
-import 'package:washer/features/history/presentation/viewmodels/history_view_model.dart';
+import 'package:washer/features/history/presentation/providers/history_provider.dart';
 
 class HistoryDialog extends ConsumerStatefulWidget {
   const HistoryDialog({
@@ -31,15 +31,13 @@ class _HistoryDialogState extends ConsumerState<HistoryDialog> {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref
-          .read(historyViewModelProvider.notifier)
-          .fetchTodayHistory(widget.machineId);
+      ref.read(historyProvider.notifier).fetchTodayHistory(widget.machineId);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(historyViewModelProvider);
+    final state = ref.watch(historyProvider);
 
     return Dialog(
       backgroundColor: Colors.transparent,

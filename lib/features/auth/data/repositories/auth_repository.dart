@@ -55,6 +55,7 @@ class AuthRepository {
       _storage.write(key: 'access_token', value: response.accessToken),
       _storage.write(key: 'refresh_token', value: response.refreshToken),
     ]);
+    _dioClient.clearInMemoryCache();
   }
 }
 

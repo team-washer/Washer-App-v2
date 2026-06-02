@@ -41,7 +41,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyCD663kBDeocLqzFdAabMLLLi-k5c9wBsQ',
-    appId: '1:360429077717:android:e4703c97717c3665c28e5c',
+    appId: '1:360429077717:android:75272bb69e1670cbc28e5c',
     messagingSenderId: '360429077717',
     projectId: 'washer-v2-2cb9e',
     storageBucket: 'washer-v2-2cb9e.firebasestorage.app',
@@ -49,7 +49,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyClzEEQBvVj9Clw6CrYL2XrGBxh-9oxwIw',
-    appId: '1:360429077717:ios:f3eff75093eb1202c28e5c',
+    appId: '1:360429077717:ios:d49d6feca13ddb41c28e5c',
     messagingSenderId: '360429077717',
     projectId: 'washer-v2-2cb9e',
     storageBucket: 'washer-v2-2cb9e.firebasestorage.app',

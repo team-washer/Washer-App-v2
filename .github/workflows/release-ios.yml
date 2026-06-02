@@ -1,0 +1,185 @@
+name: Release - iOS App Store
+
+# main 에 push(머지)되면 App Store 심사에 자동 제출한다.
+# - 마케팅 버전은 App Store Connect 최신 버전 +패치로 자동 증가 (Fastfile resolve_next_appstore_version)
+# - 릴리스 노트는 머지 커밋 메시지(PR 제목)에서 가져옴, 없으면 기본 문구
+# TestFlight 배포는 cd-ios.yml 이 따로 담당(같은 main push 로 동시 동작).
+# ⚠️ Apple 은 한 번에 버전 1개만 심사 → main 은 릴리스용으로 사용 권장.
+on:
+  push:
+    branches:
+      - main
+  # 수동 실행(테스트용). dry_run=true 면 빌드/서명(archive)까지만 하고 App Store 업로드는 건너뛴다.
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "빌드/서명까지만 하고 App Store 업로드는 건너뜀 (테스트용)"
+        type: boolean
+        default: true
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build & Submit to App Store
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # annotated 태그 메시지를 읽기 위해 전체 히스토리/태그 fetch
+
+      - name: Set up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Set up Dart
+        uses: dart-lang/setup-dart@v1
+
+      - name: Install FVM
+        run: |
+          dart pub global activate fvm
+          echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH"
+
+      - name: Install Flutter via FVM
+        run: |
+          fvm install
+          fvm use --force
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+
+      - name: Export CocoaPods bin to PATH
+        run: |
+          bundle binstubs cocoapods
+          echo "$GITHUB_WORKSPACE/bin" >> $GITHUB_PATH
+
+      - name: Flutter pub get
+        run: fvm flutter pub get
+
+      - name: Flutter precache iOS artifacts
+        run: fvm flutter precache --ios
+
+      - name: Install CocoaPods dependencies
+        working-directory: ios
+        run: bundle exec pod install
+
+      - name: Restore production env
+        env:
+          ENV_PRODUCTION: ${{ secrets.ENV_PRODUCTION }}
+          ENV_DEVELOPMENT: ${{ secrets.ENV_DEVELOPMENT }}
+        run: |
+          if [ -z "$ENV_PRODUCTION" ] || [ -z "$ENV_DEVELOPMENT" ]; then
+            echo "::error::ENV_PRODUCTION or ENV_DEVELOPMENT secret is missing."
+            exit 1
+          fi
+          printf '%s' "$ENV_PRODUCTION" > .env.production
+          printf '%s' "$ENV_DEVELOPMENT" > .env.development
+
+      - name: Install Apple certificate and provisioning profile
+        env:
+          IOS_BUILD_CERTIFICATE_BASE64: ${{ secrets.IOS_BUILD_CERTIFICATE_BASE64 }}
+          IOS_P12_PASSWORD: ${{ secrets.IOS_P12_PASSWORD }}
+          IOS_BUILD_PROVISION_PROFILE_BASE64: ${{ secrets.IOS_BUILD_PROVISION_PROFILE_BASE64 }}
+          IOS_KEYCHAIN_PASSWORD: ${{ secrets.IOS_KEYCHAIN_PASSWORD }}
+        run: |
+          if [ -z "$IOS_BUILD_CERTIFICATE_BASE64" ] || [ -z "$IOS_P12_PASSWORD" ] || \
+             [ -z "$IOS_BUILD_PROVISION_PROFILE_BASE64" ] || [ -z "$IOS_KEYCHAIN_PASSWORD" ]; then
+            echo "::error::iOS signing secrets are missing."
+            exit 1
+          fi
+
+          CERTIFICATE_PATH="$RUNNER_TEMP/build_certificate.p12"
+          PROFILE_PATH="$RUNNER_TEMP/build_pp.mobileprovision"
+          KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
+
+          printf '%s' "$IOS_BUILD_CERTIFICATE_BASE64" | base64 --decode > "$CERTIFICATE_PATH"
+          printf '%s' "$IOS_BUILD_PROVISION_PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH"
+
+          security create-keychain -p "$IOS_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$IOS_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERTIFICATE_PATH" -P "$IOS_P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH" || {
+            echo "::error::Failed to import certificate into keychain."
+            exit 1
+          }
+          security list-keychain -d user -s "$KEYCHAIN_PATH" $(security list-keychain -d user | tr -d '"')
+          security set-key-partition-list -S apple-tool:,apple: -k "$IOS_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          CERT_OUTPUT=$(security find-identity -v -p codesigning "$KEYCHAIN_PATH")
+          echo "$CERT_OUTPUT"
+          if echo "$CERT_OUTPUT" | grep -qE "^\s+0 valid identities found"; then
+            echo "::error::No valid signing certificate found in keychain."
+            exit 1
+          fi
+
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          cp "$PROFILE_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles"
+
+          PROFILE_UUID=$(security cms -D -i "$PROFILE_PATH" | plutil -extract UUID raw -)
+          if [ -z "$PROFILE_UUID" ]; then
+            echo "::error::Failed to extract UUID from provisioning profile."
+            exit 1
+          fi
+          if [ ! -f "$HOME/Library/MobileDevice/Provisioning Profiles/build_pp.mobileprovision" ]; then
+            echo "::error::Provisioning profile not found in Provisioning Profiles directory."
+            exit 1
+          fi
+          echo "IOS_PROVISIONING_PROFILE_UUID=$PROFILE_UUID" >> "$GITHUB_ENV"
+
+      - name: Resolve build number
+        run: |
+          # 마케팅 버전은 Fastfile 이 App Store Connect 조회로 자동 결정한다.
+          # 여기선 빌드번호만 run number 로 고정(App Store 빌드 중복 방지).
+          echo "IOS_BUILD_NUMBER=${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+
+      - name: Prepare release notes
+        run: |
+          # 머지 커밋 메시지 본문(보통 PR 제목)을 릴리스 노트로 사용, 비면 기본 문구.
+          NOTES="$(git log -1 --format=%b HEAD | sed '/^[[:space:]]*$/d' | head -n 10)"
+          if [ -z "$(printf '%s' "$NOTES" | tr -d '[:space:]')" ]; then
+            NOTES="버그 수정 및 안정성 개선"
+          fi
+          # App Store 등록 언어(ko)에 What's New 작성. (등록 언어 추가 시 디렉터리 추가 필요)
+          mkdir -p fastlane/metadata/ko
+          printf '%s\n' "$NOTES" > fastlane/metadata/ko/release_notes.txt
+          echo "----- release_notes (ko) -----"
+          cat fastlane/metadata/ko/release_notes.txt
+
+      - name: Verify signing prerequisites
+        run: |
+          if [ -z "$IOS_PROVISIONING_PROFILE_UUID" ]; then
+            echo "::error::IOS_PROVISIONING_PROFILE_UUID is empty."
+            exit 1
+          fi
+          if [ -z "$IOS_BUILD_NUMBER" ]; then
+            echo "::error::IOS_BUILD_NUMBER is empty."
+            exit 1
+          fi
+          echo "Build number: $IOS_BUILD_NUMBER"
+          echo "Profile UUID: $IOS_PROVISIONING_PROFILE_UUID"
+
+      - name: Build & Submit to App Store
+        env:
+          APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          # workflow_dispatch 의 dry_run 입력 전달 (push 트리거 시 빈 값 → 실제 심사 제출)
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
+        run: bundle exec fastlane ios release_appstore
+
+      - name: Clean up keychain and provisioning profile
+        if: always()
+        run: |
+          security delete-keychain "$RUNNER_TEMP/app-signing.keychain-db" || true
+          rm -f "$RUNNER_TEMP/build_certificate.p12"
+          rm -f "$RUNNER_TEMP/build_pp.mobileprovision"
+          rm -f .env.production
+          rm -f .env.development

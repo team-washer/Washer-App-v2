@@ -19,7 +19,7 @@ if (hasKeystore) {
 }
 
 android {
-    namespace = "com.washer.v2"
+    namespace = "com.washer"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -36,6 +36,8 @@ android {
     }
 
     defaultConfig {
+        // 배포 ID 는 Play Console 등록 패키지(com.washer.v2)에 맞춘다.
+        // namespace(코드용 R/BuildConfig)는 com.washer 유지 — MainActivity 패키지/매니페스트와 정합.
         applicationId = "com.washer.v2"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
@@ -56,14 +58,24 @@ android {
 
     buildTypes {
         release {
-            if (!hasKeystore) {
-                throw GradleException(
-                    "Release signing requires android/key.properties. " +
-                        "Copy android/key.properties.example and set your keystore values.",
-                )
-            }
-
             signingConfig = signingConfigs.getByName("release")
+        }
+    }
+}
+
+// Enforce a real keystore only when a release artifact is actually built.
+// profile/debug builds (e.g. `flutter run --profile`) do not need it.
+if (!hasKeystore) {
+    gradle.taskGraph.whenReady {
+        val needsReleaseSigning = allTasks.any { task ->
+            task.name.contains("Release") &&
+                (task.name.startsWith("assemble") || task.name.startsWith("bundle"))
+        }
+        if (needsReleaseSigning) {
+            throw GradleException(
+                "Release signing requires android/key.properties. " +
+                    "Copy android/key.properties.example and set your keystore values.",
+            )
         }
     }
 }

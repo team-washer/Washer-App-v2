@@ -9,6 +9,13 @@ on:
   push:
     branches:
       - main
+  # 수동 실행(테스트용). dry_run=true 면 빌드/서명(archive)까지만 하고 App Store 업로드는 건너뛴다.
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "빌드/서명까지만 하고 App Store 업로드는 건너뜀 (테스트용)"
+        type: boolean
+        default: true
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -164,6 +171,8 @@ jobs:
           APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          # workflow_dispatch 의 dry_run 입력 전달 (push 트리거 시 빈 값 → 실제 심사 제출)
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
         run: bundle exec fastlane ios release_appstore
 
       - name: Clean up keychain and provisioning profile

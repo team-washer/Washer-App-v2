@@ -7,7 +7,13 @@ part of 'login_request.dart';
 // **************************************************************************
 
 _LoginRequest _$LoginRequestFromJson(Map<String, dynamic> json) =>
-    _LoginRequest(code: json['code'] as String);
+    _LoginRequest(
+      authCode: json['authCode'] as String,
+      redirectUri: json['redirectUri'] as String,
+    );
 
 Map<String, dynamic> _$LoginRequestToJson(_LoginRequest instance) =>
-    <String, dynamic>{'code': instance.code};
+    <String, dynamic>{
+      'authCode': instance.authCode,
+      'redirectUri': instance.redirectUri,
+    };

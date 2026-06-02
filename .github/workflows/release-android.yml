@@ -8,6 +8,13 @@ on:
   push:
     branches:
       - main
+  # 수동 실행(테스트용). dry_run=true 면 AAB 빌드/서명까지만 하고 Play Store 업로드는 건너뛴다.
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "빌드/서명까지만 하고 스토어 업로드는 건너뜀 (테스트용)"
+        type: boolean
+        default: true
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -37,7 +44,8 @@ jobs:
   release:
     name: Build & Release to Play Store (production)
     needs: guard
-    if: needs.guard.outputs.configured == 'true'
+    # 실배포는 Play Store 키가 있을 때만. dry-run(테스트)은 키 없이도 빌드 검증을 위해 실행.
+    if: needs.guard.outputs.configured == 'true' || github.event.inputs.dry_run == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -119,6 +127,8 @@ jobs:
           # Google Play API 서비스 계정 키 (google-services.json과 다른 별도 키)
           # Google Play Console → 설정 → API 액세스 → 서비스 계정에서 발급
           SUPPLY_JSON_KEY_DATA: ${{ secrets.GOOGLE_PLAY_JSON_KEY }}
+          # workflow_dispatch 의 dry_run 입력 전달 (push 트리거 시 빈 값 → 실배포)
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
         run: bundle exec fastlane android release_play_store
 
       - name: Cleanup sensitive files

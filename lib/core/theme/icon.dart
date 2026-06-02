@@ -25,7 +25,7 @@ enum WasherIconType {
   dryCircle,
   waterCircle,
   historyCircle,
-  dgWhite,
+  dgLogo,
 }
 
 /// [WasherIconType]을 SVG 파일명으로 변환하는 확장
@@ -55,7 +55,7 @@ extension WasherIconTypeExtension on WasherIconType {
       WasherIconType.dryCircle: 'dry_circle.svg',
       WasherIconType.waterCircle: 'water_circle.svg',
       WasherIconType.historyCircle: 'history_circle.svg',
-      WasherIconType.dgWhite: 'DG_white.svg',
+      WasherIconType.dgLogo: 'dg_logo.svg',
     };
     return assetMap[this] ?? 'default_icon.svg';
   }

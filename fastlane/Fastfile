@@ -35,25 +35,37 @@ platform :ios do
 
   desc "Build the iOS app and submit it to App Store review (main 머지마다)"
   lane :release_appstore do
-    api_key = load_asc_api_key
-    setup_connect_api(api_key: api_key)
+    # DRY_RUN=true 면 빌드/서명(archive)까지만 하고 App Store 업로드는 건너뛴다.
+    # (워크플로우 workflow_dispatch 의 dry_run 입력으로 주입 — 스토어 영향 없이 CD 검증용)
+    dry_run = ENV["DRY_RUN"] == "true"
 
-    # 이미 심사 대기/진행 중인 버전이 있으면 새 제출을 건너뛴다.
-    # (Apple 은 한 번에 한 버전만 심사 → main 에 자주 머지돼도 실패하지 않고 스킵)
-    if appstore_review_in_progress
-      UI.important("이미 심사 대기/진행 중인 버전이 있어 이번 App Store 제출은 건너뜁니다. (TestFlight 는 cd-ios.yml 이 처리)")
-      next
+    api_key = dry_run ? nil : load_asc_api_key
+
+    unless dry_run
+      setup_connect_api(api_key: api_key)
+
+      # 이미 심사 대기/진행 중인 버전이 있으면 새 제출을 건너뛴다.
+      # (Apple 은 한 번에 한 버전만 심사 → main 에 자주 머지돼도 실패하지 않고 스킵)
+      if appstore_review_in_progress
+        UI.important("이미 심사 대기/진행 중인 버전이 있어 이번 App Store 제출은 건너뜁니다.")
+        next
+      end
     end
 
-    # 마케팅 버전은 App Store Connect 의 현재 최고 버전 +패치로 자동 증가시킨다.
-    # (main 머지마다 새 버전을 올려야 train 닫힘으로 실패하지 않음)
-    version_name = resolve_next_appstore_version
+    # 마케팅 버전: 실배포는 App Store Connect 최고 버전 +패치로 자동 증가,
+    # dry-run 은 ASC 조회 없이 IOS_VERSION_NAME(없으면 0.0.1)으로 빌드만 한다.
+    version_name = dry_run ? ENV.fetch("IOS_VERSION_NAME", "0.0.1") : resolve_next_appstore_version
 
     build_signed_ipa(
       version_name: version_name,
       build_number: ENV.fetch("IOS_BUILD_NUMBER"),
       profile_uuid: ENV.fetch("IOS_PROVISIONING_PROFILE_UUID")
     )
+
+    if dry_run
+      UI.success("DRY_RUN=true — iOS 빌드/서명(archive) 완료, App Store 업로드는 건너뜀")
+      next
+    end
 
     # 바이너리를 App Store Connect 에 올리고 심사까지 자동 제출한다.
     # - submit_for_review: 심사 제출까지 자동
@@ -213,6 +225,8 @@ platform :android do
   # 공통: AAB 빌드 후 지정한 Play Store 트랙으로 업로드한다.
   # (upload_play_store=internal, release_play_store=production 이 공유)
   private_lane :upload_play_store_track do |options|
+    # DRY_RUN=true 면 AAB 빌드까지만 하고 Play Store 업로드는 건너뛴다. (CD 검증용)
+    dry_run = ENV["DRY_RUN"] == "true"
     track = options.fetch(:track)
     release_status = options[:release_status]
 
@@ -232,6 +246,11 @@ platform :android do
     aab_search_path = File.join(WORKSPACE, "build/app/outputs/bundle/release")
     aab_path = Dir.glob(File.join(aab_search_path, "*.aab")).max_by { |f| File.mtime(f) }
     UI.user_error!("AAB not found in #{aab_search_path}") if aab_path.nil?
+
+    if dry_run
+      UI.success("DRY_RUN=true — Android AAB 빌드 완료(#{aab_path}), Play Store 업로드는 건너뜀")
+      next
+    end
 
     # 워크플로우에서 시크릿을 SUPPLY_JSON_KEY_DATA 환경변수로 주입한다.
     # 과거엔 ENV["GOOGLE_PLAY_JSON_KEY"](미설정 → 빈 문자열)를 읽어 JSON 파싱이 깨졌다.

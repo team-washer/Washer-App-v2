@@ -198,8 +198,24 @@ platform :ios do
 end
 
 platform :android do
-  desc "Build the Android app and upload it to Google Play Store (internal track)"
+  desc "Build the Android app and upload it to Google Play Store (internal track, main 머지마다)"
   lane :upload_play_store do
+    upload_play_store_track(track: "internal")
+  end
+
+  desc "Build the Android app and release it to Google Play production track (main 머지마다)"
+  lane :release_play_store do
+    # production 트랙은 즉시 정식 출시(completed). 단계적 출시가 필요하면
+    # release_status: "inProgress" + rollout 로 바꾼다.
+    upload_play_store_track(track: "production", release_status: "completed")
+  end
+
+  # 공통: AAB 빌드 후 지정한 Play Store 트랙으로 업로드한다.
+  # (upload_play_store=internal, release_play_store=production 이 공유)
+  private_lane :upload_play_store_track do |options|
+    track = options.fetch(:track)
+    release_status = options[:release_status]
+
     build_number = ENV.fetch("ANDROID_BUILD_NUMBER")
     version_name = ENV.fetch("ANDROID_VERSION_NAME")
 
@@ -217,10 +233,11 @@ platform :android do
     aab_path = Dir.glob(File.join(aab_search_path, "*.aab")).max_by { |f| File.mtime(f) }
     UI.user_error!("AAB not found in #{aab_search_path}") if aab_path.nil?
 
-    # cd-android.yml에서 시크릿을 SUPPLY_JSON_KEY_DATA 환경변수로 주입한다.
+    # 워크플로우에서 시크릿을 SUPPLY_JSON_KEY_DATA 환경변수로 주입한다.
     # 과거엔 ENV["GOOGLE_PLAY_JSON_KEY"](미설정 → 빈 문자열)를 읽어 JSON 파싱이 깨졌다.
-    upload_to_play_store(
-      track: "internal",
+    # package_name 은 Appfile(package_name) 을 따른다. (여기서 하드코딩하지 않음)
+    play_store_params = {
+      track: track,
       json_key_data: ENV.fetch("SUPPLY_JSON_KEY_DATA"),
       aab: aab_path,
       skip_upload_apk: true,
@@ -228,6 +245,9 @@ platform :android do
       skip_upload_changelogs: true,
       skip_upload_images: true,
       skip_upload_screenshots: true
-    )
+    }
+    play_store_params[:release_status] = release_status unless release_status.nil?
+
+    upload_to_play_store(**play_store_params)
   end
 end

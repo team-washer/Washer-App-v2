@@ -43,6 +43,7 @@ class AuthInterceptor extends Interceptor {
   Future<String?>? _refreshFuture;
 
   static const String _retryKey = 'is_retry_request';
+  static const String _refreshEndpoint = '/api/v2/auth/refresh';
 
   @override
   Future<void> onRequest(
@@ -155,9 +156,8 @@ class AuthInterceptor extends Interceptor {
       return null;
     }
 
-    final refreshEndpoint = _environment.refreshTokenEndpoint;
     final response = await _refreshDio.post(
-      refreshEndpoint,
+      _refreshEndpoint,
       data: {'refreshToken': refreshToken},
     );
 

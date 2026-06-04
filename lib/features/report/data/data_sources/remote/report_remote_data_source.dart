@@ -16,7 +16,7 @@ abstract class ReportRemoteDataSource {
 abstract class ReportApiService {
   factory ReportApiService(Dio dio, {String baseUrl}) = _ReportApiService;
 
-  @POST('/api/v2/malfunction-reports')
+  @POST('/malfunction-reports')
   Future<void> createMalfunctionReport(
     @Body() Map<String, dynamic> payload,
   );

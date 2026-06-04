@@ -17,13 +17,13 @@ abstract class AlarmDataSource {
 abstract class AlarmApiService {
   factory AlarmApiService(Dio dio, {String baseUrl}) = _AlarmApiService;
 
-  @GET('/api/v2/notifications')
+  @GET('/notifications')
   Future<HttpResponse<dynamic>> getAlarmList();
 
-  @POST('/api/v2/notifications/fcm-token')
+  @POST('/notifications/fcm-token')
   Future<void> registerFcmToken(@Body() Map<String, dynamic> payload);
 
-  @DELETE('/api/v2/notifications/fcm-token')
+  @DELETE('/notifications/fcm-token')
   Future<void> deleteFcmToken();
 }
 

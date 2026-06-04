@@ -18,10 +18,10 @@ abstract class AuthRemoteDataSource {
 abstract class AuthApiService {
   factory AuthApiService(Dio dio, {String baseUrl}) = _AuthApiService;
 
-  @POST('/api/v2/auth/login')
+  @POST('/auth/login')
   Future<HttpResponse<dynamic>> login(@Body() Map<String, dynamic> payload);
 
-  @POST('/api/v2/auth/refresh')
+  @POST('/auth/refresh')
   Future<HttpResponse<dynamic>> refresh(@Body() Map<String, dynamic> payload);
 }
 

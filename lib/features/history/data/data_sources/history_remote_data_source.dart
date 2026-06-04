@@ -21,7 +21,7 @@ abstract class HistoryRemoteDataSource {
 abstract class HistoryApiService {
   factory HistoryApiService(Dio dio, {String baseUrl}) = _HistoryApiService;
 
-  @GET('/api/v2/machines/{machineId}/history')
+  @GET('/machines/{machineId}/history')
   Future<HttpResponse<dynamic>> getMachineHistory({
     @Path('machineId') required int machineId,
     @Query('startDate') required String startDate,

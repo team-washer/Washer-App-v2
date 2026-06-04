@@ -6,8 +6,10 @@ import 'package:go_router/go_router.dart';
 import 'package:washer/core/network/dio_client.dart';
 import 'package:washer/core/network/token_utils.dart';
 import 'package:washer/core/router/route_paths.dart';
+import 'package:washer/core/services/version_check_service.dart';
 import 'package:washer/core/theme/icon.dart';
 import 'package:washer/core/ui/base_scaffold.dart';
+import 'package:washer/core/ui/dialog/force_update_dialog.dart';
 import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/features/user/data/data_sources/remote/user_remote_data_source.dart';
 import 'package:washer/features/user/presentation/providers/my_user_provider.dart';
@@ -29,6 +31,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   Future<void> _bootstrap() async {
+    if (await _handleForceUpdate()) {
+      return;
+    }
+
     final storage = ref.read(secureStorageProvider);
     final accessToken = await storage.read(key: 'access_token');
     final refreshToken = await storage.read(key: 'refresh_token');
@@ -96,6 +102,32 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     ref.read(myUserProvider.notifier).clear();
     if (!mounted) return;
     context.go(RoutePaths.login);
+  }
+
+  /// 앱이 최신 버전이 아니면 강제 업데이트 팝업을 띄운다.
+  ///
+  /// 업데이트가 필요해 팝업을 노출한 경우 `true`를 반환하여
+  /// 이후 초기화(인증/홈 진입)를 중단시킨다.
+  Future<bool> _handleForceUpdate() async {
+    final versionCheckService = ref.read(versionCheckServiceProvider);
+    final status = await versionCheckService.fetchUpdatableStatus();
+
+    if (status == null) {
+      return false;
+    }
+
+    if (!mounted) return true;
+
+    final storeLink = status.appStoreLink;
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => ForceUpdateDialog(
+        onUpdatePressed: () => versionCheckService.openStore(storeLink),
+      ),
+    );
+
+    return true;
   }
 
   @override

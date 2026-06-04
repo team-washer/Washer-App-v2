@@ -30,7 +30,7 @@ class _AuthApiService implements AuthApiService {
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v2/auth/login',
+            '/auth/login',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -53,7 +53,7 @@ class _AuthApiService implements AuthApiService {
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v2/auth/refresh',
+            '/auth/refresh',
             queryParameters: queryParameters,
             data: _data,
           )

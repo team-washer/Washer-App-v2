@@ -40,7 +40,7 @@ class _HistoryApiService implements HistoryApiService {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v2/machines/${machineId}/history',
+            '/machines/${machineId}/history',
             queryParameters: queryParameters,
             data: _data,
           )

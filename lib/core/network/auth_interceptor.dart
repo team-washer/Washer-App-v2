@@ -55,18 +55,27 @@ class AuthInterceptor extends Interceptor {
 
     _cachedAccessToken ??= await _storage.read(key: 'access_token');
 
-    if (_cachedAccessToken == null) {
+    final hasValidToken = _cachedAccessToken != null &&
+        !TokenUtils.isExpired(_cachedAccessToken!);
+
+    if (!hasValidToken) {
       _cachedAccessToken = await _tryRefreshBeforeRequest();
-    } else if (TokenUtils.isExpired(_cachedAccessToken!)) {
-      _cachedAccessToken = await _tryRefreshBeforeRequest();
+
+      // 갱신 실패 시: 인증 없이 요청을 보내면 403 → onError → 재갱신으로
+      // 무한 루프가 발생하므로, 로그아웃 처리 후 요청을 즉시 중단한다.
       if (_cachedAccessToken == null) {
         await _handleRefreshFailure();
+        return handler.reject(
+          DioException(
+            requestOptions: options,
+            type: DioExceptionType.cancel,
+            error: '인증 토큰 갱신에 실패했습니다.',
+          ),
+        );
       }
     }
 
-    if (_cachedAccessToken != null) {
-      options.headers['Authorization'] = 'Bearer $_cachedAccessToken';
-    }
+    options.headers['Authorization'] = 'Bearer $_cachedAccessToken';
 
     return handler.next(options);
   }

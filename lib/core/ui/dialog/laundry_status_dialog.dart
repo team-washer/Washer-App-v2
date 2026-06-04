@@ -83,6 +83,7 @@ class LaundryStatusDialog extends ConsumerWidget {
             ? () async {
                 final messenger = ScaffoldMessenger.of(context);
                 final navigator = Navigator.of(context);
+                final container = ProviderScope.containerOf(context);
                 final reservationNotifier = ref.read(
                   reservationActionProvider.notifier,
                 );
@@ -95,7 +96,9 @@ class LaundryStatusDialog extends ConsumerWidget {
                   );
 
                   if (reservation == null) {
-                    final error = ref.read(reservationActionProvider).error;
+                    final error = container
+                        .read(reservationActionProvider)
+                        .error;
                     messenger.showSnackBar(
                       SnackBar(
                         content: Text(

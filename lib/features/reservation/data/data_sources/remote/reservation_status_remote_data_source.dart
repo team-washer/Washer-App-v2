@@ -17,10 +17,10 @@ abstract class HomeRemoteDataSource {
 abstract class HomeApiService {
   factory HomeApiService(Dio dio, {String baseUrl}) = _HomeApiService;
 
-  @GET('/api/v2/machines/status')
+  @GET('/machines/status')
   Future<HttpResponse<dynamic>> getMachineStatus();
 
-  @GET('/api/v2/reservations/active/room')
+  @GET('/reservations/active/room')
   Future<HttpResponse<dynamic>> getActiveReservations();
 }
 

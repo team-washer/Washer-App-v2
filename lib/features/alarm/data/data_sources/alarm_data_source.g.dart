@@ -29,7 +29,7 @@ class _AlarmApiService implements AlarmApiService {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v2/notifications',
+            '/notifications',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -52,7 +52,7 @@ class _AlarmApiService implements AlarmApiService {
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v2/notifications/fcm-token',
+            '/notifications/fcm-token',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -71,7 +71,7 @@ class _AlarmApiService implements AlarmApiService {
       Options(method: 'DELETE', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v2/notifications/fcm-token',
+            '/notifications/fcm-token',
             queryParameters: queryParameters,
             data: _data,
           )

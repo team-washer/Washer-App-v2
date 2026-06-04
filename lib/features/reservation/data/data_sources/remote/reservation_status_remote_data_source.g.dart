@@ -29,7 +29,7 @@ class _HomeApiService implements HomeApiService {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v2/machines/status',
+            '/machines/status',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -51,7 +51,7 @@ class _HomeApiService implements HomeApiService {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v2/reservations/active/room',
+            '/reservations/active/room',
             queryParameters: queryParameters,
             data: _data,
           )

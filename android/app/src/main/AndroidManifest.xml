@@ -1,7 +1,13 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- Firebase Analytics(play-services-measurement)가 자동 주입하는 광고 ID 권한 제거.
+         Play Console의 "광고 ID 미사용" 선언과 일치시켜 업로드 거부를 방지한다. -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID"
+        tools:node="remove" />
 
     <application
         android:label="washer"

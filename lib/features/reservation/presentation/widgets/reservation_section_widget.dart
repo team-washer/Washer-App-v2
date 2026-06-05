@@ -11,6 +11,7 @@ import 'package:washer/core/theme/color.dart';
 import 'package:washer/core/theme/icon.dart';
 import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
+import 'package:washer/core/ui/loading_overlay.dart';
 import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/core/utils/room_formatter.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
@@ -156,18 +157,19 @@ class _ReservationSectionWidgetState
 
   Future<void> _reserveMachine(BuildContext context, _MachineData item) async {
     try {
-      final reservation = await ref
-          .read(reservationActionProvider.notifier)
-          .reserve(machineId: item.machineId);
+      final reservation = await showLoadingWhile(
+        context,
+        () => ref
+            .read(reservationActionProvider.notifier)
+            .reserve(machineId: item.machineId),
+      );
 
       if (reservation == null) {
         if (context.mounted) {
           final error = ref.read(reservationActionProvider).error;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                '예약 실패: ${reservationActionErrorMessage(error, fallback: '예약에 실패했습니다. 다시 시도해주세요.')}',
-              ),
+              content: Text(reserveFailureMessage(error)),
             ),
           );
         }

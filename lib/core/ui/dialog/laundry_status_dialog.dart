@@ -8,6 +8,7 @@ import 'package:washer/core/enums/machine_state.dart';
 import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
 import 'package:washer/core/ui/dialog/washer_dialog.dart';
+import 'package:washer/core/ui/loading_overlay.dart';
 import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/core/utils/date_time_formatter.dart';
 import 'package:washer/core/utils/room_formatter.dart';
@@ -84,6 +85,7 @@ class LaundryStatusDialog extends ConsumerWidget {
                 final messenger = ScaffoldMessenger.of(context);
                 final navigator = Navigator.of(context);
                 final container = ProviderScope.containerOf(context);
+                final overlay = Overlay.of(context, rootOverlay: true);
                 final reservationNotifier = ref.read(
                   reservationActionProvider.notifier,
                 );
@@ -91,8 +93,9 @@ class LaundryStatusDialog extends ConsumerWidget {
                 navigator.pop();
 
                 try {
-                  final reservation = await reservationNotifier.reserve(
-                    machineId: machineId,
+                  final reservation = await runWithLoadingOverlay(
+                    overlay,
+                    () => reservationNotifier.reserve(machineId: machineId),
                   );
 
                   if (reservation == null) {
@@ -101,9 +104,7 @@ class LaundryStatusDialog extends ConsumerWidget {
                         .error;
                     messenger.showSnackBar(
                       SnackBar(
-                        content: Text(
-                          '예약 실패: ${reservationActionErrorMessage(error, fallback: '예약에 실패했습니다. 다시 시도해주세요.')}',
-                        ),
+                        content: Text(reserveFailureMessage(error)),
                       ),
                     );
                     return;

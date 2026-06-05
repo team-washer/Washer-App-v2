@@ -1,10 +1,17 @@
+import 'package:collection/collection.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/features/reservation/data/data_sources/remote/reservation_remote_data_source.dart';
+import 'package:washer/features/reservation/data/data_sources/remote/reservation_status_remote_data_source.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_sync_controller.dart';
+
+/// 예약 요청 직전 GET으로 확인한 결과, 이미 예약/사용 중이라 예약할 수 없는 경우.
+class AlreadyReservedException implements Exception {
+  const AlreadyReservedException();
+}
 
 class ReservationActionNotifier extends AsyncNotifier<ActiveReservationModel?> {
   Future<ActiveReservationModel?>? _reserveRequest;
@@ -27,6 +34,17 @@ class ReservationActionNotifier extends AsyncNotifier<ActiveReservationModel?> {
     state = const AsyncLoading();
 
     try {
+      // 예약 요청 전, 최신 기기 상태를 GET으로 불러와 예약 가능 여부를 비교합니다.
+      final latestStatus = await ref
+          .read(homeRemoteDataSourceProvider)
+          .getMachineStatus();
+      final targetMachine = latestStatus.machines.firstWhereOrNull(
+        (machine) => machine.machineId == machineId,
+      );
+      if (targetMachine != null && !targetMachine.isAvailable) {
+        throw const AlreadyReservedException();
+      }
+
       final startTime = DateTime.now().toIso8601String();
 
       final createdReservation = await ref
@@ -125,6 +143,14 @@ String reservationActionErrorMessage(
 
   return fallback;
 }
+
+/// 예약 시도 실패를 사용자에게 보여줄 문구로 변환합니다.
+///
+/// 사전 조회 단계에서 이미 예약/사용 중으로 확인된 경우는 별도 안내로,
+/// 그 외에는 서버 메시지(없으면 기본 문구)를 사용합니다.
+String reserveFailureMessage(Object? error) => error is AlreadyReservedException
+    ? '이미 예약된 기기입니다.'
+    : '예약 실패: ${reservationActionErrorMessage(error, fallback: '예약에 실패했습니다. 다시 시도해주세요.')}';
 
 final reservationActionProvider =
     AsyncNotifierProvider<ReservationActionNotifier, ActiveReservationModel?>(

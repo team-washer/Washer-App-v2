@@ -338,6 +338,46 @@ void main() {
       ]);
     });
 
+    test('예약 전 조회 결과 이미 예약된 기기면 요청을 보내지 않고 예외를 담는다', () async {
+      final reservationDataSource = FakeReservationRemoteDataSource();
+      final container = ProviderContainer(
+        overrides: [
+          reservationRemoteDataSourceProvider.overrideWith(
+            (ref) => reservationDataSource,
+          ),
+          homeRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeHomeRemoteDataSource(
+              machineStatusLoader: () async => const MachineStatusResponse(
+                machines: [
+                  MachineModel(
+                    machineId: 83,
+                    name: 'Washer-4F-L1',
+                    type: 'WASHER',
+                    status: 'NORMAL',
+                    availability: 'RESERVED',
+                    reservationId: 114,
+                  ),
+                ],
+                totalCount: 1,
+              ),
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final result = await container
+          .read(reservationActionProvider.notifier)
+          .reserve(machineId: 83);
+
+      expect(result, isNull);
+      expect(reservationDataSource.lastMachineId, isNull);
+      expect(
+        container.read(reservationActionProvider).error,
+        isA<AlreadyReservedException>(),
+      );
+    });
+
     test('예약 취소 실패 시 서버 메시지를 상태에 담는다', () async {
       final error = DioException(
         requestOptions: RequestOptions(path: '/reservations/114'),

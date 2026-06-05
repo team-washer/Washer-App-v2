@@ -22,14 +22,23 @@ Future<T> runWithLoadingOverlay<T>(
   OverlayState overlay,
   Future<T> Function() action,
 ) async {
+  // 호출 시점에 이미 오버레이가 해제됐다면 인디케이터 없이 작업만 수행합니다.
+  if (!overlay.mounted) {
+    return action();
+  }
+
   final entry = OverlayEntry(
-    builder: (_) => const _LoadingOverlay(),
+    builder: (_) => const Positioned.fill(child: _LoadingOverlay()),
   );
   overlay.insert(entry);
   try {
     return await action();
   } finally {
-    entry.remove();
+    // 작업 도중 화면 이탈 등으로 오버레이가 해제되면 remove가 StateError를
+    // 던지므로, 살아 있을 때만 제거합니다.
+    if (overlay.mounted) {
+      entry.remove();
+    }
   }
 }
 
@@ -38,11 +47,9 @@ class _LoadingOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Positioned.fill(
-      child: ColoredBox(
-        color: Color(0x66000000),
-        child: Center(child: CircularProgressIndicator()),
-      ),
+    return const ColoredBox(
+      color: Color(0x66000000),
+      child: Center(child: CircularProgressIndicator()),
     );
   }
 }

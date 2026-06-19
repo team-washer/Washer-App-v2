@@ -42,6 +42,11 @@ class AuthInterceptor extends Interceptor {
   String? _cachedAccessToken;
   Future<String?>? _refreshFuture;
 
+  /// 갱신 실패로 인한 로그아웃을 단일화하기 위한 가드.
+  /// 동시에 들어온 여러 요청이 각자 로그아웃을 호출하지 않도록 막고,
+  /// 유효 토큰을 다시 확보(재로그인 등)하면 해제된다.
+  bool _isLoggedOut = false;
+
   static const String _retryKey = 'is_retry_request';
 
   @override
@@ -75,6 +80,8 @@ class AuthInterceptor extends Interceptor {
       }
     }
 
+    // 유효 토큰 확보됨(캐시 유효 or 갱신 성공) → 로그아웃 가드 해제.
+    _isLoggedOut = false;
     options.headers['Authorization'] = 'Bearer $_cachedAccessToken';
 
     return handler.next(options);
@@ -233,6 +240,13 @@ class AuthInterceptor extends Interceptor {
   }
 
   Future<void> _handleRefreshFailure() async {
+    // 동시에 들어온 요청들이 각자 로그아웃을 호출하지 않도록 단일화한다.
+    // 한 번의 갱신 실패 버스트에 대해 스토리지 삭제·onLogout 은 한 번만 실행된다.
+    if (_isLoggedOut) {
+      _cachedAccessToken = null;
+      return;
+    }
+    _isLoggedOut = true;
     _cachedAccessToken = null;
     await _storage.delete(key: 'access_token');
     await _storage.delete(key: 'refresh_token');
@@ -243,12 +257,14 @@ class AuthInterceptor extends Interceptor {
   void clearInMemoryCache() {
     _cachedAccessToken = null;
     _refreshFuture = null;
+    _isLoggedOut = false;
   }
 
   /// 로그아웃 시 메모리 캐시 + 스토리지 토큰 모두 삭제
   Future<void> clearCache() async {
     _cachedAccessToken = null;
     _refreshFuture = null;
+    _isLoggedOut = false;
     await _storage.delete(key: 'access_token');
     await _storage.delete(key: 'refresh_token');
   }

@@ -19,4 +19,10 @@ enum AlarmType {
   STARTED,
   @JsonValue('TIMEOUT_WARNING')
   TIMEOUT_WARNING,
+  @JsonValue('CANCELLATION_BLOCKED')
+  CANCELLATION_BLOCKED,
+  @JsonValue('CANCELLATION_BLOCK_EXTENDED')
+  CANCELLATION_BLOCK_EXTENDED,
+  // 서버가 추가한 알 수 없는 타입에 대한 폴백 값.
+  unknown,
 }

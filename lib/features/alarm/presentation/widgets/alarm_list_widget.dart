@@ -19,11 +19,27 @@ part 'local_widgets/alarm_date_divider.dart';
 /// - 날짜 분류 규칙
 /// - 날짜 분류기 링크 제공
 /// - 스크롤 펴닝
-class AlarmListWidget extends ConsumerWidget {
+class AlarmListWidget extends ConsumerStatefulWidget {
   const AlarmListWidget({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AlarmListWidget> createState() => _AlarmListWidgetState();
+}
+
+class _AlarmListWidgetState extends ConsumerState<AlarmListWidget> {
+  @override
+  void initState() {
+    super.initState();
+    // 알림 화면을 열면 자동으로 목록을 불러온다.
+    // (force=false라 이미 로드됐으면 다시 호출하지 않는다.)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(alarmProvider.notifier).fetchAlarmList();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(alarmProvider);
 
     return Column(

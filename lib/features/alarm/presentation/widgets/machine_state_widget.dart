@@ -109,6 +109,12 @@ class _TitleWithStatus extends StatelessWidget {
         return '시작';
       case AlarmType.TIMEOUT_WARNING:
         return '시간 초과 경고';
+      case AlarmType.CANCELLATION_BLOCKED:
+        return '취소 제한';
+      case AlarmType.CANCELLATION_BLOCK_EXTENDED:
+        return '취소 제한 연장';
+      case AlarmType.unknown:
+        return '알림';
     }
   }
 
@@ -123,6 +129,9 @@ class _TitleWithStatus extends StatelessWidget {
       case AlarmType.PAUSE_TIMEOUT:
       case AlarmType.STARTED:
       case AlarmType.TIMEOUT_WARNING:
+      case AlarmType.CANCELLATION_BLOCKED:
+      case AlarmType.CANCELLATION_BLOCK_EXTENDED:
+      case AlarmType.unknown:
         return false;
     }
   }

@@ -35,7 +35,14 @@ class AlarmDataSourceImpl implements AlarmDataSource {
   @override
   Future<AlarmListResponse> getAlarmList() async {
     final response = await _api.getAlarmList();
-    final data = castJsonMap(response.data);
+    if (response.data == null) {
+      return const AlarmListResponse(data: []);
+    }
+
+    // 서버 응답은 `{ code, data: { notifications: [...] } }` 형태다.
+    // 봉투(`data`)를 벗겨 내부의 notifications 배열을 파싱한다.
+    final body = castJsonMap(response.data);
+    final data = body.containsKey('data') ? extractDataMap(body) : body;
 
     return AlarmListResponse.fromJson(data);
   }

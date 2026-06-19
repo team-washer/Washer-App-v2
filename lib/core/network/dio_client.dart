@@ -40,17 +40,19 @@ class DioClient {
     );
     _dio.interceptors.add(_authInterceptor);
 
-    if (kDebugMode) {
-      _dio.interceptors.add(
-        LogInterceptor(
-          requestBody: true,
-          responseBody: true,
-          requestHeader: true,
-          responseHeader: true,
-          error: true,
-        ),
-      );
-    }
+    _dio.interceptors.add(
+      LogInterceptor(
+        requestBody: true,
+        responseBody: true,
+        requestHeader: true,
+        responseHeader: true,
+        error: true,
+        // dart:developer.log는 release 에서 VM service 로깅 스트림으로만 가서
+        // `flutter run --release` 콘솔/logcat 에 보이지 않는다.
+        // debugPrint 는 stdout(logcat) 으로 나가 debug·release 양쪽에서 모두 보인다.
+        logPrint: (Object object) => debugPrint('[DIO] $object'),
+      ),
+    );
   }
 
   Dio get dio => _dio;

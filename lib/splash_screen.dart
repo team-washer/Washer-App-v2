@@ -6,11 +6,12 @@ import 'package:go_router/go_router.dart';
 import 'package:washer/core/network/dio_client.dart';
 import 'package:washer/core/network/token_utils.dart';
 import 'package:washer/core/router/route_paths.dart';
-import 'package:washer/core/services/version_check_service.dart';
 import 'package:washer/core/theme/icon.dart';
 import 'package:washer/core/ui/base_scaffold.dart';
-import 'package:washer/core/ui/dialog/force_update_dialog.dart';
+import 'package:washer/core/ui/dialog/app_update_dialog.dart';
 import 'package:washer/core/utils/app_logger.dart';
+import 'package:washer/features/app_version/data/models/app_version_status_model.dart';
+import 'package:washer/features/app_version/presentation/providers/app_version_check_provider.dart';
 import 'package:washer/features/user/data/data_sources/remote/user_remote_data_source.dart';
 import 'package:washer/features/user/presentation/providers/my_user_provider.dart';
 
@@ -104,30 +105,38 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     context.go(RoutePaths.login);
   }
 
-  /// 앱이 최신 버전이 아니면 강제 업데이트 팝업을 띄운다.
+  /// 서버 버전 정책에 따라 업데이트 안내 팝업을 띄운다.
   ///
-  /// 업데이트가 필요해 팝업을 노출한 경우 `true`를 반환하여
-  /// 이후 초기화(인증/홈 진입)를 중단시킨다.
+  /// 강제 업데이트가 필요해 진입을 막아야 하는 경우에만 `true`를 반환하여
+  /// 이후 초기화(인증/홈 진입)를 중단시킨다. 권장 업데이트나 최신 버전,
+  /// 판단 불가(네트워크 오류 등)인 경우에는 `false`를 반환해 진입을 허용한다.
   Future<bool> _handleForceUpdate() async {
-    final versionCheckService = ref.read(versionCheckServiceProvider);
-    final status = await versionCheckService.fetchUpdatableStatus();
+    final service = ref.read(appVersionCheckServiceProvider);
+    final status = await service.fetchStatus();
 
-    if (status == null) {
+    if (status == null ||
+        status.updateStatus == AppUpdateStatus.supported ||
+        status.updateStatus == AppUpdateStatus.unknown) {
       return false;
     }
 
-    if (!mounted) return true;
+    if (!status.isForceUpdate && !status.isOptionalUpdate) {
+      return false;
+    }
 
-    final storeLink = status.appStoreLink;
+    if (!mounted) return status.isForceUpdate;
+
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => ForceUpdateDialog(
-        onUpdatePressed: () => versionCheckService.openStore(storeLink),
+      builder: (_) => AppUpdateDialog(
+        isForceUpdate: status.isForceUpdate,
+        message: status.updateMessage,
+        onUpdatePressed: () => service.openStore(status.storeUrl),
       ),
     );
 
-    return true;
+    return status.isForceUpdate;
   }
 
   @override

@@ -82,6 +82,12 @@ class AuthInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
+    // 인증이 필요 없는 공개 엔드포인트(예: 앱 버전 체크)는
+    // 실패하더라도 토큰 갱신/로그아웃을 유발하지 않는다.
+    if (_shouldSkipAuth(err.requestOptions.path)) {
+      return handler.next(err);
+    }
+
     final statusCode = err.response?.statusCode;
     final isRetry = err.requestOptions.extra[_retryKey] == true;
 
@@ -138,7 +144,9 @@ class AuthInterceptor extends Interceptor {
   }
 
   bool _shouldSkipAuth(String path) {
-    return path.contains('/auth/');
+    // `/auth/` 인증 흐름과 `/app-versions` 버전 정책 조회는 토큰 없이
+    // 호출 가능한 공개 엔드포인트다. 덕분에 로그인 전/후 모두 동작한다.
+    return path.contains('/auth/') || path.contains('/app-versions');
   }
 
   Future<String?> _refreshToken() async {

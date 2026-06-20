@@ -65,8 +65,11 @@ Future<void> runDialogAction<R>(
 
     if (action.isSuccess(result)) {
       onSuccess?.call();
-      messenger.showSnackBar(SnackBar(content: Text(action.successMessage)));
-    } else {
+      // 비동기 작업 도중 화면이 이탈해 messenger가 해제됐을 수 있다.
+      if (messenger.mounted) {
+        messenger.showSnackBar(SnackBar(content: Text(action.successMessage)));
+      }
+    } else if (messenger.mounted) {
       messenger.showSnackBar(
         SnackBar(content: Text(action.failureMessage(container))),
       );
@@ -78,6 +81,8 @@ Future<void> runDialogAction<R>(
       error: error,
       stackTrace: stackTrace,
     );
-    messenger.showSnackBar(SnackBar(content: Text('오류: $error')));
+    if (messenger.mounted) {
+      messenger.showSnackBar(SnackBar(content: Text('오류: $error')));
+    }
   }
 }

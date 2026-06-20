@@ -31,8 +31,11 @@ class _LaundryActionDialogState extends ConsumerState<LaundryActionDialog> {
   Future<void> _handleConfirm() async {
     switch (widget.actionType) {
       case LaundryActionType.reserve:
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
+        // pop 직후 context가 무효화될 수 있으므로 미리 캡처한다.
+        final navigator = Navigator.of(context);
+        final messenger = ScaffoldMessenger.of(context);
+        navigator.pop();
+        messenger.showSnackBar(
           const SnackBar(
             content: Text('예약 후 자동으로 기기 연결 확인이 진행됩니다.'),
           ),

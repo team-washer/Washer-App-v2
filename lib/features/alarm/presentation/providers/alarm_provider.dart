@@ -42,6 +42,18 @@ class AlarmNotifier extends Notifier<AlarmState> {
       );
     }
   }
+
+  /// 알림 화면을 벗어날 때 서버의 모든 알림을 삭제하고 로컬 상태를 비운다.
+  /// 다음에 화면을 다시 열면 새로 불러오도록 로드 플래그도 초기화한다.
+  Future<void> clearAllOnLeave() async {
+    if (state.alarms.isEmpty) {
+      return;
+    }
+
+    await ref.read(alarmRepositoryProvider).deleteAllNotifications();
+    _hasLoaded = false;
+    state = const AlarmState();
+  }
 }
 
 final alarmProvider = NotifierProvider<AlarmNotifier, AlarmState>(

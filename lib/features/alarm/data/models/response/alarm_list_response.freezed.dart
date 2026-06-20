@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$AlarmListResponse {
 
- List<Notifications> get data;
+@JsonKey(name: 'notifications') List<Notifications> get data;
 /// Create a copy of AlarmListResponse
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -48,7 +48,7 @@ abstract mixin class $AlarmListResponseCopyWith<$Res>  {
   factory $AlarmListResponseCopyWith(AlarmListResponse value, $Res Function(AlarmListResponse) _then) = _$AlarmListResponseCopyWithImpl;
 @useResult
 $Res call({
- List<Notifications> data
+@JsonKey(name: 'notifications') List<Notifications> data
 });
 
 
@@ -153,7 +153,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<Notifications> data)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'notifications')  List<Notifications> data)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AlarmListResponse() when $default != null:
 return $default(_that.data);case _:
@@ -174,7 +174,7 @@ return $default(_that.data);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<Notifications> data)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'notifications')  List<Notifications> data)  $default,) {final _that = this;
 switch (_that) {
 case _AlarmListResponse():
 return $default(_that.data);case _:
@@ -194,7 +194,7 @@ return $default(_that.data);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<Notifications> data)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'notifications')  List<Notifications> data)?  $default,) {final _that = this;
 switch (_that) {
 case _AlarmListResponse() when $default != null:
 return $default(_that.data);case _:
@@ -209,11 +209,11 @@ return $default(_that.data);case _:
 @JsonSerializable()
 
 class _AlarmListResponse implements AlarmListResponse {
-  const _AlarmListResponse({required final  List<Notifications> data}): _data = data;
+  const _AlarmListResponse({@JsonKey(name: 'notifications') final  List<Notifications> data = const <Notifications>[]}): _data = data;
   factory _AlarmListResponse.fromJson(Map<String, dynamic> json) => _$AlarmListResponseFromJson(json);
 
  final  List<Notifications> _data;
-@override List<Notifications> get data {
+@override@JsonKey(name: 'notifications') List<Notifications> get data {
   if (_data is EqualUnmodifiableListView) return _data;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_data);
@@ -253,7 +253,7 @@ abstract mixin class _$AlarmListResponseCopyWith<$Res> implements $AlarmListResp
   factory _$AlarmListResponseCopyWith(_AlarmListResponse value, $Res Function(_AlarmListResponse) _then) = __$AlarmListResponseCopyWithImpl;
 @override @useResult
 $Res call({
- List<Notifications> data
+@JsonKey(name: 'notifications') List<Notifications> data
 });
 
 
@@ -284,7 +284,9 @@ as List<Notifications>,
 /// @nodoc
 mixin _$Notifications {
 
- String get id; AlarmType get type; String get message; String get createdAt;
+// 서버가 id를 숫자로 내려주므로 문자열로 안전하게 변환한다.
+@JsonKey(fromJson: _idFromJson) String get id;// 알 수 없는 타입이 와도 목록 전체가 깨지지 않도록 unknown으로 폴백한다.
+@JsonKey(unknownEnumValue: AlarmType.unknown) AlarmType get type; String get message; String get createdAt;
 /// Create a copy of Notifications
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -317,7 +319,7 @@ abstract mixin class $NotificationsCopyWith<$Res>  {
   factory $NotificationsCopyWith(Notifications value, $Res Function(Notifications) _then) = _$NotificationsCopyWithImpl;
 @useResult
 $Res call({
- String id, AlarmType type, String message, String createdAt
+@JsonKey(fromJson: _idFromJson) String id,@JsonKey(unknownEnumValue: AlarmType.unknown) AlarmType type, String message, String createdAt
 });
 
 
@@ -425,7 +427,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  AlarmType type,  String message,  String createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(fromJson: _idFromJson)  String id, @JsonKey(unknownEnumValue: AlarmType.unknown)  AlarmType type,  String message,  String createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Notifications() when $default != null:
 return $default(_that.id,_that.type,_that.message,_that.createdAt);case _:
@@ -446,7 +448,7 @@ return $default(_that.id,_that.type,_that.message,_that.createdAt);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  AlarmType type,  String message,  String createdAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(fromJson: _idFromJson)  String id, @JsonKey(unknownEnumValue: AlarmType.unknown)  AlarmType type,  String message,  String createdAt)  $default,) {final _that = this;
 switch (_that) {
 case _Notifications():
 return $default(_that.id,_that.type,_that.message,_that.createdAt);case _:
@@ -466,7 +468,7 @@ return $default(_that.id,_that.type,_that.message,_that.createdAt);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  AlarmType type,  String message,  String createdAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(fromJson: _idFromJson)  String id, @JsonKey(unknownEnumValue: AlarmType.unknown)  AlarmType type,  String message,  String createdAt)?  $default,) {final _that = this;
 switch (_that) {
 case _Notifications() when $default != null:
 return $default(_that.id,_that.type,_that.message,_that.createdAt);case _:
@@ -481,11 +483,13 @@ return $default(_that.id,_that.type,_that.message,_that.createdAt);case _:
 @JsonSerializable()
 
 class _Notifications implements Notifications {
-  const _Notifications({required this.id, required this.type, required this.message, required this.createdAt});
+  const _Notifications({@JsonKey(fromJson: _idFromJson) required this.id, @JsonKey(unknownEnumValue: AlarmType.unknown) required this.type, required this.message, required this.createdAt});
   factory _Notifications.fromJson(Map<String, dynamic> json) => _$NotificationsFromJson(json);
 
-@override final  String id;
-@override final  AlarmType type;
+// 서버가 id를 숫자로 내려주므로 문자열로 안전하게 변환한다.
+@override@JsonKey(fromJson: _idFromJson) final  String id;
+// 알 수 없는 타입이 와도 목록 전체가 깨지지 않도록 unknown으로 폴백한다.
+@override@JsonKey(unknownEnumValue: AlarmType.unknown) final  AlarmType type;
 @override final  String message;
 @override final  String createdAt;
 
@@ -522,7 +526,7 @@ abstract mixin class _$NotificationsCopyWith<$Res> implements $NotificationsCopy
   factory _$NotificationsCopyWith(_Notifications value, $Res Function(_Notifications) _then) = __$NotificationsCopyWithImpl;
 @override @useResult
 $Res call({
- String id, AlarmType type, String message, String createdAt
+@JsonKey(fromJson: _idFromJson) String id,@JsonKey(unknownEnumValue: AlarmType.unknown) AlarmType type, String message, String createdAt
 });
 
 

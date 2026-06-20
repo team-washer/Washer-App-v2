@@ -27,15 +27,26 @@ class AlarmListWidget extends ConsumerStatefulWidget {
 }
 
 class _AlarmListWidgetState extends ConsumerState<AlarmListWidget> {
+  // dispose 시점에는 ref 사용이 불안정하므로 notifier를 미리 캡처한다.
+  late final AlarmNotifier _notifier;
+
   @override
   void initState() {
     super.initState();
+    _notifier = ref.read(alarmProvider.notifier);
     // 알림 화면을 열면 자동으로 목록을 불러온다.
     // (force=false라 이미 로드됐으면 다시 호출하지 않는다.)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      ref.read(alarmProvider.notifier).fetchAlarmList();
+      _notifier.fetchAlarmList();
     });
+  }
+
+  @override
+  void dispose() {
+    // 알림 화면을 벗어나면 서버의 모든 알림을 삭제한다.
+    _notifier.clearAllOnLeave();
+    super.dispose();
   }
 
   @override

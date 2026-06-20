@@ -9,6 +9,7 @@ part 'alarm_data_source.g.dart';
 
 abstract class AlarmDataSource {
   Future<AlarmListResponse> getAlarmList();
+  Future<void> deleteAllNotifications();
   Future<void> registerFcmToken(String token);
   Future<void> deleteFcmToken();
 }
@@ -19,6 +20,9 @@ abstract class AlarmApiService {
 
   @GET('/notifications')
   Future<HttpResponse<dynamic>> getAlarmList();
+
+  @DELETE('/notifications')
+  Future<void> deleteAllNotifications();
 
   @POST('/notifications/fcm-token')
   Future<void> registerFcmToken(@Body() Map<String, dynamic> payload);
@@ -39,12 +43,13 @@ class AlarmDataSourceImpl implements AlarmDataSource {
       return const AlarmListResponse(data: []);
     }
 
-    // 서버 응답은 `{ code, data: { notifications: [...] } }` 형태다.
-    // 봉투(`data`)를 벗겨 내부의 notifications 배열을 파싱한다.
-    final body = castJsonMap(response.data);
-    final data = body.containsKey('data') ? extractDataMap(body) : body;
+    // 서버 응답은 `{ notifications: [...] }` 형태로 봉투가 없다.
+    return AlarmListResponse.fromJson(castJsonMap(response.data));
+  }
 
-    return AlarmListResponse.fromJson(data);
+  @override
+  Future<void> deleteAllNotifications() {
+    return _api.deleteAllNotifications();
   }
 
   @override

@@ -8,18 +8,24 @@ part of 'alarm_list_response.dart';
 
 _AlarmListResponse _$AlarmListResponseFromJson(Map<String, dynamic> json) =>
     _AlarmListResponse(
-      data: (json['data'] as List<dynamic>)
-          .map((e) => Notifications.fromJson(e as Map<String, dynamic>))
-          .toList(),
+      data:
+          (json['notifications'] as List<dynamic>?)
+              ?.map((e) => Notifications.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const <Notifications>[],
     );
 
 Map<String, dynamic> _$AlarmListResponseToJson(_AlarmListResponse instance) =>
-    <String, dynamic>{'data': instance.data};
+    <String, dynamic>{'notifications': instance.data};
 
 _Notifications _$NotificationsFromJson(Map<String, dynamic> json) =>
     _Notifications(
-      id: json['id'] as String,
-      type: $enumDecode(_$AlarmTypeEnumMap, json['type']),
+      id: _idFromJson(json['id']),
+      type: $enumDecode(
+        _$AlarmTypeEnumMap,
+        json['type'],
+        unknownValue: AlarmType.unknown,
+      ),
       message: json['message'] as String,
       createdAt: json['createdAt'] as String,
     );
@@ -41,4 +47,7 @@ const _$AlarmTypeEnumMap = {
   AlarmType.PAUSE_TIMEOUT: 'PAUSE_TIMEOUT',
   AlarmType.STARTED: 'STARTED',
   AlarmType.TIMEOUT_WARNING: 'TIMEOUT_WARNING',
+  AlarmType.CANCELLATION_BLOCKED: 'CANCELLATION_BLOCKED',
+  AlarmType.CANCELLATION_BLOCK_EXTENDED: 'CANCELLATION_BLOCK_EXTENDED',
+  AlarmType.unknown: 'unknown',
 };

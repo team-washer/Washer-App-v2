@@ -4,9 +4,9 @@ import 'package:washer/core/theme/color.dart';
 import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
 import 'package:washer/core/ui/circle_widget.dart';
+import 'package:washer/core/ui/dialog/dialog_action.dart';
+import 'package:washer/core/ui/dialog/dialog_actions.dart';
 import 'package:washer/core/ui/dialog/washer_dialog.dart';
-import 'package:washer/core/utils/app_logger.dart';
-import 'package:washer/features/report/presentation/providers/report_provider.dart';
 
 class ReportBrokenDialog extends ConsumerStatefulWidget {
   const ReportBrokenDialog({
@@ -41,45 +41,23 @@ class _ReportBrokenDialogState extends ConsumerState<ReportBrokenDialog> {
   }
 
   Future<void> _handleConfirm() async {
-    final messenger = ScaffoldMessenger.of(context);
-    final navigator = Navigator.of(context);
-    final container = ProviderScope.containerOf(context);
-    final reportNotifier = ref.read(reportProvider.notifier);
     final description = _textController.text.trim();
 
     if (description.isEmpty) {
       _focusNode.requestFocus();
-      messenger.showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('고장 내용을 입력해주세요.')),
       );
       return;
     }
 
-    try {
-      navigator.pop();
-      final didReport = await reportNotifier.createMalfunctionReport(
+    await runDialogAction(
+      context,
+      DialogActions.reportBroken(
         machineId: widget.machineId,
         description: description,
-      );
-
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            didReport
-                ? '신고가 완료되었습니다.'
-                : reportErrorMessage(container.read(reportProvider).error),
-          ),
-        ),
-      );
-    } catch (error, stackTrace) {
-      AppLogger.error(
-        '고장 신고 다이얼로그 처리 중 오류가 발생했습니다.',
-        name: 'ReportBrokenDialog',
-        error: error,
-        stackTrace: stackTrace,
-      );
-      messenger.showSnackBar(SnackBar(content: Text('오류: $error')));
-    }
+      ),
+    );
   }
 
   @override

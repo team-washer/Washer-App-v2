@@ -137,9 +137,9 @@ class LaundryStatusDialog extends ConsumerWidget {
     }
 
     if (isReserved) {
-      final reservedDateTime = reservedAt != null
-          ? DateTime.tryParse(reservedAt)
-          : null;
+      final reservedDateTime = DateTimeFormatter.parseServerDateTime(
+        reservedAt,
+      );
       final reservationExpiryTime = reservedDateTime?.add(
         reservationExpiryDuration,
       );

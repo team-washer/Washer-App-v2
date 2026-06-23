@@ -32,6 +32,9 @@ class _HomeBodyWidgetState extends ConsumerState<HomeBodyWidget>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.read(activeReservationProvider.notifier).ensureLoaded();
+      // 앱/홈 진입 시 알람을 불러와 알림 뱃지를 갱신한다.
+      // (force=false라 이미 로드됐으면 중복 호출하지 않는다.)
+      ref.read(alarmProvider.notifier).fetchAlarmList();
     });
   }
 

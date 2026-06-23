@@ -361,9 +361,7 @@ class _ReservationExpiryText extends ConsumerWidget {
     final now = ref.watch(clockProvider).asData?.value ?? DateTime.now();
     var countdown = remainDuration ?? '만료됨';
 
-    final reservedTime = reservedAt != null
-        ? DateTime.tryParse(reservedAt!)
-        : null;
+    final reservedTime = DateTimeFormatter.parseServerDateTime(reservedAt);
     if (reservedTime != null) {
       countdown = _formatDuration(
         reservedTime.add(reservationExpiryDuration).difference(now),

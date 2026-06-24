@@ -443,9 +443,7 @@ class _ReservedByMeCountdownText extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final now = ref.watch(clockProvider).asData?.value ?? DateTime.now();
-    final reservedTime = reservedAt != null
-        ? DateTime.tryParse(reservedAt!)
-        : null;
+    final reservedTime = DateTimeFormatter.parseServerDateTime(reservedAt);
     final expireAt = reservedTime?.add(reservationExpiryDuration);
 
     return Text(

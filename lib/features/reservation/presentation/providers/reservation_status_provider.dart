@@ -8,6 +8,7 @@ import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/data/models/local/laundry_machine_model.dart';
 import 'package:washer/features/reservation/data/data_sources/remote/reservation_status_remote_data_source.dart';
+import 'package:washer/features/reservation/data/data_sources/remote/smartthings_machine_status_overlay.dart';
 
 final clockProvider = StreamProvider<DateTime>((ref) {
   return Stream.periodic(const Duration(seconds: 1), (_) => DateTime.now());
@@ -66,11 +67,19 @@ final machineStatusProvider =
     );
 
 class MachineStatusNotifier extends AsyncNotifier<MachineStatusResponse> {
+  /// 서버에서 기기 목록을 받은 뒤, 운전 상태만 SmartThings에서 직접 조회해 덮어쓴다.
+  Future<MachineStatusResponse> _load() async {
+    final base = await ref
+        .read(homeRemoteDataSourceProvider)
+        .getMachineStatus();
+    return ref.read(smartThingsMachineStatusOverlayProvider).apply(base);
+  }
+
   @override
   Future<MachineStatusResponse> build() async {
     ref.keepAlive();
     try {
-      return await ref.read(homeRemoteDataSourceProvider).getMachineStatus();
+      return await _load();
     } on DioException catch (e, st) {
       AppLogger.error(
         '기기 상태를 불러오는 중 오류가 발생했습니다.',
@@ -89,9 +98,7 @@ class MachineStatusNotifier extends AsyncNotifier<MachineStatusResponse> {
   Future<void> refresh() async {
     state = const AsyncLoading();
     try {
-      final machineStatus = await ref
-          .read(homeRemoteDataSourceProvider)
-          .getMachineStatus();
+      final machineStatus = await _load();
       state = AsyncData(machineStatus);
     } on DioException catch (e, st) {
       AppLogger.error(

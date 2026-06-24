@@ -23,6 +23,19 @@ class AlarmRepository {
         .toList();
   }
 
+  Future<void> deleteAllNotifications() async {
+    try {
+      await _dataSource.deleteAllNotifications();
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'Failed to delete all notifications.',
+        name: 'AlarmRepository',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
   Future<void> registerCurrentFcmToken() async {
     String? fcmToken;
     try {

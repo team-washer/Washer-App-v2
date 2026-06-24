@@ -142,16 +142,25 @@ jobs:
 
       - name: Prepare release notes
         run: |
-          # 머지 커밋 메시지 본문(보통 PR 제목)을 릴리스 노트로 사용, 비면 기본 문구.
-          NOTES="$(git log -1 --format=%b HEAD | sed '/^[[:space:]]*$/d' | head -n 10)"
-          if [ -z "$(printf '%s' "$NOTES" | tr -d '[:space:]')" ]; then
-            NOTES="버그 수정 및 안정성 개선"
+          # What's New 우선순위:
+          # 1) 레포에 커밋된 fastlane/metadata/ko/release_notes.txt 에 내용이 있으면 그걸 그대로 사용.
+          #    (App Store 심사용 릴리스 노트를 명시적으로 관리 — 빈약한 노트로 인한 반려 방지)
+          # 2) 없거나 비어있으면 머지 커밋 메시지 본문(보통 PR 제목)을 사용.
+          # 3) 그것도 비면 기본 문구.
+          NOTES_PATH="fastlane/metadata/ko/release_notes.txt"
+          if [ -f "$NOTES_PATH" ] && [ -n "$(tr -d '[:space:]' < "$NOTES_PATH")" ]; then
+            echo "커밋된 $NOTES_PATH 를 What's New 로 사용합니다."
+          else
+            NOTES="$(git log -1 --format=%b HEAD | sed '/^[[:space:]]*$/d' | head -n 10)"
+            if [ -z "$(printf '%s' "$NOTES" | tr -d '[:space:]')" ]; then
+              NOTES="버그 수정 및 안정성 개선"
+            fi
+            # App Store 등록 언어(ko)에 What's New 작성. (등록 언어 추가 시 디렉터리 추가 필요)
+            mkdir -p fastlane/metadata/ko
+            printf '%s\n' "$NOTES" > "$NOTES_PATH"
           fi
-          # App Store 등록 언어(ko)에 What's New 작성. (등록 언어 추가 시 디렉터리 추가 필요)
-          mkdir -p fastlane/metadata/ko
-          printf '%s\n' "$NOTES" > fastlane/metadata/ko/release_notes.txt
           echo "----- release_notes (ko) -----"
-          cat fastlane/metadata/ko/release_notes.txt
+          cat "$NOTES_PATH"
 
       - name: Verify signing prerequisites
         run: |

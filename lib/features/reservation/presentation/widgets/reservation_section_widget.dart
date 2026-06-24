@@ -2,7 +2,6 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:washer/core/constants/durations.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
 import 'package:washer/core/enums/laundry_status.dart';
 import 'package:washer/core/enums/reservation_state.dart';
@@ -11,7 +10,8 @@ import 'package:washer/core/theme/color.dart';
 import 'package:washer/core/theme/icon.dart';
 import 'package:washer/core/theme/spacing.dart';
 import 'package:washer/core/theme/typography.dart';
-import 'package:washer/core/utils/app_logger.dart';
+import 'package:washer/core/ui/dialog/dialog_action.dart';
+import 'package:washer/core/ui/dialog/dialog_actions.dart';
 import 'package:washer/core/utils/room_formatter.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/data/models/local/laundry_machine_model.dart';
@@ -155,49 +155,15 @@ class _ReservationSectionWidgetState
   }
 
   Future<void> _reserveMachine(BuildContext context, _MachineData item) async {
-    try {
-      final reservation = await ref
-          .read(reservationActionProvider.notifier)
-          .reserve(machineId: item.machineId);
+    // router는 비동기 작업 전에 캡처해야 안전하다.
+    final router = GoRouter.of(context);
 
-      if (reservation == null) {
-        if (context.mounted) {
-          final error = ref.read(reservationActionProvider).error;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                '예약 실패: ${reservationActionErrorMessage(error, fallback: '예약에 실패했습니다. 다시 시도해주세요.')}',
-              ),
-            ),
-          );
-        }
-        return;
-      }
-
-      if (context.mounted) {
-        context.go(RoutePaths.home);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '${item.name} 예약이 완료되었습니다\n'
-              '$reservationExpiryMinutes분 동안 기기 연결을 확인합니다',
-            ),
-          ),
-        );
-      }
-    } catch (error, stackTrace) {
-      AppLogger.error(
-        '예약 섹션 예약 처리 중 오류가 발생했습니다.',
-        name: 'ReservationSectionWidget',
-        error: error,
-        stackTrace: stackTrace,
-      );
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('오류: $error')),
-        );
-      }
-    }
+    await runDialogAction(
+      context,
+      DialogActions.reserve(machineName: item.name, machineId: item.machineId),
+      popFirst: false,
+      onSuccess: () => router.go(RoutePaths.home),
+    );
   }
 
   void _showLaundryLayoutDialog(

@@ -42,6 +42,23 @@ class AlarmNotifier extends Notifier<AlarmState> {
       );
     }
   }
+
+  /// 알림 화면을 벗어날 때 서버의 모든 알림을 삭제하고, 서버에서 목록을
+  /// 다시 불러와 상태(=뱃지)를 서버 기준으로 동기화한다.
+  ///
+  /// 로컬 상태를 임의로 비우지 않고 refetch하므로 삭제가 실패해도 UI가
+  /// 실제 서버 상태와 어긋나지 않는다.
+  /// (deleteAllNotifications는 내부에서 예외를 삼키므로 throw하지 않는다.)
+  Future<void> clearAllOnLeave() async {
+    if (state.alarms.isEmpty) {
+      return;
+    }
+
+    await ref.read(alarmRepositoryProvider).deleteAllNotifications();
+    await fetchAlarmList(force: true);
+    // 다음에 화면을 다시 열면 또 새로 불러오도록 로드 플래그를 초기화한다.
+    _hasLoaded = false;
+  }
 }
 
 final alarmProvider = NotifierProvider<AlarmNotifier, AlarmState>(

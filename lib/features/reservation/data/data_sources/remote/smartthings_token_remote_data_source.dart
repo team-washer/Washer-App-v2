@@ -57,6 +57,10 @@ class SmartThingsTokenStore {
   Future<String> getAccessToken({bool forceRefresh = false}) async {
     if (forceRefresh) {
       _cached = null;
+      // 주의: _inflight는 일부러 비우지 않는다. _fetch()는 항상 서버에서 새
+      // 토큰을 받아오므로, 진행 중인 요청을 공유하면 병렬 401 재시도가 토큰을
+      // 한 번만 발급받는다(중복 발급 방지). 완료된 요청은 이미 finally에서
+      // _inflight=null로 정리된다.
     }
 
     final cached = _cached;

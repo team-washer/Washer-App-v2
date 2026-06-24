@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:washer/core/enums/machine_state.dart';
@@ -30,6 +31,35 @@ class _FakeStatusDataSource implements SmartThingsStatusRemoteDataSource {
     String accessToken,
   ) async {
     requestedDeviceIds.add(deviceId);
+    return byDeviceId[deviceId] ?? const SmartThingsDeviceStatus();
+  }
+}
+
+/// [validToken] 이 아닌 토큰으로 호출하면 401을 던진다.
+/// (만료된 토큰으로 병렬 조회 → 강제 갱신 후 재시도 시나리오 재현)
+class _Unauthorized401StatusDataSource
+    implements SmartThingsStatusRemoteDataSource {
+  _Unauthorized401StatusDataSource(this.validToken, this.byDeviceId);
+
+  final String validToken;
+  final Map<String, SmartThingsDeviceStatus> byDeviceId;
+  final List<String> requestedDeviceIds = [];
+
+  @override
+  Future<SmartThingsDeviceStatus> getDeviceStatus(
+    String deviceId,
+    String accessToken,
+  ) async {
+    requestedDeviceIds.add(deviceId);
+    if (accessToken != validToken) {
+      throw DioException(
+        requestOptions: RequestOptions(path: '/v1/devices/$deviceId/status'),
+        response: Response(
+          requestOptions: RequestOptions(path: '/v1/devices/$deviceId/status'),
+          statusCode: 401,
+        ),
+      );
+    }
     return byDeviceId[deviceId] ?? const SmartThingsDeviceStatus();
   }
 }
@@ -161,6 +191,49 @@ void main() {
       expect(result, base);
       expect(tokenDataSource.callCount, 0);
       expect(statusDataSource.requestedDeviceIds, isEmpty);
+    });
+
+    test('refreshes token on 401 and retries every device in parallel', () async {
+      // 첫 토큰은 token-1, 강제 갱신 시 token-2 가 발급된다.
+      final tokenDataSource = _FakeTokenDataSource();
+      final statusDataSource = _Unauthorized401StatusDataSource('token-2', {
+        'device-1': const SmartThingsDeviceStatus(jobState: 'wash'),
+        'device-2': const SmartThingsDeviceStatus(jobState: 'spin'),
+      });
+      final container = buildContainer(
+        tokenDataSource: tokenDataSource,
+        statusDataSource: statusDataSource,
+      );
+
+      const base = MachineStatusResponse(
+        machines: [
+          MachineModel(
+            machineId: 1,
+            name: 'Washer-3F-L1',
+            type: 'WASHER',
+            status: 'NORMAL',
+            availability: 'UNAVAILABLE',
+            smartThingsDeviceId: 'device-1',
+          ),
+          MachineModel(
+            machineId: 2,
+            name: 'Washer-3F-L2',
+            type: 'WASHER',
+            status: 'NORMAL',
+            availability: 'UNAVAILABLE',
+            smartThingsDeviceId: 'device-2',
+          ),
+        ],
+        totalCount: 2,
+      );
+
+      final result = await container
+          .read(smartThingsMachineStatusOverlayProvider)
+          .apply(base);
+
+      // 두 기기 모두 401 후 새 토큰으로 재시도해 운전 상태가 반영되어야 한다.
+      expect(result.machines[0].machineState, MachineState.wash);
+      expect(result.machines[1].machineState, MachineState.spin);
     });
 
     test('keeps server values when SmartThings returns empty status', () async {

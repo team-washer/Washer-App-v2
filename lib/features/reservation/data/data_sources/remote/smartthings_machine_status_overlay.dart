@@ -56,8 +56,9 @@ class SmartThingsMachineStatusOverlay {
   ) async {
     final statusDataSource = _statusDataSource;
     final tokenStore = _tokenStore;
+    // 병렬 조회 중 401이 나면 한 기기가 토큰을 갱신하고, 나머지는 갱신된
+    // activeToken을 재사용한다. (토큰 스토어가 in-flight 요청을 공유)
     var activeToken = token;
-    var didRefresh = false;
 
     Future<MachineModel> overlayOne(MachineModel machine) async {
       final deviceId = machine.smartThingsDeviceId?.trim();
@@ -65,26 +66,31 @@ class SmartThingsMachineStatusOverlay {
         return machine;
       }
 
+      final tokenUsed = activeToken;
       try {
         final status = await statusDataSource.getDeviceStatus(
           deviceId,
-          activeToken,
+          tokenUsed,
         );
         return _merge(machine, status);
       } on DioException catch (e, st) {
-        // 토큰 만료(401) 시 1회 강제 갱신 후 재시도한다.
-        if (e.response?.statusCode == 401 && !didRefresh) {
-          didRefresh = true;
+        // 토큰 만료(401): 아직 아무도 갱신하지 않았다면 강제 갱신하고,
+        // 갱신된(또는 다른 기기가 이미 갱신한) 새 토큰으로 1회 재시도한다.
+        if (e.response?.statusCode == 401) {
           try {
-            activeToken = await tokenStore.getAccessToken(forceRefresh: true);
-            final status = await statusDataSource.getDeviceStatus(
-              deviceId,
-              activeToken,
-            );
-            return _merge(machine, status);
+            if (activeToken == tokenUsed) {
+              activeToken = await tokenStore.getAccessToken(forceRefresh: true);
+            }
+            if (activeToken != tokenUsed) {
+              final status = await statusDataSource.getDeviceStatus(
+                deviceId,
+                activeToken,
+              );
+              return _merge(machine, status);
+            }
           } catch (e2, st2) {
             AppLogger.error(
-              'SmartThings 상태 재조회 실패 (deviceId=$deviceId). 서버 상태 유지.',
+              'SmartThings 토큰 갱신/재조회 실패 (deviceId=$deviceId). 서버 상태 유지.',
               name: 'SmartThingsOverlay',
               error: e2,
               stackTrace: st2,

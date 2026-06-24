@@ -23,10 +23,12 @@
 
 ## 최초 1회 세팅
 
-1. **스토어 링크 채우기** — `.github/workflows/set-version-policy.yml`의 `env`:
-   - `ANDROID_STORE_URL`: `id=PUT_PACKAGE_ID` → 실제 패키지명
-   - `IOS_STORE_URL`: `idPUT_APP_ID` → App Store 앱 ID
-2. **관리자 토큰(필요 시)** — 실행 시 401/403이 나면, repo **Settings → Secrets → Actions**에 `WASHER_ADMIN_TOKEN`(관리자 JWT) 추가. 설정돼 있으면 `Authorization: Bearer` 헤더가 자동으로 붙습니다.
+**스토어 링크 채우기** — `.github/workflows/set-version-policy.yml`의 `env`:
+
+- `ANDROID_STORE_URL`: `com.washer.v2`(applicationId)로 이미 채워둠
+- `IOS_STORE_URL`: `idPUT_APP_ID` → App Store **숫자 App ID**로 교체 (bundle id 아님, App Store Connect에서 확인)
+
+> 이 admin API는 인증이 필요 없어 별도 토큰/시크릿 설정은 없습니다.
 
 ## 릴리스마다 절차
 

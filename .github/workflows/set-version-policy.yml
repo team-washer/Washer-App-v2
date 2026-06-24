@@ -1,0 +1,90 @@
+name: Set App Version Policy
+
+# 새 버전이 "실제로 스토어에서 다운로드 가능해진 뒤" 수동으로 실행한다.
+# 서버의 버전 정책(min/latest)을 갱신해 강제·권장 업데이트를 제어한다.
+#
+# ⚠️ 라이브 전에 minSupported 를 올리면 유저가 아직 받을 수 없는 버전으로
+#    강제 업데이트되어 앱에 갇힌다. 반드시 스토어 출시 확인 후 실행할 것.
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: "대상 플랫폼"
+        type: choice
+        options: [ANDROID, IOS]
+        required: true
+      latest_version_name:
+        description: "최신 버전명 (pubspec version, 예: 1.4.0)"
+        required: true
+      latest_version_code:
+        description: "최신 빌드번호 (Android=1000+run number, iOS=run number)"
+        required: true
+      min_supported_version_name:
+        description: "강제 업데이트 기준 최소 버전명 (예: 1.2.0)"
+        required: true
+      min_supported_version_code:
+        description: "강제 업데이트 기준 최소 빌드번호"
+        required: true
+      update_message:
+        description: "업데이트 안내 문구"
+        required: false
+        default: "새로운 버전이 출시되었어요. 원활한 사용을 위해 업데이트해 주세요."
+
+env:
+  API_BASE: https://server-api.washer-gsm.com
+  # ⬇️ 스토어 링크는 버전마다 안 바뀌니 여기서 한 번만 채워두고 재사용한다.
+  ANDROID_STORE_URL: "https://play.google.com/store/apps/details?id=PUT_PACKAGE_ID"
+  IOS_STORE_URL: "https://apps.apple.com/app/idPUT_APP_ID"
+
+jobs:
+  upsert:
+    name: Upsert app version policy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve store url
+        id: store
+        run: |
+          if [ "${{ inputs.platform }}" = "ANDROID" ]; then
+            echo "url=${ANDROID_STORE_URL}" >> "$GITHUB_OUTPUT"
+          else
+            echo "url=${IOS_STORE_URL}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Call upsert API
+        # 인젝션 방지 위해 입력값은 전부 env 로 전달 후 jq 로 안전하게 body 구성.
+        env:
+          ADMIN_TOKEN: ${{ secrets.WASHER_ADMIN_TOKEN }}
+          PLATFORM: ${{ inputs.platform }}
+          LATEST_NAME: ${{ inputs.latest_version_name }}
+          LATEST_CODE: ${{ inputs.latest_version_code }}
+          MIN_NAME: ${{ inputs.min_supported_version_name }}
+          MIN_CODE: ${{ inputs.min_supported_version_code }}
+          MESSAGE: ${{ inputs.update_message }}
+          STORE_URL: ${{ steps.store.outputs.url }}
+        run: |
+          set -euo pipefail
+
+          # --argjson 은 숫자 검증도 겸한다(빌드번호에 숫자 외 값이 오면 여기서 실패).
+          BODY=$(jq -n \
+            --arg  lvn "$LATEST_NAME" \
+            --argjson lvc "$LATEST_CODE" \
+            --arg  mvn "$MIN_NAME" \
+            --argjson mvc "$MIN_CODE" \
+            --arg  su  "$STORE_URL" \
+            --arg  um  "$MESSAGE" \
+            '{latestVersionName:$lvn, latestVersionCode:$lvc, minSupportedVersionName:$mvn, minSupportedVersionCode:$mvc, storeUrl:$su, updateMessage:$um}')
+
+          echo "PUT ${API_BASE}/api/v2/admin/app-versions/${PLATFORM}"
+          echo "$BODY" | jq .
+
+          # 관리자 토큰이 설정돼 있으면 Authorization 헤더를 붙인다(없으면 생략).
+          AUTH=()
+          if [ -n "${ADMIN_TOKEN:-}" ]; then
+            AUTH=(-H "Authorization: Bearer ${ADMIN_TOKEN}")
+          fi
+
+          curl --fail-with-body -sS -X PUT \
+            "${API_BASE}/api/v2/admin/app-versions/${PLATFORM}" \
+            -H "Content-Type: application/json" \
+            "${AUTH[@]}" \
+            -d "$BODY"

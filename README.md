@@ -128,3 +128,20 @@ flutter run
 ```
 
 예시는 `.env.development.example`, `.env.production.example`을 참고하세요.
+
+## 배포 (CD)
+
+`main` 브랜치에 머지되면 GitHub Actions가 스토어 배포를 자동 실행하고, 서버 버전 정책은 출시 확인 후 수동으로 갱신합니다.
+
+| 워크플로 | 트리거 | 역할 |
+|----------|--------|------|
+| `.github/workflows/release-android.yml` | `main` push | Play Store production 자동 배포 |
+| `.github/workflows/release-ios.yml` | `main` push | App Store 심사 자동 제출 |
+| `.github/workflows/set-version-policy.yml` | 수동 (`workflow_dispatch`) | 서버 버전 정책 갱신 (강제/권장 업데이트 제어) |
+
+업데이트 흐름: **main 머지(자동 배포) → 스토어 실제 출시 확인 → `Set App Version Policy` 수동 실행.**
+
+> ⚠️ 스토어 라이브 전에 정책의 `minSupported`를 올리면 유저가 받을 수 없는 버전으로 강제 업데이트되어 앱에 갇힙니다. 반드시 출시 확인 후 실행하세요.
+
+- 버전 정책 운영 상세: [`docs/app_version_policy.md`](docs/app_version_policy.md)
+- 스토어 CD/시크릿 설정: [`docs/mobile_store_cd.md`](docs/mobile_store_cd.md)

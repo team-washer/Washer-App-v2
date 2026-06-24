@@ -23,12 +23,7 @@
 
 ## 최초 1회 세팅
 
-**스토어 링크 채우기** — `.github/workflows/set-version-policy.yml`의 `env`:
-
-- `ANDROID_STORE_URL`: `com.washer.v2`(applicationId)로 이미 채워둠
-- `IOS_STORE_URL`: `idPUT_APP_ID` → App Store **숫자 App ID**로 교체 (bundle id 아님, App Store Connect에서 확인)
-
-> 이 admin API는 인증이 필요 없어 별도 토큰/시크릿 설정은 없습니다.
+스토어 링크(`ANDROID_STORE_URL` / `IOS_STORE_URL`)는 `.github/workflows/set-version-policy.yml`에 이미 채워져 있고, 이 admin API는 인증이 필요 없어 **별도 세팅 없이 바로 실행**할 수 있습니다.
 
 ## 릴리스마다 절차
 

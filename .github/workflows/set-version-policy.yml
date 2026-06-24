@@ -34,8 +34,7 @@ env:
   API_BASE: https://server-api.washer-gsm.com
   # ⬇️ 스토어 링크는 버전마다 안 바뀌니 여기서 한 번만 채워두고 재사용한다.
   ANDROID_STORE_URL: "https://play.google.com/store/apps/details?id=com.washer.v2"
-  # ⬇️ App Store는 bundle id가 아니라 숫자 App ID 필요(App Store Connect에서 확인). 예: id6450123456
-  IOS_STORE_URL: "https://apps.apple.com/app/idPUT_APP_ID"
+  IOS_STORE_URL: "https://apps.apple.com/app/id6760886865"
 
 jobs:
   upsert:

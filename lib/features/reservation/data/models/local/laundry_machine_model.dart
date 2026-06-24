@@ -38,6 +38,9 @@ abstract class MachineModel with _$MachineModel {
     String? userStudentId,
     String? userName,
     String? roomNumber,
+    // 클라이언트가 SmartThings 상태를 직접 조회할 때 사용하는 기기 식별자.
+    // 서버 `/machines/status` 응답에 포함되어 내려온다.
+    String? smartThingsDeviceId,
   }) = _MachineModel;
 
   factory MachineModel.fromJson(Map<String, dynamic> json) =>

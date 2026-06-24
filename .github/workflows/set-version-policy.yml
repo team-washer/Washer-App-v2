@@ -53,6 +53,8 @@ jobs:
       - name: Call upsert API
         # 인젝션 방지 위해 입력값은 전부 env 로 전달 후 jq 로 안전하게 body 구성.
         env:
+          # admin 엔드포인트는 인증 필수(미설정 시 403). 관리자 권한 토큰을 secret 으로 등록.
+          ADMIN_TOKEN: ${{ secrets.WASHER_ADMIN_TOKEN }}
           PLATFORM: ${{ inputs.platform }}
           LATEST_NAME: ${{ inputs.latest_version_name }}
           LATEST_CODE: ${{ inputs.latest_version_code }}
@@ -62,6 +64,11 @@ jobs:
           STORE_URL: ${{ steps.store.outputs.url }}
         run: |
           set -euo pipefail
+
+          if [ -z "${ADMIN_TOKEN:-}" ]; then
+            echo "::error::WASHER_ADMIN_TOKEN secret 미설정 — admin API 는 인증이 필요합니다(403)."
+            exit 1
+          fi
 
           # --argjson 은 숫자 검증도 겸한다(빌드번호에 숫자 외 값이 오면 여기서 실패).
           BODY=$(jq -n \
@@ -79,4 +86,5 @@ jobs:
           curl --fail-with-body -sS -X PUT \
             "${API_BASE}/api/v2/admin/app-versions/${PLATFORM}" \
             -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${ADMIN_TOKEN}" \
             -d "$BODY"

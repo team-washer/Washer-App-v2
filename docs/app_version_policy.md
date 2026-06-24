@@ -23,7 +23,9 @@
 
 ## 최초 1회 세팅
 
-스토어 링크(`ANDROID_STORE_URL` / `IOS_STORE_URL`)는 `.github/workflows/set-version-policy.yml`에 이미 채워져 있고, 이 admin API는 인증이 필요 없어 **별도 세팅 없이 바로 실행**할 수 있습니다.
+스토어 링크(`ANDROID_STORE_URL` / `IOS_STORE_URL`)는 `.github/workflows/set-version-policy.yml`에 이미 채워져 있습니다.
+
+**관리자 토큰 등록(필수)** — admin API는 인증이 걸려 있어 토큰 없이 호출하면 403입니다. repo **Settings → Secrets → Actions**에 `WASHER_ADMIN_TOKEN`(관리자 권한 계정의 Bearer JWT)을 등록하면 워크플로가 `Authorization: Bearer` 헤더로 호출합니다.
 
 ## 릴리스마다 절차
 

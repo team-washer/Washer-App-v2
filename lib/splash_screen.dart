@@ -31,11 +31,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   Future<void> _bootstrap() async {
-    if (await _handleForceUpdate()) {
-      return;
-    }
-
     final storage = ref.read(secureStorageProvider);
+
+    // 버전 체크(스토어 조회)를 먼저 시작해 사용자 조회와 병렬로 진행한다.
+    final versionStatusFuture = ref
+        .read(versionCheckServiceProvider)
+        .fetchUpdatableStatus();
+
     final accessToken = await storage.read(key: 'access_token');
     final refreshToken = await storage.read(key: 'refresh_token');
     final hasAccessToken = accessToken != null && accessToken.isNotEmpty;
@@ -44,20 +46,41 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         refreshToken.isNotEmpty &&
         !TokenUtils.isExpired(refreshToken);
 
-    if (!hasAccessToken && !hasRefreshToken) {
-      await _goToLogin(storage);
+    final needsLogin =
+        (!hasAccessToken && !hasRefreshToken) ||
+        (hasAccessToken &&
+            TokenUtils.isExpired(accessToken) &&
+            !hasRefreshToken);
+
+    // 로그인 상태면 사용자 조회도 버전 체크와 병렬로 시작한다.
+    final myUserFuture = needsLogin
+        ? null
+        : ref.read(userRemoteDataSourceProvider).getMyUser();
+
+    // 강제 업데이트가 필요하면 팝업을 띄우고 이후 진입을 중단한다.
+    final versionStatus = await versionStatusFuture;
+    if (versionStatus != null) {
+      myUserFuture?.ignore(); // 병렬 조회 결과는 버린다(미처리 에러 방지).
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => ForceUpdateDialog(
+          onUpdatePressed: () => ref
+              .read(versionCheckServiceProvider)
+              .openStore(versionStatus.appStoreLink),
+        ),
+      );
       return;
     }
 
-    if (hasAccessToken &&
-        TokenUtils.isExpired(accessToken) &&
-        !hasRefreshToken) {
+    if (myUserFuture == null) {
       await _goToLogin(storage);
       return;
     }
 
     try {
-      final myUser = await ref.read(userRemoteDataSourceProvider).getMyUser();
+      final myUser = await myUserFuture;
       ref.read(myUserProvider.notifier).setUser(myUser);
       if (!mounted) return;
       context.go(RoutePaths.home);
@@ -102,32 +125,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     ref.read(myUserProvider.notifier).clear();
     if (!mounted) return;
     context.go(RoutePaths.login);
-  }
-
-  /// 앱이 최신 버전이 아니면 강제 업데이트 팝업을 띄운다.
-  ///
-  /// 업데이트가 필요해 팝업을 노출한 경우 `true`를 반환하여
-  /// 이후 초기화(인증/홈 진입)를 중단시킨다.
-  Future<bool> _handleForceUpdate() async {
-    final versionCheckService = ref.read(versionCheckServiceProvider);
-    final status = await versionCheckService.fetchUpdatableStatus();
-
-    if (status == null) {
-      return false;
-    }
-
-    if (!mounted) return true;
-
-    final storeLink = status.appStoreLink;
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => ForceUpdateDialog(
-        onUpdatePressed: () => versionCheckService.openStore(storeLink),
-      ),
-    );
-
-    return true;
   }
 
   @override

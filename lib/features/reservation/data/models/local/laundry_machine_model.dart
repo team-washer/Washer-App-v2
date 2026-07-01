@@ -98,30 +98,24 @@ abstract class MachineModel with _$MachineModel {
 
   bool get hasReservation => (reservationId ?? 0) > 0;
 
-  bool get isAvailable =>
-      normalizedAvailability == 'AVAILABLE' && !hasReservation;
-
   bool get isUnavailable => normalizedStatus != 'NORMAL';
 
-  bool get isReserved => hasReservation || normalizedAvailability == 'RESERVED';
+  // 운전 중이면 reservationId가 남아있어도 예약이 아니라 사용 중으로 본다.
+  bool get isReserved =>
+      !isUnavailable &&
+      !isInUse &&
+      (hasReservation || normalizedAvailability == 'RESERVED');
 
-  bool get isInUse {
-    if (isUnavailable || isAvailable) {
-      return false;
-    }
+  // 운전중 판정은 서버 availability 기준. (#228: SmartThings operatingState 판정 제거)
+  // AVAILABLE=미사용, RESERVED=예약, 그 외(UNAVAILABLE)=운전중.
+  // 남은 시간 카운트다운은 계속 SmartThings expectedCompletionTime 오버레이를 사용한다.
+  bool get isInUse =>
+      !isUnavailable &&
+      normalizedAvailability != 'AVAILABLE' &&
+      normalizedAvailability != 'RESERVED';
 
-    final currentState = machineState;
-    if (currentState != null) {
-      return currentState != MachineState.delayWash &&
-          currentState != MachineState.none &&
-          currentState != MachineState.stop &&
-          currentState != MachineState.finished;
-    }
-
-    // 서버가 operatingState 없이 예약 불가 상태만 내려주는 경우가 있습니다.
-    // 이때 reservationId도 없으면 "예약 중"이 아니라 실제 "사용 중"으로 간주합니다.
-    return !hasReservation;
-  }
+  // 예약 가능 = 고장 아님 + 예약 안 됨 + 사용 중 아님.
+  bool get isAvailable => !isUnavailable && !isReserved && !isInUse;
 }
 
 @freezed

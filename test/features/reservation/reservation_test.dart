@@ -155,7 +155,8 @@ void main() {
       expect(model.isInUse, isTrue);
     });
 
-    test('treats finished machine as not in use', () {
+    test('server UNAVAILABLE stays in use even if SmartThings reports finished', () {
+      // #228: 운전중 판정은 서버 availability가 기준. operatingState는 판정에 쓰지 않는다.
       const model = MachineModel(
         machineId: 1,
         name: 'Dryer-4F-R2',
@@ -165,8 +166,24 @@ void main() {
         operatingState: 'FINISHED',
       );
 
-      expect(model.machineState, MachineState.finished);
+      expect(model.isInUse, isTrue);
+      expect(model.isAvailable, isFalse);
+    });
+
+    test('server AVAILABLE is reservable even if SmartThings reports running', () {
+      // #228: availability가 AVAILABLE이면 예약 가능. operatingState는 무시한다.
+      const model = MachineModel(
+        machineId: 1,
+        name: 'Washer-3F-L1',
+        type: 'WASHER',
+        status: 'NORMAL',
+        availability: 'AVAILABLE',
+        operatingState: 'RUN',
+      );
+
       expect(model.isInUse, isFalse);
+      expect(model.isReserved, isFalse);
+      expect(model.isAvailable, isTrue);
     });
 
     test(

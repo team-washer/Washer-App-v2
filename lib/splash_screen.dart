@@ -57,10 +57,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         ? null
         : ref.read(userRemoteDataSourceProvider).getMyUser();
 
+    // 버전 체크를 기다리는 동안 사용자 조회에서 에러가 나도 미처리 async 에러로
+    // 보고되지 않도록 즉시 ignore()를 등록한다. 이후 await 시에는 에러가 그대로
+    // 던져져 try/catch에서 처리된다.
+    myUserFuture?.ignore();
+
     // 강제 업데이트가 필요하면 팝업을 띄우고 이후 진입을 중단한다.
     final versionStatus = await versionStatusFuture;
     if (versionStatus != null) {
-      myUserFuture?.ignore(); // 병렬 조회 결과는 버린다(미처리 에러 방지).
       if (!mounted) return;
       await showDialog<void>(
         context: context,

@@ -100,18 +100,19 @@ abstract class MachineModel with _$MachineModel {
 
   bool get isUnavailable => normalizedStatus != 'NORMAL';
 
-  bool get isReserved => hasReservation || normalizedAvailability == 'RESERVED';
+  // 운전 중이면 reservationId가 남아있어도 예약이 아니라 사용 중으로 본다.
+  bool get isReserved =>
+      !isUnavailable &&
+      !isInUse &&
+      (hasReservation || normalizedAvailability == 'RESERVED');
 
   // 운전중 판정은 서버 availability 기준. (#228: SmartThings operatingState 판정 제거)
   // AVAILABLE=미사용, RESERVED=예약, 그 외(UNAVAILABLE)=운전중.
   // 남은 시간 카운트다운은 계속 SmartThings expectedCompletionTime 오버레이를 사용한다.
-  bool get isInUse {
-    if (isUnavailable) {
-      return false;
-    }
-
-    return normalizedAvailability != 'AVAILABLE' && !isReserved;
-  }
+  bool get isInUse =>
+      !isUnavailable &&
+      normalizedAvailability != 'AVAILABLE' &&
+      normalizedAvailability != 'RESERVED';
 
   // 예약 가능 = 고장 아님 + 예약 안 됨 + 사용 중 아님.
   bool get isAvailable => !isUnavailable && !isReserved && !isInUse;

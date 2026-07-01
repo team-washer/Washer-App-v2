@@ -119,7 +119,8 @@ class ReservationWidget extends StatelessWidget {
           ),
           // 예약 가능 상태는 하단 버튼 줄에 히스토리 아이콘이 이미 있다.
           // 그 외(사용중/예약됨/고장) 상태에서도 하단 오른쪽에 히스토리 아이콘을 노출한다.
-          if (reservationState != ReservationState.available) ...[
+          // machineId가 유효할 때만(0이면 잘못된 조회 방지) 노출한다.
+          if (reservationState != ReservationState.available && machineId > 0) ...[
             AppGap.v8,
             Align(
               alignment: Alignment.centerRight,

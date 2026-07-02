@@ -4,6 +4,7 @@ import 'package:retrofit/retrofit.dart';
 import 'package:washer/core/network/api_response_parser.dart';
 import 'package:washer/core/network/dio_client.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
+import 'package:washer/features/reservation/data/models/remote/cancel_reservation_response.dart';
 import 'package:washer/features/reservation/data/models/remote/confirm_reservation_response.dart';
 
 part 'reservation_remote_data_source.g.dart';
@@ -14,7 +15,7 @@ abstract class ReservationRemoteDataSource {
     required String startTime,
   });
 
-  Future<void> cancelReservation({
+  Future<CancelReservationResponse> cancelReservation({
     required int id,
   });
 
@@ -61,10 +62,13 @@ class ReservationRemoteDataSourceImpl implements ReservationRemoteDataSource {
   }
 
   @override
-  Future<void> cancelReservation({
+  Future<CancelReservationResponse> cancelReservation({
     required int id,
   }) async {
-    await _api.cancelReservation(id);
+    final response = await _api.cancelReservation(id);
+    final data = castJsonMap(response.data);
+
+    return CancelReservationResponse.fromJson(data);
   }
 
   @override

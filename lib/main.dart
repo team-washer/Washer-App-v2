@@ -8,7 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:washer/core/env/app_environment.dart';
 import 'package:washer/core/notifications/notification_bootstrapper.dart';
-import 'package:washer/core/theme/theme.dart';
+import 'package:washer/shared/theme/theme.dart';
 import 'package:washer/firebase_options.dart';
 
 import 'core/router/app_router.dart';

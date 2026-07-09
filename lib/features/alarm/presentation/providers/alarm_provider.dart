@@ -10,7 +10,7 @@ class AlarmNotifier extends Notifier<AlarmState> {
   AlarmState build() {
     return const AlarmState();
   }
-
+  // 알람 리스트
   Future<void> fetchAlarmList({bool force = false}) async {
     if (_hasLoaded && !force) {
       return;
@@ -49,6 +49,7 @@ class AlarmNotifier extends Notifier<AlarmState> {
   /// 로컬 상태를 임의로 비우지 않고 refetch하므로 삭제가 실패해도 UI가
   /// 실제 서버 상태와 어긋나지 않는다.
   /// (deleteAllNotifications는 내부에서 예외를 삼키므로 throw하지 않는다.)
+  // 
   Future<void> clearAllOnLeave() async {
     if (state.alarms.isEmpty) {
       return;

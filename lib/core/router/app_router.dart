@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
 import 'package:washer/core/network/auth_notifier.dart';
 import 'package:washer/core/network/token_utils.dart';
-import 'package:washer/core/ui/main_shell.dart';
+import 'package:washer/shared/ui/main_shell.dart';
 import 'package:washer/features/alarm/presentation/screens/alarm_screen.dart';
 import 'package:washer/features/auth/presentation/screens/auth_webview_screen.dart';
 import 'package:washer/features/auth/presentation/screens/login_screen.dart';

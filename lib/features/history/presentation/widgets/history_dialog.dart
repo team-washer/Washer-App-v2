@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:washer/core/theme/color.dart';
-import 'package:washer/core/theme/spacing.dart';
-import 'package:washer/core/theme/typography.dart';
-import 'package:washer/core/ui/dialog/washer_dialog.dart';
-import 'package:washer/core/ui/reservation_state_widget.dart';
+import 'package:washer/shared/theme/color.dart';
+import 'package:washer/shared/theme/spacing.dart';
+import 'package:washer/shared/theme/typography.dart';
+import 'package:washer/shared/ui/dialog/washer_dialog.dart';
+import 'package:washer/shared/ui/reservation_state_widget.dart';
 import 'package:washer/core/utils/date_time_formatter.dart';
 import 'package:washer/features/history/data/models/machine_history_response.dart';
 import 'package:washer/features/history/presentation/models/history_status.dart';

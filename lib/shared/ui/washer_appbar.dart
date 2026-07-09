@@ -4,12 +4,12 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:washer/core/network/auth_notifier.dart';
 import 'package:washer/core/router/route_paths.dart';
-import 'package:washer/core/theme/color.dart';
-import 'package:washer/core/theme/icon.dart';
-import 'package:washer/core/theme/spacing.dart';
-import 'package:washer/core/theme/typography.dart';
-import 'package:washer/core/ui/circle_widget.dart';
-import 'package:washer/core/ui/dialog/washer_dialog.dart';
+import 'package:washer/shared/theme/color.dart';
+import 'package:washer/shared/theme/icon.dart';
+import 'package:washer/shared/theme/spacing.dart';
+import 'package:washer/shared/theme/typography.dart';
+import 'package:washer/shared/ui/circle_widget.dart';
+import 'package:washer/shared/ui/dialog/washer_dialog.dart';
 import 'package:washer/features/auth/presentation/providers/logout_provider.dart';
 import 'package:washer/features/user/presentation/providers/withdraw_provider.dart';
 

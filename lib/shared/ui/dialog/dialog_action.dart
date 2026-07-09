@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:washer/core/ui/loading_overlay.dart';
+import 'package:washer/shared/ui/loading_overlay.dart';
 import 'package:washer/core/utils/app_logger.dart';
 
 /// 다이얼로그/위젯에서 실행하는 비동기 액션 한 건의 정의.

@@ -1,6 +1,6 @@
 import 'dart:ui';
 
-import '../theme/color.dart';
+import 'package:washer/shared/theme/color.dart';
 
 enum ReservationState {
   inUse, // 사용중

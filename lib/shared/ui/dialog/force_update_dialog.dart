@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:washer/core/theme/color.dart';
-import 'package:washer/core/theme/spacing.dart';
-import 'package:washer/core/ui/dialog/washer_dialog.dart';
+import 'package:washer/shared/theme/color.dart';
+import 'package:washer/shared/theme/spacing.dart';
+import 'package:washer/shared/ui/dialog/washer_dialog.dart';
 
 /// 앱이 최신 버전이 아닐 때 초기 진입에서 강제로 노출되는 업데이트 팝업.
 ///

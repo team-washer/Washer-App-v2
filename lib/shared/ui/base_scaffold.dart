@@ -1,7 +1,7 @@
 ﻿import 'package:flutter/material.dart';
-import 'package:washer/core/theme/color.dart';
-import 'package:washer/core/theme/spacing.dart';
-import 'package:washer/core/ui/washer_appbar.dart';
+import 'package:washer/shared/theme/color.dart';
+import 'package:washer/shared/theme/spacing.dart';
+import 'package:washer/shared/ui/washer_appbar.dart';
 
 class BaseScaffold extends StatelessWidget {
   final Widget body;

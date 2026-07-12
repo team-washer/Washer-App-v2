@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:washer/core/env/app_environment.dart';
 import 'package:washer/core/router/route_paths.dart';
-import 'package:washer/core/theme/color.dart';
+import 'package:washer/shared/theme/color.dart';
 import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/features/auth/presentation/providers/auth_callback_provider.dart';
 import 'package:washer/features/auth/presentation/widgets/auth_base_scaffold.dart';

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
-import 'package:washer/core/theme/color.dart';
-import 'package:washer/core/theme/spacing.dart';
-import 'package:washer/core/theme/typography.dart';
+import 'package:washer/shared/theme/color.dart';
+import 'package:washer/shared/theme/spacing.dart';
+import 'package:washer/shared/theme/typography.dart';
 import 'package:washer/features/reservation/data/models/local/laundry_machine_model.dart';
 
 class LaundryLayoutDialog extends StatelessWidget {

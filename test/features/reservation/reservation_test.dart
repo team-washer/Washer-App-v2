@@ -5,22 +5,27 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:washer/core/enums/machine_state.dart';
+import 'package:washer/core/utils/date_time_formatter.dart';
 import 'package:washer/features/reservation/data/data_sources/remote/reservation_status_remote_data_source.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/data/models/local/laundry_machine_model.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
 import 'package:washer/features/reservation/data/data_sources/remote/reservation_remote_data_source.dart';
+import 'package:washer/features/reservation/data/models/remote/cancel_reservation_response.dart';
 import 'package:washer/features/reservation/data/models/remote/confirm_reservation_response.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_action_provider.dart';
+import 'package:washer/features/reservation/presentation/providers/reservation_penalty_provider.dart';
 
 class FakeReservationRemoteDataSource implements ReservationRemoteDataSource {
   FakeReservationRemoteDataSource({
     this.createdReservation = _reservedReservation,
     this.cancelError,
+    this.cancelResponse = _noPenaltyCancel,
   });
 
   final ActiveReservationModel createdReservation;
   final Object? cancelError;
+  final CancelReservationResponse cancelResponse;
   int? lastMachineId;
   String? lastStartTime;
   int? cancelledId;
@@ -36,12 +41,13 @@ class FakeReservationRemoteDataSource implements ReservationRemoteDataSource {
   }
 
   @override
-  Future<void> cancelReservation({required int id}) async {
+  Future<CancelReservationResponse> cancelReservation({required int id}) async {
     cancelledId = id;
     final nextError = cancelError;
     if (nextError != null) {
       throw nextError;
     }
+    return cancelResponse;
   }
 
   @override
@@ -53,6 +59,35 @@ class FakeReservationRemoteDataSource implements ReservationRemoteDataSource {
       code: 200,
       message: '확정되었습니다.',
     );
+  }
+}
+
+const _noPenaltyCancel = CancelReservationResponse(
+  success: true,
+  message: '예약이 취소되었습니다.',
+  penaltyApplied: false,
+  penaltyExpiresAt: '',
+);
+
+/// 예약 패널티 상태를 storage 없이 메모리로만 다루는 테스트용 notifier.
+class FakeReservationPenaltyNotifier extends ReservationPenaltyNotifier {
+  FakeReservationPenaltyNotifier([this.initialExpiry]);
+
+  final DateTime? initialExpiry;
+  DateTime? recorded;
+
+  @override
+  DateTime? build() => initialExpiry;
+
+  @override
+  void record(DateTime expiresAt) {
+    recorded = expiresAt;
+    state = expiresAt;
+  }
+
+  @override
+  void clear() {
+    state = null;
   }
 }
 
@@ -330,6 +365,9 @@ void main() {
           reservationRemoteDataSourceProvider.overrideWith(
             (ref) => reservationDataSource,
           ),
+          reservationPenaltyProvider.overrideWith(
+            FakeReservationPenaltyNotifier.new,
+          ),
           homeRemoteDataSourceProvider.overrideWith(
             (ref) => FakeHomeRemoteDataSource(
               machineStatusLoader: () async =>
@@ -361,6 +399,9 @@ void main() {
         overrides: [
           reservationRemoteDataSourceProvider.overrideWith(
             (ref) => reservationDataSource,
+          ),
+          reservationPenaltyProvider.overrideWith(
+            FakeReservationPenaltyNotifier.new,
           ),
           homeRemoteDataSourceProvider.overrideWith(
             (ref) => FakeHomeRemoteDataSource(
@@ -411,6 +452,9 @@ void main() {
           reservationRemoteDataSourceProvider.overrideWith(
             (ref) => reservationDataSource,
           ),
+          reservationPenaltyProvider.overrideWith(
+            FakeReservationPenaltyNotifier.new,
+          ),
           homeRemoteDataSourceProvider.overrideWith(
             (ref) => FakeHomeRemoteDataSource(
               machineStatusLoader: () async =>
@@ -433,6 +477,78 @@ void main() {
           fallback: '예약 취소에 실패했습니다.',
         ),
         '예약 취소 시간이 지났습니다.',
+      );
+    });
+
+    test('취소 패널티 기간이면 요청을 보내지 않고 예외를 담는다', () async {
+      final reservationDataSource = FakeReservationRemoteDataSource();
+      final expiry = DateTime.now().add(const Duration(minutes: 5));
+      final container = ProviderContainer(
+        overrides: [
+          reservationRemoteDataSourceProvider.overrideWith(
+            (ref) => reservationDataSource,
+          ),
+          reservationPenaltyProvider.overrideWith(
+            () => FakeReservationPenaltyNotifier(expiry),
+          ),
+          homeRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeHomeRemoteDataSource(
+              machineStatusLoader: () async =>
+                  const MachineStatusResponse(machines: [], totalCount: 0),
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final result = await container
+          .read(reservationActionProvider.notifier)
+          .reserve(machineId: 83);
+
+      expect(result, isNull);
+      // 서버 조회(GET)·예약(POST) 요청이 나가지 않아야 한다.
+      expect(reservationDataSource.lastMachineId, isNull);
+      expect(
+        container.read(reservationActionProvider).error,
+        isA<ReservationPenaltyException>(),
+      );
+    });
+
+    test('취소 시 패널티가 부과되면 만료시각을 로컬에 기록한다', () async {
+      final reservationDataSource = FakeReservationRemoteDataSource(
+        cancelResponse: const CancelReservationResponse(
+          success: true,
+          message: '취소되었으나 패널티가 부과되었습니다.',
+          penaltyApplied: true,
+          penaltyExpiresAt: '2999-01-01T00:00:00',
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          reservationRemoteDataSourceProvider.overrideWith(
+            (ref) => reservationDataSource,
+          ),
+          reservationPenaltyProvider.overrideWith(
+            FakeReservationPenaltyNotifier.new,
+          ),
+          homeRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeHomeRemoteDataSource(
+              machineStatusLoader: () async =>
+                  const MachineStatusResponse(machines: [], totalCount: 0),
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final result = await container
+          .read(reservationActionProvider.notifier)
+          .cancel(reservationId: 114);
+
+      expect(result, isTrue);
+      expect(
+        container.read(reservationPenaltyProvider),
+        DateTimeFormatter.parseServerDateTime('2999-01-01T00:00:00'),
       );
     });
   });

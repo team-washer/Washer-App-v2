@@ -77,17 +77,17 @@ class FakeReservationPenaltyNotifier extends ReservationPenaltyNotifier {
   DateTime? recorded;
 
   @override
-  Future<DateTime?> build() async => initialExpiry;
+  DateTime? build() => initialExpiry;
 
   @override
-  Future<void> record(DateTime expiresAt) async {
+  void record(DateTime expiresAt) {
     recorded = expiresAt;
-    state = AsyncData(expiresAt);
+    state = expiresAt;
   }
 
   @override
-  Future<void> clear() async {
-    state = const AsyncData(null);
+  void clear() {
+    state = null;
   }
 }
 
@@ -547,7 +547,7 @@ void main() {
 
       expect(result, isTrue);
       expect(
-        container.read(reservationPenaltyProvider).value,
+        container.read(reservationPenaltyProvider),
         DateTimeFormatter.parseServerDateTime('2999-01-01T00:00:00'),
       );
     });

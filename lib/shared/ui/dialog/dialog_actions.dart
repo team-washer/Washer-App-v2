@@ -1,5 +1,5 @@
 import 'package:washer/core/constants/durations.dart';
-import 'package:washer/core/ui/dialog/dialog_action.dart';
+import 'package:washer/shared/ui/dialog/dialog_action.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_action_provider.dart';
 import 'package:washer/features/report/presentation/providers/report_provider.dart';

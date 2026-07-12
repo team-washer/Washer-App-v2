@@ -42,17 +42,20 @@ class ReservationActionNotifier extends AsyncNotifier<ActiveReservationModel?> {
   Future<ActiveReservationModel?> _reserveInternal({
     required int machineId,
   }) async {
+    // build()이 끝난 뒤 상태를 바꿔야, 동기 경로에서 던진 예외 상태가
+    // 뒤늦게 끝난 build 결과(null)로 덮이지 않는다.
+    await future;
     state = const AsyncLoading();
 
     try {
       // 취소 패널티 기간이면 서버로 요청을 보내지 않고 클라이언트에서 곧바로 막는다.
-      final penaltyExpiry = await ref.read(reservationPenaltyProvider.future);
+      final penaltyExpiry = ref.read(reservationPenaltyProvider);
       if (penaltyExpiry != null) {
         if (DateTime.now().isBefore(penaltyExpiry)) {
           throw ReservationPenaltyException(penaltyExpiry);
         }
         // 이미 만료된 패널티면 정리만 하고 정상 진행한다.
-        unawaited(ref.read(reservationPenaltyProvider.notifier).clear());
+        ref.read(reservationPenaltyProvider.notifier).clear();
       }
 
       // 예약 요청 전, 최신 기기 상태를 GET으로 불러와 예약 가능 여부를 비교합니다.
@@ -116,9 +119,7 @@ class ReservationActionNotifier extends AsyncNotifier<ActiveReservationModel?> {
           result.penaltyExpiresAt,
         );
         if (expiry != null) {
-          // build()이 끝난 뒤 기록해야 저장한 상태가 build 결과로 덮이지 않는다.
-          await ref.read(reservationPenaltyProvider.future);
-          await ref.read(reservationPenaltyProvider.notifier).record(expiry);
+          ref.read(reservationPenaltyProvider.notifier).record(expiry);
         }
       }
 

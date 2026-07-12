@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
-import 'package:washer/core/theme/color.dart';
-import 'package:washer/core/theme/spacing.dart';
-import 'package:washer/core/theme/typography.dart';
+import 'package:washer/shared/theme/color.dart';
+import 'package:washer/shared/theme/spacing.dart';
+import 'package:washer/shared/theme/typography.dart';
 import 'package:washer/core/utils/room_formatter.dart';
 import 'package:washer/features/alarm/presentation/providers/alarm_provider.dart';
 import 'package:washer/features/home/presentation/widgets/home_machine_section_widget.dart';

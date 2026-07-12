@@ -1,6 +1,6 @@
 ﻿import 'package:flutter/material.dart';
-import 'package:washer/core/theme/color.dart';
-import 'package:washer/core/theme/icon.dart';
+import 'package:washer/shared/theme/color.dart';
+import 'package:washer/shared/theme/icon.dart';
 
 enum LaundryMachineType { washer, dryer }
 

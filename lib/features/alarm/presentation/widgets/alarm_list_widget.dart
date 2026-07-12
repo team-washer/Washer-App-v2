@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:washer/core/theme/color.dart';
-import 'package:washer/core/theme/spacing.dart';
-import 'package:washer/core/theme/typography.dart';
+import 'package:washer/shared/theme/color.dart';
+import 'package:washer/shared/theme/spacing.dart';
+import 'package:washer/shared/theme/typography.dart';
 import 'package:washer/core/utils/date_time_formatter.dart';
 import 'package:washer/features/alarm/data/models/local/alarm_model.dart';
 import 'package:washer/features/alarm/data/models/alarm_type.dart';
@@ -41,7 +41,7 @@ class _AlarmListWidgetState extends ConsumerState<AlarmListWidget> {
       _notifier.fetchAlarmList();
     });
   }
-
+  
   @override
   void dispose() {
     // 알림 화면을 벗어나면 서버의 모든 알림을 삭제한다.

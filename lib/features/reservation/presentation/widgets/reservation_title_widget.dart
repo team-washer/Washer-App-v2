@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
-import 'package:washer/core/theme/color.dart';
-import 'package:washer/core/theme/typography.dart';
+import 'package:washer/shared/theme/color.dart';
+import 'package:washer/shared/theme/typography.dart';
 
 /// 예약 내역 제목 위젯 (세탁기/건조기 목록 제메이)
 class ReservationTitleWidget extends StatelessWidget {

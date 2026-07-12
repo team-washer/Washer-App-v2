@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
 import 'package:washer/core/router/route_paths.dart';
-import 'package:washer/core/theme/color.dart';
-import 'package:washer/core/theme/icon.dart';
-import 'package:washer/core/theme/spacing.dart';
-import 'package:washer/core/theme/typography.dart';
-import 'package:washer/core/ui/dialog/laundry_status_dialog.dart';
+import 'package:washer/shared/theme/color.dart';
+import 'package:washer/shared/theme/icon.dart';
+import 'package:washer/shared/theme/spacing.dart';
+import 'package:washer/shared/theme/typography.dart';
+import 'package:washer/shared/ui/dialog/laundry_status_dialog.dart';
 import 'package:washer/features/reservation/data/models/local/laundry_machine_model.dart';
 
 List<MachineModel> _sortMachinesByPlacement(List<MachineModel> machines) {

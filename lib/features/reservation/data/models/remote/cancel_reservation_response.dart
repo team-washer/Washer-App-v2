@@ -6,10 +6,10 @@ part 'cancel_reservation_response.g.dart';
 @freezed
 abstract class CancelReservationResponse with _$CancelReservationResponse {
   const factory CancelReservationResponse({
-    required bool success,
-    required String message,
-    required bool penaltyApplied,
-    required String penaltyExpiresAt,
+    @JsonKey(defaultValue: false) required bool success,
+    @JsonKey(defaultValue: '') required String message,
+    @JsonKey(defaultValue: false) required bool penaltyApplied,
+    @JsonKey(defaultValue: '') required String penaltyExpiresAt,
   }) = _CancelReservationResponse;
 
   factory CancelReservationResponse.fromJson(Map<String, dynamic> json) =>

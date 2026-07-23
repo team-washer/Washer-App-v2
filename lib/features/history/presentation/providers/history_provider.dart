@@ -1,7 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/features/history/data/data_sources/history_remote_data_source.dart';
 import 'package:washer/features/history/presentation/states/history_state.dart';
+
+final historyErrorProvider = StateProvider<Object?>((ref) => null);
 
 class HistoryNotifier extends Notifier<HistoryState> {
   @override
@@ -9,6 +12,7 @@ class HistoryNotifier extends Notifier<HistoryState> {
 
   Future<void> fetchTodayHistory(int machineId) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
+    ref.read(historyErrorProvider.notifier).state = null;
 
     try {
       final now = DateTime.now();
@@ -50,6 +54,7 @@ class HistoryNotifier extends Notifier<HistoryState> {
         error: error,
         stackTrace: stackTrace,
       );
+      ref.read(historyErrorProvider.notifier).state = error;
       state = state.copyWith(
         errorMessage: '사용 기록을 불러오는데 실패했습니다.',
         isLoading: false,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:washer/core/widgets/error_snack_bar.dart';
 import 'package:washer/shared/ui/loading_overlay.dart';
 import 'package:washer/core/utils/app_logger.dart';
 
@@ -19,6 +20,7 @@ class DialogAction<R> {
     required this.successMessage,
     required this.failureMessage,
     required this.logName,
+    this.failureError,
     this.showLoading = false,
   });
 
@@ -27,6 +29,7 @@ class DialogAction<R> {
   final String successMessage;
   final String Function(ProviderContainer container) failureMessage;
   final String logName;
+  final Object? Function(ProviderContainer container)? failureError;
 
   /// 작업 동안 루트 오버레이에 로딩 인디케이터를 표시할지 여부.
   final bool showLoading;
@@ -70,9 +73,14 @@ Future<void> runDialogAction<R>(
         messenger.showSnackBar(SnackBar(content: Text(action.successMessage)));
       }
     } else if (messenger.mounted) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(action.failureMessage(container))),
-      );
+      final failureError = action.failureError?.call(container);
+      if (failureError != null) {
+        messenger.showErrorSnackBar(failureError);
+      } else {
+        messenger.showSnackBar(
+          SnackBar(content: Text(action.failureMessage(container))),
+        );
+      }
     }
   } catch (error, stackTrace) {
     AppLogger.error(
@@ -82,7 +90,7 @@ Future<void> runDialogAction<R>(
       stackTrace: stackTrace,
     );
     if (messenger.mounted) {
-      messenger.showSnackBar(SnackBar(content: Text('오류: $error')));
+      messenger.showErrorSnackBar(error);
     }
   }
 }

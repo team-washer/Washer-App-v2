@@ -3,10 +3,15 @@ import 'package:washer/core/errors/app_exception.dart';
 
 extension ErrorSnackBarExtension on BuildContext {
   void showErrorSnackBar(Object? error) {
+    ScaffoldMessenger.of(this).showErrorSnackBar(error);
+  }
+}
+
+extension ErrorSnackBarMessengerExtension on ScaffoldMessengerState {
+  void showErrorSnackBar(Object? error) {
     final appException = AppException.from(error);
-    final messenger = ScaffoldMessenger.of(this);
-    messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(
+    hideCurrentSnackBar();
+    showSnackBar(
       SnackBar(
         content: Text(appException.message),
         behavior: SnackBarBehavior.floating,

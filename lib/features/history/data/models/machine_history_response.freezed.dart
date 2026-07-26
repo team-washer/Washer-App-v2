@@ -299,7 +299,7 @@ as bool,
 /// @nodoc
 mixin _$HistoryContent {
 
- int get id; String get userRoomNumber; String get startTime; String get completionTime; String get status; String get createdAt;
+ int get id; String get userRoomNumber; String get startTime; String? get completionTime; String get status; String get createdAt;
 /// Create a copy of HistoryContent
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -332,7 +332,7 @@ abstract mixin class $HistoryContentCopyWith<$Res>  {
   factory $HistoryContentCopyWith(HistoryContent value, $Res Function(HistoryContent) _then) = _$HistoryContentCopyWithImpl;
 @useResult
 $Res call({
- int id, String userRoomNumber, String startTime, String completionTime, String status, String createdAt
+ int id, String userRoomNumber, String startTime, String? completionTime, String status, String createdAt
 });
 
 
@@ -349,13 +349,13 @@ class _$HistoryContentCopyWithImpl<$Res>
 
 /// Create a copy of HistoryContent
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? userRoomNumber = null,Object? startTime = null,Object? completionTime = null,Object? status = null,Object? createdAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? userRoomNumber = null,Object? startTime = null,Object? completionTime = freezed,Object? status = null,Object? createdAt = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,userRoomNumber: null == userRoomNumber ? _self.userRoomNumber : userRoomNumber // ignore: cast_nullable_to_non_nullable
 as String,startTime: null == startTime ? _self.startTime : startTime // ignore: cast_nullable_to_non_nullable
-as String,completionTime: null == completionTime ? _self.completionTime : completionTime // ignore: cast_nullable_to_non_nullable
-as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as String,completionTime: freezed == completionTime ? _self.completionTime : completionTime // ignore: cast_nullable_to_non_nullable
+as String?,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as String,
   ));
@@ -442,7 +442,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String userRoomNumber,  String startTime,  String completionTime,  String status,  String createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String userRoomNumber,  String startTime,  String? completionTime,  String status,  String createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _HistoryContent() when $default != null:
 return $default(_that.id,_that.userRoomNumber,_that.startTime,_that.completionTime,_that.status,_that.createdAt);case _:
@@ -463,7 +463,7 @@ return $default(_that.id,_that.userRoomNumber,_that.startTime,_that.completionTi
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String userRoomNumber,  String startTime,  String completionTime,  String status,  String createdAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String userRoomNumber,  String startTime,  String? completionTime,  String status,  String createdAt)  $default,) {final _that = this;
 switch (_that) {
 case _HistoryContent():
 return $default(_that.id,_that.userRoomNumber,_that.startTime,_that.completionTime,_that.status,_that.createdAt);case _:
@@ -483,7 +483,7 @@ return $default(_that.id,_that.userRoomNumber,_that.startTime,_that.completionTi
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String userRoomNumber,  String startTime,  String completionTime,  String status,  String createdAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String userRoomNumber,  String startTime,  String? completionTime,  String status,  String createdAt)?  $default,) {final _that = this;
 switch (_that) {
 case _HistoryContent() when $default != null:
 return $default(_that.id,_that.userRoomNumber,_that.startTime,_that.completionTime,_that.status,_that.createdAt);case _:
@@ -498,13 +498,13 @@ return $default(_that.id,_that.userRoomNumber,_that.startTime,_that.completionTi
 @JsonSerializable()
 
 class _HistoryContent implements HistoryContent {
-  const _HistoryContent({required this.id, required this.userRoomNumber, required this.startTime, required this.completionTime, required this.status, required this.createdAt});
+  const _HistoryContent({required this.id, required this.userRoomNumber, required this.startTime, this.completionTime, required this.status, required this.createdAt});
   factory _HistoryContent.fromJson(Map<String, dynamic> json) => _$HistoryContentFromJson(json);
 
 @override final  int id;
 @override final  String userRoomNumber;
 @override final  String startTime;
-@override final  String completionTime;
+@override final  String? completionTime;
 @override final  String status;
 @override final  String createdAt;
 
@@ -541,7 +541,7 @@ abstract mixin class _$HistoryContentCopyWith<$Res> implements $HistoryContentCo
   factory _$HistoryContentCopyWith(_HistoryContent value, $Res Function(_HistoryContent) _then) = __$HistoryContentCopyWithImpl;
 @override @useResult
 $Res call({
- int id, String userRoomNumber, String startTime, String completionTime, String status, String createdAt
+ int id, String userRoomNumber, String startTime, String? completionTime, String status, String createdAt
 });
 
 
@@ -558,13 +558,13 @@ class __$HistoryContentCopyWithImpl<$Res>
 
 /// Create a copy of HistoryContent
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? userRoomNumber = null,Object? startTime = null,Object? completionTime = null,Object? status = null,Object? createdAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? userRoomNumber = null,Object? startTime = null,Object? completionTime = freezed,Object? status = null,Object? createdAt = null,}) {
   return _then(_HistoryContent(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,userRoomNumber: null == userRoomNumber ? _self.userRoomNumber : userRoomNumber // ignore: cast_nullable_to_non_nullable
 as String,startTime: null == startTime ? _self.startTime : startTime // ignore: cast_nullable_to_non_nullable
-as String,completionTime: null == completionTime ? _self.completionTime : completionTime // ignore: cast_nullable_to_non_nullable
-as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as String,completionTime: freezed == completionTime ? _self.completionTime : completionTime // ignore: cast_nullable_to_non_nullable
+as String?,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as String,
   ));

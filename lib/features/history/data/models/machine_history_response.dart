@@ -24,7 +24,7 @@ abstract class HistoryContent with _$HistoryContent {
     required int id,
     required String userRoomNumber,
     required String startTime,
-    required String completionTime,
+    String? completionTime,
     required String status,
     required String createdAt,
   }) = _HistoryContent;

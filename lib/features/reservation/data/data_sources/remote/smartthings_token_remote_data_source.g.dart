@@ -29,7 +29,7 @@ class _SmartThingsTokenApiService implements SmartThingsTokenApiService {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/smartthings/token',
+            'smartthings/token',
             queryParameters: queryParameters,
             data: _data,
           )

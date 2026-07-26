@@ -154,7 +154,7 @@ class AuthInterceptor extends Interceptor {
   }
 
   bool _shouldSkipAuth(String path) {
-    return path.contains('/auth/');
+    return path.startsWith('auth/') || path.startsWith('/auth/');
   }
 
   Future<String?> _refreshToken() async {

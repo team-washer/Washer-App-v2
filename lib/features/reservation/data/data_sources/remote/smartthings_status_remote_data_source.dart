@@ -21,7 +21,7 @@ abstract class SmartThingsStatusApiService {
   factory SmartThingsStatusApiService(Dio dio, {String baseUrl}) =
       _SmartThingsStatusApiService;
 
-  @GET('/devices/{deviceId}/status')
+  @GET('devices/{deviceId}/status')
   Future<HttpResponse<dynamic>> getDeviceStatus(
     @Path('deviceId') String deviceId,
     @Header('Authorization') String authorization,

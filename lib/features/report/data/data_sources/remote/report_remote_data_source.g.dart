@@ -30,7 +30,7 @@ class _ReportApiService implements ReportApiService {
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/malfunction-reports',
+            'malfunction-reports',
             queryParameters: queryParameters,
             data: _data,
           )

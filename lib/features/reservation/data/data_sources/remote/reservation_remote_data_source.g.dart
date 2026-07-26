@@ -32,7 +32,7 @@ class _ReservationApiService implements ReservationApiService {
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/reservations',
+            'reservations',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -54,7 +54,7 @@ class _ReservationApiService implements ReservationApiService {
       Options(method: 'DELETE', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/reservations/${id}',
+            'reservations/${id}',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -76,7 +76,7 @@ class _ReservationApiService implements ReservationApiService {
       Options(method: 'PUT', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/reservations/${id}/confirm',
+            'reservations/${id}/confirm',
             queryParameters: queryParameters,
             data: _data,
           )

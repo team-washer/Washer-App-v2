@@ -33,7 +33,7 @@ class _SmartThingsStatusApiService implements SmartThingsStatusApiService {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/devices/${deviceId}/status',
+            'devices/${deviceId}/status',
             queryParameters: queryParameters,
             data: _data,
           )

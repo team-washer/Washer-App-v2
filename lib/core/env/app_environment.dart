@@ -34,7 +34,7 @@ class AppEnvironment {
       flavor: flavor,
       apiBaseUrl: _resolveUrl('API_BASE_URL', flavor),
       refreshTokenEndpoint:
-          dotenv.env['REFRESH_TOKEN_ENDPOINT'] ?? '/auth/refresh',
+          dotenv.env['REFRESH_TOKEN_ENDPOINT'] ?? 'auth/refresh',
       oauthBaseUrl: _resolveOptionalUrl('OAUTH_BASE_URL', flavor),
       oauthClientId: dotenv.env['OAUTH_CLIENT_ID'] ?? '',
       allowBadCertificates: _resolveAllowBadCertificates(flavor),

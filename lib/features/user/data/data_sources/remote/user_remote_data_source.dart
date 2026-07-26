@@ -16,10 +16,10 @@ abstract class UserRemoteDataSource {
 abstract class UserApiService {
   factory UserApiService(Dio dio, {String baseUrl}) = _UserApiService;
 
-  @GET('/users/my')
+  @GET('users/my')
   Future<HttpResponse<dynamic>> getMyUser();
 
-  @DELETE('/users/me')
+  @DELETE('users/me')
   Future<HttpResponse<dynamic>> withdraw();
 }
 

@@ -29,7 +29,7 @@ class _UserApiService implements UserApiService {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/users/my',
+            'users/my',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -51,7 +51,7 @@ class _UserApiService implements UserApiService {
       Options(method: 'DELETE', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/users/me',
+            'users/me',
             queryParameters: queryParameters,
             data: _data,
           )

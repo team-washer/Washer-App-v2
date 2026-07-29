@@ -16,7 +16,7 @@ abstract class SmartThingsTokenApiService {
   factory SmartThingsTokenApiService(Dio dio, {String baseUrl}) =
       _SmartThingsTokenApiService;
 
-  @GET('/smartthings/token')
+  @GET('smartthings/token')
   Future<HttpResponse<dynamic>> getToken();
 }
 

@@ -15,12 +15,14 @@ abstract final class DialogActions {
     required int machineId,
   }) {
     return DialogAction<ActiveReservationModel?>(
-      run: (container) =>
-          container.read(reservationActionProvider.notifier).reserve(
+      run: (container) => container
+          .read(reservationActionProvider.notifier)
+          .reserve(
             machineId: machineId,
           ),
       isSuccess: (reservation) => reservation != null,
-      successMessage: '$machineName 예약이 완료되었습니다\n'
+      successMessage:
+          '$machineName 예약이 완료되었습니다\n'
           '$reservationExpiryMinutes분 동안 기기 연결을 확인합니다',
       failureMessage: (container) => reserveFailureMessage(
         container.read(reservationActionProvider).error,
@@ -33,8 +35,9 @@ abstract final class DialogActions {
   /// 예약 취소.
   static DialogAction<bool> cancelReservation({required int reservationId}) {
     return DialogAction<bool>(
-      run: (container) =>
-          container.read(reservationActionProvider.notifier).cancel(
+      run: (container) => container
+          .read(reservationActionProvider.notifier)
+          .cancel(
             reservationId: reservationId,
           ),
       isSuccess: (didCancel) => didCancel,
@@ -43,6 +46,8 @@ abstract final class DialogActions {
         container.read(reservationActionProvider).error,
         fallback: '예약 취소에 실패했습니다.',
       ),
+      failureError: (container) =>
+          container.read(reservationActionProvider).error,
       logName: 'CancelReservationAction',
     );
   }
@@ -53,8 +58,9 @@ abstract final class DialogActions {
     required String description,
   }) {
     return DialogAction<bool>(
-      run: (container) =>
-          container.read(reportProvider.notifier).createMalfunctionReport(
+      run: (container) => container
+          .read(reportProvider.notifier)
+          .createMalfunctionReport(
             machineId: machineId,
             description: description,
           ),

@@ -29,15 +29,15 @@ abstract class ReservationApiService {
   factory ReservationApiService(Dio dio, {String baseUrl}) =
       _ReservationApiService;
 
-  @POST('/reservations')
+  @POST('reservations')
   Future<HttpResponse<dynamic>> createReservation(
     @Body() Map<String, dynamic> payload,
   );
 
-  @DELETE('/reservations/{id}')
+  @DELETE('reservations/{id}')
   Future<HttpResponse<dynamic>> cancelReservation(@Path('id') int id);
 
-  @PUT('/reservations/{id}/confirm')
+  @PUT('reservations/{id}/confirm')
   Future<HttpResponse<dynamic>> confirmReservation(@Path('id') int id);
 }
 

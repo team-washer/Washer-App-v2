@@ -9,10 +9,10 @@ part of 'cancel_reservation_response.dart';
 _CancelReservationResponse _$CancelReservationResponseFromJson(
   Map<String, dynamic> json,
 ) => _CancelReservationResponse(
-  success: json['success'] as bool,
-  message: json['message'] as String,
-  penaltyApplied: json['penaltyApplied'] as bool,
-  penaltyExpiresAt: json['penaltyExpiresAt'] as String,
+  success: json['success'] as bool? ?? false,
+  message: json['message'] as String? ?? '',
+  penaltyApplied: json['penaltyApplied'] as bool? ?? false,
+  penaltyExpiresAt: json['penaltyExpiresAt'] as String? ?? '',
 );
 
 Map<String, dynamic> _$CancelReservationResponseToJson(

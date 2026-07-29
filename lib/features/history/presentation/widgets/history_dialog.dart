@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:washer/core/widgets/error_snack_bar.dart';
 import 'package:washer/shared/theme/color.dart';
 import 'package:washer/shared/theme/spacing.dart';
 import 'package:washer/shared/theme/typography.dart';
@@ -37,6 +38,12 @@ class _HistoryDialogState extends ConsumerState<HistoryDialog> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<Object?>(historyErrorProvider, (previous, next) {
+      if (next != null) {
+        context.showErrorSnackBar(next);
+      }
+    });
+
     final state = ref.watch(historyProvider);
 
     return Dialog(
@@ -71,15 +78,7 @@ class _HistoryDialogState extends ConsumerState<HistoryDialog> {
     }
 
     if (state.errorMessage != null) {
-      return Padding(
-        padding: const EdgeInsets.all(20),
-        child: Center(
-          child: Text(
-            state.errorMessage!,
-            style: WasherTypography.body1(WasherColor.errorColor),
-          ),
-        ),
-      );
+      return const SizedBox.shrink();
     }
 
     if (state.historyList.isEmpty) {

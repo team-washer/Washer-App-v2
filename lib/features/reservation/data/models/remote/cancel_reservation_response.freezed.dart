@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$CancelReservationResponse {
 
- bool get success; String get message; bool get penaltyApplied; String get penaltyExpiresAt;
+@JsonKey(defaultValue: false) bool get success;@JsonKey(defaultValue: '') String get message;@JsonKey(defaultValue: false) bool get penaltyApplied;@JsonKey(defaultValue: '') String get penaltyExpiresAt;
 /// Create a copy of CancelReservationResponse
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -48,7 +48,7 @@ abstract mixin class $CancelReservationResponseCopyWith<$Res>  {
   factory $CancelReservationResponseCopyWith(CancelReservationResponse value, $Res Function(CancelReservationResponse) _then) = _$CancelReservationResponseCopyWithImpl;
 @useResult
 $Res call({
- bool success, String message, bool penaltyApplied, String penaltyExpiresAt
+@JsonKey(defaultValue: false) bool success,@JsonKey(defaultValue: '') String message,@JsonKey(defaultValue: false) bool penaltyApplied,@JsonKey(defaultValue: '') String penaltyExpiresAt
 });
 
 
@@ -156,7 +156,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool success,  String message,  bool penaltyApplied,  String penaltyExpiresAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(defaultValue: false)  bool success, @JsonKey(defaultValue: '')  String message, @JsonKey(defaultValue: false)  bool penaltyApplied, @JsonKey(defaultValue: '')  String penaltyExpiresAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CancelReservationResponse() when $default != null:
 return $default(_that.success,_that.message,_that.penaltyApplied,_that.penaltyExpiresAt);case _:
@@ -177,7 +177,7 @@ return $default(_that.success,_that.message,_that.penaltyApplied,_that.penaltyEx
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool success,  String message,  bool penaltyApplied,  String penaltyExpiresAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(defaultValue: false)  bool success, @JsonKey(defaultValue: '')  String message, @JsonKey(defaultValue: false)  bool penaltyApplied, @JsonKey(defaultValue: '')  String penaltyExpiresAt)  $default,) {final _that = this;
 switch (_that) {
 case _CancelReservationResponse():
 return $default(_that.success,_that.message,_that.penaltyApplied,_that.penaltyExpiresAt);case _:
@@ -197,7 +197,7 @@ return $default(_that.success,_that.message,_that.penaltyApplied,_that.penaltyEx
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool success,  String message,  bool penaltyApplied,  String penaltyExpiresAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(defaultValue: false)  bool success, @JsonKey(defaultValue: '')  String message, @JsonKey(defaultValue: false)  bool penaltyApplied, @JsonKey(defaultValue: '')  String penaltyExpiresAt)?  $default,) {final _that = this;
 switch (_that) {
 case _CancelReservationResponse() when $default != null:
 return $default(_that.success,_that.message,_that.penaltyApplied,_that.penaltyExpiresAt);case _:
@@ -212,13 +212,13 @@ return $default(_that.success,_that.message,_that.penaltyApplied,_that.penaltyEx
 @JsonSerializable()
 
 class _CancelReservationResponse implements CancelReservationResponse {
-  const _CancelReservationResponse({required this.success, required this.message, required this.penaltyApplied, required this.penaltyExpiresAt});
+  const _CancelReservationResponse({@JsonKey(defaultValue: false) required this.success, @JsonKey(defaultValue: '') required this.message, @JsonKey(defaultValue: false) required this.penaltyApplied, @JsonKey(defaultValue: '') required this.penaltyExpiresAt});
   factory _CancelReservationResponse.fromJson(Map<String, dynamic> json) => _$CancelReservationResponseFromJson(json);
 
-@override final  bool success;
-@override final  String message;
-@override final  bool penaltyApplied;
-@override final  String penaltyExpiresAt;
+@override@JsonKey(defaultValue: false) final  bool success;
+@override@JsonKey(defaultValue: '') final  String message;
+@override@JsonKey(defaultValue: false) final  bool penaltyApplied;
+@override@JsonKey(defaultValue: '') final  String penaltyExpiresAt;
 
 /// Create a copy of CancelReservationResponse
 /// with the given fields replaced by the non-null parameter values.
@@ -253,7 +253,7 @@ abstract mixin class _$CancelReservationResponseCopyWith<$Res> implements $Cance
   factory _$CancelReservationResponseCopyWith(_CancelReservationResponse value, $Res Function(_CancelReservationResponse) _then) = __$CancelReservationResponseCopyWithImpl;
 @override @useResult
 $Res call({
- bool success, String message, bool penaltyApplied, String penaltyExpiresAt
+@JsonKey(defaultValue: false) bool success,@JsonKey(defaultValue: '') String message,@JsonKey(defaultValue: false) bool penaltyApplied,@JsonKey(defaultValue: '') String penaltyExpiresAt
 });
 
 

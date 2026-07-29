@@ -78,15 +78,7 @@ class _HistoryDialogState extends ConsumerState<HistoryDialog> {
     }
 
     if (state.errorMessage != null) {
-      return Padding(
-        padding: const EdgeInsets.all(20),
-        child: Center(
-          child: Text(
-            state.errorMessage!,
-            style: WasherTypography.body1(WasherColor.errorColor),
-          ),
-        ),
-      );
+      return const SizedBox.shrink();
     }
 
     if (state.historyList.isEmpty) {

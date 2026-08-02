@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:washer/core/network/dio_client.dart';
@@ -27,12 +29,13 @@ class AuthRepository {
     final response = await _dataSource.login(
       LoginRequest(authCode: authCode, redirectUri: redirectUri),
     );
+
     await Future.wait([
       _storage.write(key: 'access_token', value: response.accessToken),
       _storage.write(key: 'refresh_token', value: response.refreshToken),
     ]);
 
-    await _alarmRepository.registerCurrentFcmToken();
+    unawaited(_alarmRepository.registerCurrentFcmToken());
   }
 
   Future<void> logout() async {

@@ -44,7 +44,7 @@ GitHub → **Actions** 탭 → 워크플로우 선택 → **Run workflow**.
 - pubspec 버전이 App Store Connect 최고 버전 이하면 archive **전에** 실패한다(Fastfile `assert_appstore_version_available`). 에러 메시지에 올려야 할 버전이 찍히므로 pubspec을 그 위로 올리고 재실행.
 
 ### 릴리스 누락 방지 (CI)
-`main`으로 가는 PR에는 `release_metadata_check` 잡(`flutter-ci.yaml`)이 돌아 아래를 강제합니다.
+`main`으로 가는 PR에는 `release-gate.yml`이 돌아 아래를 강제합니다.
 - `pubspec.yaml`의 version name이 main보다 **높을 것** (동일·다운그레이드 차단).
 - `fastlane/metadata/ko/release_notes.txt`(What's New)가 비어있지 않고 main과 **다를 것**.
 

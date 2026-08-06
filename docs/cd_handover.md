@@ -44,7 +44,7 @@ GitHub → **Actions** 탭 → 워크플로우 선택 → **Run workflow**.
 - pubspec 버전이 App Store Connect 최고 버전 이하면 archive **전에** 실패한다(Fastfile `assert_appstore_version_available`). 에러 메시지에 올려야 할 버전이 찍히므로 pubspec을 그 위로 올리고 재실행.
 
 ### 릴리스 누락 방지 (CI)
-`main`으로 가는 PR에는 `release_metadata_check` 잡(`flutter-ci.yaml`)이 돌아 아래를 강제합니다.
+`main`으로 가는 PR에는 `release-gate.yml`이 돌아 아래를 강제합니다.
 - `pubspec.yaml`의 version name이 main보다 **높을 것** (동일·다운그레이드 차단).
 - `fastlane/metadata/ko/release_notes.txt`(What's New)가 비어있지 않고 main과 **다를 것**.
 
@@ -62,7 +62,9 @@ GitHub → **Actions** 탭 → 워크플로우 선택 → **Run workflow**.
 
 ### ⚠️ iOS 심사 스킵 시 What's New 누적 작성
 - iOS 제출이 스킵되면(이전 버전이 `WAITING_FOR_REVIEW`/`IN_REVIEW`/`PENDING_APPLE_RELEASE`/`PROCESSING_FOR_APP_STORE`) **그때 쓴 What's New는 App Store에 반영되지 않습니다.** 다음 릴리스 노트에 **이번 변경사항까지 누적**해서 쓰세요. 스킵되면 Actions 실행 요약에 어떤 버전·어떤 상태 때문인지 경고가 뜹니다.
-- 특히 `PENDING_APPLE_RELEASE`(심사 승인 후 수동 출시 대기)를 방치하면 **이후 iOS 배포가 계속 조용히 스킵**됩니다. 승인 알림을 받으면 App Store Connect에서 출시 버튼을 눌러 상태를 비워두세요.
+- 🚨 **가장 흔한 함정: `PENDING_DEVELOPER_RELEASE`** (심사 통과, 개발자가 출시 버튼 누르기 대기). `automatic_release: false`라 승인된 빌드는 항상 이 상태로 남습니다. **방치하면 이후 iOS 배포가 계속 막힙니다.** 승인 알림을 받으면 App Store Connect에서 **출시** 버튼을 눌러 상태를 비우세요.
+  - 실제로 2026-08-02·08-05 iOS 배포가 이 상태 때문에 연속 실패했습니다(guard 목록에 이 상태가 빠져 있어 그냥 통과한 뒤 Apple이 새 버전 생성을 거부: `You cannot create a new version of the App in the current state`).
+- guard에는 **시간이 지나면 저절로 풀리는 상태만** 담겨 있습니다. `REJECTED`·`INVALID_BINARY`처럼 사람이 손봐야 하는 상태는 일부러 제외해 빨갛게 실패시킵니다.
 
 ---
 

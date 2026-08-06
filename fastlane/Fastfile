@@ -60,6 +60,10 @@ platform :ios do
         msg = "iOS 제출 건너뜀 — #{blocking.version_string} 이 #{blocking.app_store_state} 상태입니다. " \
               "이번 What's New 는 App Store 에 반영되지 않았으니, " \
               "다음 릴리스 노트에 이번 변경사항까지 누적해서 작성하세요."
+        if blocking.app_store_state == "PENDING_DEVELOPER_RELEASE"
+          msg += " (심사는 통과했고 출시만 남았습니다 — App Store Connect 에서 '출시' 를 눌러야 " \
+                 "다음 배포가 진행됩니다. 방치하면 iOS 배포가 계속 스킵됩니다.)"
+        end
         UI.important(msg)
         puts "::warning::#{msg}"
         next
@@ -141,8 +145,15 @@ platform :ios do
   end
 
   # 새 제출을 막는 상태의 버전을 찾아 반환한다(없으면 nil). (setup_connect_api 선행 필요)
-  # PENDING_APPLE_RELEASE = 심사 승인됐지만 수동 출시(automatic_release: false) 대기 중.
-  # 이 상태를 방치하면 이후 iOS 배포가 계속 skip 되므로 호출부에서 상태를 명시해 알린다.
+  #
+  # ⚠️ PENDING_DEVELOPER_RELEASE 누락으로 8/2·8/5 배포가 연속 실패했다.
+  #    automatic_release: false 라서 심사 승인된 빌드는 "개발자 출시 대기" 상태로 남는데,
+  #    이름이 비슷한 PENDING_APPLE_RELEASE(Apple 이 출시 대기)만 검사하고 있었다.
+  #    → guard 를 통과한 뒤 새 버전 생성을 시도해 Apple 이 거부:
+  #      "You cannot create a new version of the App in the current state."
+  #
+  # 여기 담는 건 "사람이 코드를 고칠 필요 없이 시간이 지나면 풀리는" 상태뿐이다.
+  # REJECTED/INVALID_BINARY 같이 사람 개입이 필요한 상태는 일부러 제외해 빨갛게 실패시킨다.
   private_lane :blocking_appstore_version do
     app = Spaceship::ConnectAPI::App.find(BUNDLE_ID)
     if app.nil?
@@ -152,7 +163,10 @@ platform :ios do
         WAITING_FOR_REVIEW
         IN_REVIEW
         PENDING_APPLE_RELEASE
+        PENDING_DEVELOPER_RELEASE
         PROCESSING_FOR_APP_STORE
+        READY_FOR_REVIEW
+        WAITING_FOR_EXPORT_COMPLIANCE
       ]
       app.get_app_store_versions.find { |v| blocking.include?(v.app_store_state) }
     end
@@ -167,7 +181,13 @@ platform :ios do
     app = Spaceship::ConnectAPI::App.find(BUNDLE_ID)
     UI.user_error!("App #{BUNDLE_ID} 를 App Store Connect 에서 찾지 못했습니다") if app.nil?
 
-    current = app.get_app_store_versions.map { |v| Gem::Version.new(v.version_string) }.max
+    # 편집 가능한 상태의 버전은 deliver 가 새로 만들지 않고 그대로 덮어쓰므로 비교에서 뺀다.
+    # (제출 실패 후 같은 버전으로 재시도하는 정상 경로를 막지 않기 위함)
+    editable = %w[PREPARE_FOR_SUBMISSION DEVELOPER_REJECTED REJECTED METADATA_REJECTED INVALID_BINARY]
+    current = app.get_app_store_versions
+                 .reject { |v| editable.include?(v.app_store_state) }
+                 .map { |v| Gem::Version.new(v.version_string) }
+                 .max
 
     if current && Gem::Version.new(version_name) <= current
       UI.user_error!(

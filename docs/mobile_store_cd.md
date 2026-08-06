@@ -1,5 +1,8 @@
 # Mobile Store CD Guide
 
+> ⚠️ **이 문서는 낡았습니다** (여기 적힌 워크플로우/시크릿명은 현재 레포와 불일치). 최신 배포/인수인계 내용은 [`docs/cd_handover.md`](./cd_handover.md)를 보세요.
+
+
 `main` 브랜치에 push되면 플랫폼별 GitHub Actions 워크플로가 Fastlane으로 스토어 배포를 실행합니다.
 
 - iOS: `.github/workflows/ios-testflight.yaml` — IPA 빌드 후 TestFlight 업로드

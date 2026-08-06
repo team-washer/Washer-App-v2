@@ -1,7 +1,8 @@
 name: Release - iOS App Store
 
 # main 에 push(머지)되면 App Store 심사에 자동 제출한다.
-# - 마케팅 버전은 App Store Connect 최신 버전 +패치로 자동 증가 (Fastfile resolve_next_appstore_version)
+# - 마케팅 버전은 pubspec.yaml 의 version (Android 와 동일 출처)
+#   ASC 최고 버전 이하면 archive 전에 실패한다 (Fastfile assert_appstore_version_available)
 # - 릴리스 노트는 머지 커밋 메시지(PR 제목)에서 가져옴, 없으면 기본 문구
 # TestFlight 배포는 cd-ios.yml 이 따로 담당(같은 main push 로 동시 동작).
 # ⚠️ Apple 은 한 번에 버전 1개만 심사 → main 은 릴리스용으로 사용 권장.
@@ -134,30 +135,31 @@ jobs:
           fi
           echo "IOS_PROVISIONING_PROFILE_UUID=$PROFILE_UUID" >> "$GITHUB_ENV"
 
-      - name: Resolve build number
+      - name: Resolve iOS version metadata
         run: |
-          # 마케팅 버전은 Fastfile 이 App Store Connect 조회로 자동 결정한다.
-          # 여기선 빌드번호만 run number 로 고정(App Store 빌드 중복 방지).
+          # 마케팅 버전은 Android 와 동일하게 pubspec.yaml 을 단일 출처로 쓴다.
+          VERSION_LINE="$(grep '^version:' pubspec.yaml | head -n 1 | awk '{print $2}')"
+          VERSION_NAME="${VERSION_LINE%%+*}"
+
+          if [ -z "$VERSION_NAME" ]; then
+            echo "::error::Unable to parse version from pubspec.yaml"
+            exit 1
+          fi
+
+          echo "IOS_VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
+          # 빌드번호는 run number 로 고정(App Store 빌드 중복 방지).
           echo "IOS_BUILD_NUMBER=${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
 
-      - name: Prepare release notes
+      - name: Verify release notes
         run: |
-          # What's New 우선순위:
-          # 1) 레포에 커밋된 fastlane/metadata/ko/release_notes.txt 에 내용이 있으면 그걸 그대로 사용.
-          #    (App Store 심사용 릴리스 노트를 명시적으로 관리 — 빈약한 노트로 인한 반려 방지)
-          # 2) 없거나 비어있으면 머지 커밋 메시지 본문(보통 PR 제목)을 사용.
-          # 3) 그것도 비면 기본 문구.
+          # What's New 는 레포에 커밋된 이 파일이 단일 출처다. (Android/supply 도 같은 파일을 씀)
+          # 과거엔 없으면 커밋 메시지로 자동 생성했지만, 그러면 Android 와 내용이 갈리고
+          # 빈약한 노트로 심사 반려될 수 있어 없으면 실패시킨다.
+          # (main 으로 가는 PR 은 flutter-ci.yaml 의 release_metadata_check 가 미리 검증)
           NOTES_PATH="fastlane/metadata/ko/release_notes.txt"
-          if [ -f "$NOTES_PATH" ] && [ -n "$(tr -d '[:space:]' < "$NOTES_PATH")" ]; then
-            echo "커밋된 $NOTES_PATH 를 What's New 로 사용합니다."
-          else
-            NOTES="$(git log -1 --format=%b HEAD | sed '/^[[:space:]]*$/d' | head -n 10)"
-            if [ -z "$(printf '%s' "$NOTES" | tr -d '[:space:]')" ]; then
-              NOTES="버그 수정 및 안정성 개선"
-            fi
-            # App Store 등록 언어(ko)에 What's New 작성. (등록 언어 추가 시 디렉터리 추가 필요)
-            mkdir -p fastlane/metadata/ko
-            printf '%s\n' "$NOTES" > "$NOTES_PATH"
+          if [ ! -s "$NOTES_PATH" ] || [ -z "$(tr -d '[:space:]' < "$NOTES_PATH")" ]; then
+            echo "::error file=$NOTES_PATH::What's New 가 비어 있습니다. 이번 릴리스 내용을 작성해주세요."
+            exit 1
           fi
           echo "----- release_notes (ko) -----"
           cat "$NOTES_PATH"

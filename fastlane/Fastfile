@@ -1,5 +1,12 @@
 WORKSPACE = ENV.fetch("GITHUB_WORKSPACE", File.expand_path("..", __dir__))
 
+# What's New 단일 출처. iOS(deliver)는 이 경로를 그대로 읽고,
+# Android(supply)는 versionCode 규칙이 달라 빌드 시점에 여기서 복사해 간다.
+# (prepare_play_changelog 참고 — 이 파일만 고치면 양쪽 스토어에 동일하게 반영된다)
+RELEASE_NOTES_PATH = "fastlane/metadata/ko/release_notes.txt"
+PLAY_CHANGELOG_LOCALE = "ko-KR"
+PLAY_CHANGELOG_LIMIT = 500
+
 default_platform(:ios)
 
 platform :ios do
@@ -46,15 +53,25 @@ platform :ios do
 
       # 이미 심사 대기/진행 중인 버전이 있으면 새 제출을 건너뛴다.
       # (Apple 은 한 번에 한 버전만 심사 → main 에 자주 머지돼도 실패하지 않고 스킵)
-      if appstore_review_in_progress
-        UI.important("이미 심사 대기/진행 중인 버전이 있어 이번 App Store 제출은 건너뜁니다.")
+      blocking = blocking_appstore_version
+      if blocking
+        # 스킵되면 이번 release_notes.txt 는 App Store 에 올라가지 않는다.
+        # 조용히 넘어가면 다음 릴리스에서 노트를 덮어써 누락되므로 Actions 요약에 경고로 띄운다.
+        msg = "iOS 제출 건너뜀 — #{blocking.version_string} 이 #{blocking.app_store_state} 상태입니다. " \
+              "이번 What's New 는 App Store 에 반영되지 않았으니, " \
+              "다음 릴리스 노트에 이번 변경사항까지 누적해서 작성하세요."
+        UI.important(msg)
+        puts "::warning::#{msg}"
         next
       end
     end
 
-    # 마케팅 버전: 실배포는 App Store Connect 최고 버전 +패치로 자동 증가,
-    # dry-run 은 ASC 조회 없이 IOS_VERSION_NAME(없으면 0.0.1)으로 빌드만 한다.
-    version_name = dry_run ? ENV.fetch("IOS_VERSION_NAME", "0.0.1") : resolve_next_appstore_version
+    # 마케팅 버전은 Android 와 동일하게 pubspec.yaml 을 단일 출처로 쓴다.
+    # (워크플로우가 pubspec 에서 읽어 IOS_VERSION_NAME 으로 주입)
+    version_name = ENV.fetch("IOS_VERSION_NAME")
+
+    # ASC 최고 버전 이하면 업로드가 거부되므로 긴 archive 전에 미리 막는다.
+    assert_appstore_version_available(version_name: version_name) unless dry_run
 
     build_signed_ipa(
       version_name: version_name,
@@ -123,11 +140,13 @@ platform :ios do
     )
   end
 
-  # 심사 대기/진행 중이라 새 제출이 막히는 버전이 있는지 확인한다. (setup_connect_api 선행 필요)
-  private_lane :appstore_review_in_progress do
+  # 새 제출을 막는 상태의 버전을 찾아 반환한다(없으면 nil). (setup_connect_api 선행 필요)
+  # PENDING_APPLE_RELEASE = 심사 승인됐지만 수동 출시(automatic_release: false) 대기 중.
+  # 이 상태를 방치하면 이후 iOS 배포가 계속 skip 되므로 호출부에서 상태를 명시해 알린다.
+  private_lane :blocking_appstore_version do
     app = Spaceship::ConnectAPI::App.find(BUNDLE_ID)
     if app.nil?
-      false
+      nil
     else
       blocking = %w[
         WAITING_FOR_REVIEW
@@ -135,27 +154,29 @@ platform :ios do
         PENDING_APPLE_RELEASE
         PROCESSING_FOR_APP_STORE
       ]
-      app.get_app_store_versions.any? { |v| blocking.include?(v.app_store_state) }
+      app.get_app_store_versions.find { |v| blocking.include?(v.app_store_state) }
     end
   end
 
-  # App Store Connect 의 현재 최고 마케팅 버전을 조회해 patch +1 한 버전 문자열을 반환한다.
-  # (라이브/심사중/편집중 버전을 모두 포함한 최댓값 기준 → 진행 중 버전과 충돌 방지)
-  # setup_connect_api 선행 필요.
-  private_lane :resolve_next_appstore_version do
+  # pubspec 버전이 App Store Connect 에 올릴 수 있는 값인지 확인한다.
+  # (라이브/심사중/편집중 버전을 모두 포함한 최댓값 기준 → 이하면 Apple 이 거부)
+  # 실패 시 archive 전에 끊어 20분짜리 빌드를 낭비하지 않는다. setup_connect_api 선행 필요.
+  private_lane :assert_appstore_version_available do |options|
+    version_name = options.fetch(:version_name)
+
     app = Spaceship::ConnectAPI::App.find(BUNDLE_ID)
     UI.user_error!("App #{BUNDLE_ID} 를 App Store Connect 에서 찾지 못했습니다") if app.nil?
 
-    versions = app.get_app_store_versions
-    current = versions.map { |v| Gem::Version.new(v.version_string) }.max || Gem::Version.new("1.0.0")
+    current = app.get_app_store_versions.map { |v| Gem::Version.new(v.version_string) }.max
 
-    seg = current.segments.dup
-    seg << 0 while seg.size < 3
-    seg[2] += 1
-    next_version = seg[0, 3].join(".")
+    if current && Gem::Version.new(version_name) <= current
+      UI.user_error!(
+        "pubspec 버전 #{version_name} 이 App Store 최고 버전 #{current} 이하입니다. " \
+        "pubspec.yaml 의 version 을 #{current} 보다 높게 올려주세요."
+      )
+    end
 
-    UI.message("App Store 다음 버전 자동 결정: #{next_version} (현재 최고 #{current})")
-    next_version
+    UI.message("App Store 버전 확인 OK: #{version_name} (현재 최고 #{current || '없음'})")
   end
 
   # Flutter 빌드 + 수동 서명 아카이브로 app-store IPA 를 만든다. (TestFlight·App Store 공용)
@@ -233,6 +254,9 @@ platform :android do
     build_number = ENV.fetch("ANDROID_BUILD_NUMBER")
     version_name = ENV.fetch("ANDROID_VERSION_NAME")
 
+    # What's New 는 iOS 와 같은 파일을 단일 출처로 쓴다. (빌드 전에 검증 → 긴 빌드 낭비 방지)
+    metadata_path = prepare_play_changelog(build_number: build_number)
+
     sh(
       [
         "fvm", "flutter", "build", "appbundle",
@@ -261,12 +285,45 @@ platform :android do
       aab: aab_path,
       skip_upload_apk: true,
       skip_upload_metadata: true,
-      skip_upload_changelogs: true,
+      skip_upload_changelogs: false,
       skip_upload_images: true,
-      skip_upload_screenshots: true
+      skip_upload_screenshots: true,
+      metadata_path: metadata_path
     }
     play_store_params[:release_status] = release_status unless release_status.nil?
 
     upload_to_play_store(**play_store_params)
+  end
+
+  # iOS 와 공유하는 What's New 원본(fastlane/metadata/ko/release_notes.txt)을
+  # supply 규칙인 <metadata_path>/<locale>/changelogs/<versionCode>.txt 로 복사한다.
+  # versionCode 는 실행마다 달라져(1000+run number) 커밋 시점에 알 수 없으므로 빌드 시점에 생성한다.
+  # ⚠️ supply 는 해당 versionCode 파일이 없으면 에러 없이 "빈 릴리스 노트"로 업로드하므로
+  #    (조용한 실패) 여기서 존재·내용을 명시적으로 검증한다.
+  # 반환값: upload_to_play_store 에 넘길 metadata_path
+  private_lane :prepare_play_changelog do |options|
+    build_number = options.fetch(:build_number)
+
+    notes_path = File.join(WORKSPACE, RELEASE_NOTES_PATH)
+    UI.user_error!("What's New 원본이 없습니다: #{RELEASE_NOTES_PATH}") unless File.exist?(notes_path)
+
+    # 인코딩을 명시하지 않으면 러너 로케일에 따라 length 가 바이트 수로 세어져 한글에서 오판한다.
+    notes = File.read(notes_path, encoding: "UTF-8").strip
+    UI.user_error!("What's New 가 비어 있습니다: #{RELEASE_NOTES_PATH}") if notes.empty?
+
+    # Play Store 는 로케일당 500자 제한 (초과 시 업로드 거부). iOS(4000자)보다 빡빡한 쪽에 맞춘다.
+    if notes.length > PLAY_CHANGELOG_LIMIT
+      UI.user_error!(
+        "What's New 가 #{notes.length}자로 Play Store 제한(#{PLAY_CHANGELOG_LIMIT}자)을 넘습니다: #{RELEASE_NOTES_PATH}"
+      )
+    end
+
+    metadata_path = File.join(WORKSPACE, "fastlane", "metadata", "android")
+    changelog_dir = File.join(metadata_path, PLAY_CHANGELOG_LOCALE, "changelogs")
+    FileUtils.mkdir_p(changelog_dir)
+    File.write(File.join(changelog_dir, "#{build_number}.txt"), notes)
+
+    UI.message("Play changelog 생성: #{PLAY_CHANGELOG_LOCALE}/changelogs/#{build_number}.txt (#{notes.length}자)")
+    metadata_path
   end
 end

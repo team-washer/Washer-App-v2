@@ -7,6 +7,82 @@ on:
     branches: [ main, develop ]
 
 jobs:
+  # Fastfile 문법 오류는 양쪽 스토어 배포를 동시에 깨뜨리므로 모든 PR 에서 잡는다.
+  # (릴리스 검증과 무관하니 skip-release-check 라벨에 영향받지 않도록 별도 잡으로 둔다)
+  fastfile_check:
+    name: Fastfile 문법 검사
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+      - run: ruby -c fastlane/Fastfile
+
+  # main 으로 가는 PR = 릴리스 PR. main push 시 스토어 CD 가 도는데
+  # pubspec 버전이나 What's New 갱신을 빠뜨리면 그대로 배포되므로 여기서 막는다.
+  # 릴리스가 아닌 PR(문서 수정 등)은 'skip-release-check' 라벨로 건너뛴다.
+  release_metadata_check:
+    name: 릴리스 메타데이터 검증 (버전 · What's New)
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.base_ref == 'main' &&
+      !contains(github.event.pull_request.labels.*.name, 'skip-release-check')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch base branch
+        run: git fetch --no-tags --depth=1 origin "${{ github.base_ref }}:refs/remotes/origin/base"
+
+      - name: Check pubspec version bump
+        run: |
+          read_version() { git show "$1:pubspec.yaml" | grep -m1 '^version:' | awk '{print $2}' | cut -d'+' -f1; }
+          OLD="$(read_version origin/base)"
+          NEW="$(read_version HEAD)"
+
+          if [ -z "$NEW" ]; then
+            echo "::error file=pubspec.yaml::pubspec.yaml 에서 version 을 읽지 못했습니다."
+            exit 1
+          fi
+
+          # 새 버전이 기존보다 크지 않으면 실패 (동일 · 다운그레이드 모두 차단)
+          if [ "$OLD" = "$NEW" ] || [ "$(printf '%s\n%s\n' "$OLD" "$NEW" | sort -V | tail -n 1)" != "$NEW" ]; then
+            echo "::error file=pubspec.yaml::앱 버전을 올려주세요. main=$OLD, PR=$NEW (pubspec.yaml 의 version: X.Y.Z)"
+            exit 1
+          fi
+          echo "버전 OK: $OLD → $NEW"
+
+      - name: Check What's New (release notes)
+        env:
+          # 한글 글자 수를 바이트가 아닌 문자 단위로 세기 위해 UTF-8 로케일 고정
+          LC_ALL: C.UTF-8
+        run: |
+          # 이 파일 하나가 App Store · Play Store 양쪽 What's New 의 단일 출처다.
+          NOTES_PATH="fastlane/metadata/ko/release_notes.txt"
+
+          if [ ! -s "$NOTES_PATH" ] || [ -z "$(tr -d '[:space:]' < "$NOTES_PATH")" ]; then
+            echo "::error file=$NOTES_PATH::What's New 가 비어 있습니다. 이번 릴리스 내용을 작성해주세요."
+            exit 1
+          fi
+
+          # Play Store 는 로케일당 500자 제한 (iOS 는 4000자 → 빡빡한 쪽에 맞춘다).
+          # 배포 중 실패하지 않도록 PR 시점에 미리 막는다.
+          COUNT="$(wc -m < "$NOTES_PATH" | tr -d ' ')"
+          if [ "$COUNT" -gt 500 ]; then
+            echo "::error file=$NOTES_PATH::What's New 가 ${COUNT}자로 Play Store 제한(500자)을 넘습니다."
+            exit 1
+          fi
+
+          # 지난 릴리스 문구를 그대로 두고 배포하는 실수를 막는다.
+          if git diff --quiet origin/base HEAD -- "$NOTES_PATH"; then
+            echo "::error file=$NOTES_PATH::What's New 가 main 과 동일합니다. 이번 릴리스 내용으로 갱신해주세요."
+            exit 1
+          fi
+          echo "What's New OK:"
+          cat "$NOTES_PATH"
+
   flutter_test_and_build:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[CI]'))

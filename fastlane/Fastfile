@@ -90,7 +90,12 @@ platform :ios do
 
     # 바이너리를 App Store Connect 에 올리고 심사까지 자동 제출한다.
     # - submit_for_review: 심사 제출까지 자동
-    # - automatic_release: false → 심사 승인 후 출시는 수동(안전). 승인 즉시 자동 출시하려면 true.
+    # - automatic_release: true → 심사 승인 즉시 자동 출시.
+    #   false(수동 출시)였을 때 승인된 버전이 PENDING_DEVELOPER_RELEASE 로 남았고,
+    #   Apple 은 in-flight 버전이 있으면 새 버전 생성을 거부해 사람이 출시 버튼을 누를 때까지
+    #   다음 배포가 계속 막혔다. (8/2·8/5 연속 실패 → guard 추가 후에는 조용히 스킵)
+    #   출시 시점을 직접 고르고 싶어지면 false 로 되돌리되, 그때는 승인될 때마다
+    #   App Store Connect 에서 출시를 눌러야 다음 배포가 나간다는 걸 감수해야 한다.
     # - skip_metadata: false → fastlane/metadata/<locale>/release_notes.txt 의 "What's New" 만 업로드.
     #   (다른 메타데이터 파일이 없으면 deliver 가 해당 필드를 건드리지 않음 = 기존 값 유지)
     #   release_notes.txt 는 release-ios.yml 이 머지 커밋 메시지로부터 빌드 직전에 생성한다.
@@ -100,7 +105,7 @@ platform :ios do
       api_key: api_key,
       app_identifier: BUNDLE_ID,
       submit_for_review: true,
-      automatic_release: false,
+      automatic_release: true,
       force: true,
       run_precheck_before_submit: false,
       skip_metadata: false,
@@ -151,6 +156,8 @@ platform :ios do
   #    이름이 비슷한 PENDING_APPLE_RELEASE(Apple 이 출시 대기)만 검사하고 있었다.
   #    → guard 를 통과한 뒤 새 버전 생성을 시도해 Apple 이 거부:
   #      "You cannot create a new version of the App in the current state."
+  #    이제 automatic_release: true 라 이 상태는 새로 생기지 않는다. 목록에 남겨둔 건
+  #    전환 이전에 제출됐거나 수동으로 제출한 버전이 걸릴 수 있어서다(안전망).
   #
   # 여기 담는 건 "사람이 코드를 고칠 필요 없이 시간이 지나면 풀리는" 상태뿐이다.
   # REJECTED/INVALID_BINARY 같이 사람 개입이 필요한 상태는 일부러 제외해 빨갛게 실패시킨다.

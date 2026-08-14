@@ -35,7 +35,7 @@ _HistoryContent _$HistoryContentFromJson(Map<String, dynamic> json) =>
       id: (json['id'] as num).toInt(),
       userRoomNumber: json['userRoomNumber'] as String,
       startTime: json['startTime'] as String,
-      completionTime: json['completionTime'] as String,
+      completionTime: json['completionTime'] as String?,
       status: json['status'] as String,
       createdAt: json['createdAt'] as String,
     );

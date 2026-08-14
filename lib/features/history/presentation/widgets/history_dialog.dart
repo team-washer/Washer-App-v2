@@ -124,9 +124,12 @@ class _HistoryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final status = HistoryStatusX.fromString(item.status);
-    final timeValue = DateTimeFormatter.formatToShortWithTime(
-      status == HistoryStatus.cancelled ? item.createdAt : item.completionTime,
-    );
+    final rawTime = status == HistoryStatus.cancelled
+        ? item.createdAt
+        : item.completionTime;
+    final timeValue = rawTime == null
+        ? '-'
+        : DateTimeFormatter.formatToShortWithTime(rawTime);
 
     return Container(
       padding: const EdgeInsets.all(12),

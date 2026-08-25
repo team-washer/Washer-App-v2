@@ -3,11 +3,13 @@ import 'dart:async';
 import 'package:collection/collection.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:washer/core/constants/durations.dart';
 import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/core/utils/date_time_formatter.dart';
 import 'package:washer/features/reservation/data/data_sources/remote/reservation_remote_data_source.dart';
 import 'package:washer/features/reservation/data/data_sources/remote/reservation_status_remote_data_source.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
+import 'package:washer/features/reservation/data/models/local/laundry_machine_model.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_penalty_provider.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_sync_controller.dart';
@@ -59,12 +61,13 @@ class ReservationActionNotifier extends AsyncNotifier<ActiveReservationModel?> {
       }
 
       // 예약 요청 전, 최신 기기 상태를 GET으로 불러와 예약 가능 여부를 비교합니다.
-      final latestStatus = await ref
-          .read(homeRemoteDataSourceProvider)
-          .getMachineStatus();
-      final targetMachine = latestStatus.machines.firstWhereOrNull(
-        (machine) => machine.machineId == machineId,
-      );
+      // 취소 직후 곧바로 재예약하는 경우 서버의 취소 반영이 상태조회에 아직
+      // 반영되지 않았을 수 있어, 사용 중으로 보이면 한 번 더 재확인합니다.
+      var targetMachine = await _findMachine(machineId);
+      if (targetMachine != null && !targetMachine.isAvailable) {
+        await Future.delayed(reservationAvailabilityRecheckDelay);
+        targetMachine = await _findMachine(machineId);
+      }
       if (targetMachine != null && !targetMachine.isAvailable) {
         throw const AlreadyReservedException();
       }
@@ -93,6 +96,15 @@ class ReservationActionNotifier extends AsyncNotifier<ActiveReservationModel?> {
       state = AsyncError(error, stackTrace);
       return null;
     }
+  }
+
+  Future<MachineModel?> _findMachine(int machineId) async {
+    final latestStatus = await ref
+        .read(homeRemoteDataSourceProvider)
+        .getMachineStatus();
+    return latestStatus.machines.firstWhereOrNull(
+      (machine) => machine.machineId == machineId,
+    );
   }
 
   Future<bool> cancel({required int reservationId}) {

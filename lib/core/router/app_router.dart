@@ -5,7 +5,6 @@ import 'package:washer/core/network/auth_notifier.dart';
 import 'package:washer/core/network/token_utils.dart';
 import 'package:washer/shared/ui/main_shell.dart';
 import 'package:washer/features/alarm/presentation/screens/alarm_screen.dart';
-import 'package:washer/features/auth/presentation/screens/auth_webview_screen.dart';
 import 'package:washer/features/auth/presentation/screens/login_screen.dart';
 import 'package:washer/features/home/presentation/screens/home_screen.dart';
 import 'package:washer/features/reservation/presentation/screens/reservation_screen.dart';
@@ -32,8 +31,7 @@ final appRouter = GoRouter(
     final hasSession = hasValidAccessToken || hasRefreshToken;
     final location = state.matchedLocation;
     final isSplashRoute = location == RoutePaths.splash;
-    final isAuthRoute =
-        location == RoutePaths.login || location == RoutePaths.authWebView;
+    final isAuthRoute = location == RoutePaths.login;
 
     if (isSplashRoute) {
       return null;
@@ -59,12 +57,6 @@ final appRouter = GoRouter(
     GoRoute(
       path: RoutePaths.login,
       builder: (context, state) => const LoginScreen(),
-    ),
-    GoRoute(
-      path: RoutePaths.authWebView,
-      pageBuilder: (context, state) => const NoTransitionPage(
-        child: AuthWebViewScreen(),
-      ),
     ),
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {

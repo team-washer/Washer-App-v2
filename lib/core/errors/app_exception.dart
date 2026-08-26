@@ -1,4 +1,4 @@
-﻿import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 
 class AppException {
   AppException({
@@ -40,9 +40,22 @@ class AppException {
     final statusCode = exception.response?.statusCode;
     final type = exception.type;
 
-    if (statusCode == null || type == DioExceptionType.connectionError) {
+    if (type == DioExceptionType.connectionError ||
+        type == DioExceptionType.receiveTimeout ||
+        type == DioExceptionType.sendTimeout ||
+        type == DioExceptionType.connectionTimeout ||
+        statusCode == null) {
       return AppException(
         message: '네트워크 연결을 확인해주세요.',
+        statusCode: statusCode,
+        debugMessage: exception.message,
+      );
+    }
+
+    final serverMessage = _serverMessageFrom(exception.response?.data);
+    if (serverMessage != null) {
+      return AppException(
+        message: serverMessage,
         statusCode: statusCode,
         debugMessage: exception.message,
       );
@@ -80,21 +93,25 @@ class AppException {
       );
     }
 
-    if (type == DioExceptionType.receiveTimeout ||
-        type == DioExceptionType.sendTimeout ||
-        type == DioExceptionType.connectionTimeout) {
-      return AppException(
-        message: '네트워크 연결을 확인해주세요.',
-        statusCode: statusCode,
-        debugMessage: exception.message,
-      );
-    }
-
-    // Fallback: unknown HTTP client error
     return AppException(
-      message: '알 수 없는 오류가 발생했습니다.',
+      message: '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
       statusCode: statusCode,
       debugMessage: exception.message,
     );
+  }
+
+  static String? _serverMessageFrom(Object? data) {
+    if (data is Map) {
+      final message = data['message'];
+      if (message is String && message.trim().isNotEmpty) {
+        return message.trim();
+      }
+    }
+
+    if (data is String && data.trim().isNotEmpty) {
+      return data.trim();
+    }
+
+    return null;
   }
 }

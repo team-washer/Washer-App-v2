@@ -3,7 +3,6 @@
   static const main = '/main';
 
   static const login = '/login';
-  static const authWebView = '/auth/webview';
 
   static const dryer = '/dryer';
   static const home = '/home';

@@ -436,6 +436,68 @@ void main() {
       );
     });
 
+    test('#256: 첫 조회에서만 사용중으로 보이면 재확인 후 예약을 진행한다', () async {
+      var callCount = 0;
+      const reservedResponse = MachineStatusResponse(
+        machines: [
+          MachineModel(
+            machineId: 83,
+            name: 'Washer-4F-L1',
+            type: 'WASHER',
+            status: 'NORMAL',
+            availability: 'RESERVED',
+            reservationId: 114,
+          ),
+        ],
+        totalCount: 1,
+      );
+      const availableResponse = MachineStatusResponse(
+        machines: [
+          MachineModel(
+            machineId: 83,
+            name: 'Washer-4F-L1',
+            type: 'WASHER',
+            status: 'NORMAL',
+            availability: 'AVAILABLE',
+          ),
+        ],
+        totalCount: 1,
+      );
+      final reservationDataSource = FakeReservationRemoteDataSource();
+      final container = ProviderContainer(
+        overrides: [
+          reservationRemoteDataSourceProvider.overrideWith(
+            (ref) => reservationDataSource,
+          ),
+          reservationPenaltyProvider.overrideWith(
+            FakeReservationPenaltyNotifier.new,
+          ),
+          homeRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeHomeRemoteDataSource(
+              // 첫 조회는 사용중, 그 이후로는 계속 사용 가능으로 응답한다.
+              // (재확인 이후 refreshReservationStatusProviders가 추가로 상태를 조회한다)
+              machineStatusLoader: () async {
+                callCount += 1;
+                return callCount == 1 ? reservedResponse : availableResponse;
+              },
+              activeReservationsLoader: () async => const [
+                _reservedReservation,
+              ],
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final result = await container
+          .read(reservationActionProvider.notifier)
+          .reserve(machineId: 83);
+
+      expect(callCount, greaterThanOrEqualTo(2));
+      expect(reservationDataSource.lastMachineId, 83);
+      expect(result, _reservedReservation);
+    });
+
     test('예약 취소 실패 시 서버 메시지를 상태에 담는다', () async {
       final error = DioException(
         requestOptions: RequestOptions(path: '/reservations/114'),

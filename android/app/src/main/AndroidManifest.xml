@@ -43,7 +43,14 @@
                     android:host="washer.com" />
             </intent-filter>
 
-            <intent-filter>
+        </activity>
+
+        <!-- OAuth 콜백(com.washer.v2://auth/callback)은 flutter_web_auth_2가 처리한다. -->
+        <activity
+            android:name="com.linusu.flutter_web_auth_2.CallbackActivity"
+            android:exported="true"
+            android:taskAffinity="">
+            <intent-filter android:label="flutter_web_auth_2">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />

@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/constants/durations.dart';
 import 'package:washer/shared/ui/dialog/dialog_action.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
@@ -20,7 +21,8 @@ abstract final class DialogActions {
           .reserve(
             machineId: machineId,
           ),
-      isSuccess: (reservation) => reservation != null,
+      isSuccess: (container) =>
+          !container.read(reservationActionProvider).hasError,
       successMessage:
           '$machineName 예약이 완료되었습니다\n'
           '$reservationExpiryMinutes분 동안 기기 연결을 확인합니다',
@@ -40,7 +42,8 @@ abstract final class DialogActions {
           .cancel(
             reservationId: reservationId,
           ),
-      isSuccess: (didCancel) => didCancel,
+      isSuccess: (container) =>
+          !container.read(reservationActionProvider).hasError,
       successMessage: '예약이 취소되었습니다.',
       failureMessage: (container) => reservationActionErrorMessage(
         container.read(reservationActionProvider).error,
@@ -64,7 +67,7 @@ abstract final class DialogActions {
             machineId: machineId,
             description: description,
           ),
-      isSuccess: (didReport) => didReport,
+      isSuccess: (container) => !container.read(reportProvider).hasError,
       successMessage: '신고가 완료되었습니다.',
       failureMessage: (container) =>
           reportErrorMessage(container.read(reportProvider).error),

@@ -15,11 +15,13 @@ import 'package:washer/features/reservation/data/models/remote/cancel_reservatio
 import 'package:washer/features/reservation/data/models/remote/confirm_reservation_response.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_action_provider.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_penalty_provider.dart';
+import 'package:washer/shared/ui/dialog/dialog_actions.dart';
 
 class FakeReservationRemoteDataSource implements ReservationRemoteDataSource {
   FakeReservationRemoteDataSource({
     this.createdReservation = _reservedReservation,
     this.createdReservationBuilder,
+    this.createError,
     this.cancelError,
     this.cancelResponse = _noPenaltyCancel,
   });
@@ -29,6 +31,7 @@ class FakeReservationRemoteDataSource implements ReservationRemoteDataSource {
   /// machineId 별로 다른 예약을 돌려줘야 하는 테스트용.
   final ActiveReservationModel Function(int machineId)?
   createdReservationBuilder;
+  final Object? createError;
   final Object? cancelError;
   final CancelReservationResponse cancelResponse;
   int? lastMachineId;
@@ -45,6 +48,10 @@ class FakeReservationRemoteDataSource implements ReservationRemoteDataSource {
     lastMachineId = machineId;
     lastStartTime = startTime;
     createdMachineIds.add(machineId);
+    final nextError = createError;
+    if (nextError != null) {
+      throw nextError;
+    }
     return createdReservationBuilder?.call(machineId) ?? createdReservation;
   }
 
@@ -363,6 +370,70 @@ void main() {
       await container.read(machineStatusProvider.notifier).refresh();
 
       expect(container.read(machineStatusProvider).value, secondResponse);
+    });
+  });
+
+  group('DialogActions.reserve 성공 판정 (#262)', () {
+    ProviderContainer buildContainer(FakeReservationRemoteDataSource source) {
+      final container = ProviderContainer(
+        overrides: [
+          reservationRemoteDataSourceProvider.overrideWith((ref) => source),
+          reservationPenaltyProvider.overrideWith(
+            FakeReservationPenaltyNotifier.new,
+          ),
+          homeRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeHomeRemoteDataSource(
+              machineStatusLoader: () async =>
+                  const MachineStatusResponse(machines: [], totalCount: 0),
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      return container;
+    }
+
+    test('예약 성공이면 state 기준으로 성공 판정된다', () async {
+      final container = buildContainer(FakeReservationRemoteDataSource());
+      final action = DialogActions.reserve(machineName: '세탁기 1', machineId: 83);
+
+      await action.run(container);
+
+      expect(action.isSuccess(container), isTrue);
+    });
+
+    test('예약 실패면 state 기준으로 실패 판정된다', () async {
+      final container = buildContainer(
+        FakeReservationRemoteDataSource(createError: Exception('boom')),
+      );
+      final action = DialogActions.reserve(machineName: '세탁기 1', machineId: 83);
+
+      final result = await action.run(container);
+
+      expect(result, isNull);
+      expect(action.isSuccess(container), isFalse);
+    });
+
+    test('실패와 예약 없음이 state 로 구분된다', () async {
+      // 둘 다 value 는 null 이라 반환값만으로는 구분되지 않던 부분.
+      final failed = buildContainer(
+        FakeReservationRemoteDataSource(createError: Exception('boom')),
+      );
+      await DialogActions.reserve(
+        machineName: '세탁기 1',
+        machineId: 83,
+      ).run(failed);
+
+      final cancelled = buildContainer(FakeReservationRemoteDataSource());
+      await cancelled
+          .read(reservationActionProvider.notifier)
+          .cancel(reservationId: 114);
+
+      expect(failed.read(reservationActionProvider).value, isNull);
+      expect(cancelled.read(reservationActionProvider).value, isNull);
+
+      expect(failed.read(reservationActionProvider).hasError, isTrue);
+      expect(cancelled.read(reservationActionProvider).hasError, isFalse);
     });
   });
 

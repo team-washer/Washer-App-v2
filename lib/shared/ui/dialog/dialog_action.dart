@@ -25,7 +25,10 @@ class DialogAction<R> {
   });
 
   final Future<R> Function(ProviderContainer container) run;
-  final bool Function(R result) isSuccess;
+
+  /// 성공 여부를 판정한다. 반환값이 아니라 [run] 이 갱신한 provider state 를
+  /// 읽는다. 판정과 문구가 같은 출처를 봐야 서로를 검증할 수 있다(#262).
+  final bool Function(ProviderContainer container) isSuccess;
   final String successMessage;
   final String Function(ProviderContainer container) failureMessage;
   final String logName;
@@ -62,11 +65,13 @@ Future<void> runDialogAction<R>(
   }
 
   try {
-    final result = overlay != null
-        ? await runWithLoadingOverlay(overlay, () => action.run(container))
-        : await action.run(container);
+    if (overlay != null) {
+      await runWithLoadingOverlay(overlay, () => action.run(container));
+    } else {
+      await action.run(container);
+    }
 
-    if (action.isSuccess(result)) {
+    if (action.isSuccess(container)) {
       onSuccess?.call();
       // 비동기 작업 도중 화면이 이탈해 messenger가 해제됐을 수 있다.
       if (messenger.mounted) {

@@ -19,16 +19,23 @@ import 'package:washer/features/reservation/presentation/providers/reservation_p
 class FakeReservationRemoteDataSource implements ReservationRemoteDataSource {
   FakeReservationRemoteDataSource({
     this.createdReservation = _reservedReservation,
+    this.createdReservationBuilder,
     this.cancelError,
     this.cancelResponse = _noPenaltyCancel,
   });
 
   final ActiveReservationModel createdReservation;
+
+  /// machineId 별로 다른 예약을 돌려줘야 하는 테스트용.
+  final ActiveReservationModel Function(int machineId)?
+  createdReservationBuilder;
   final Object? cancelError;
   final CancelReservationResponse cancelResponse;
   int? lastMachineId;
   String? lastStartTime;
   int? cancelledId;
+  final List<int> createdMachineIds = [];
+  final List<int> cancelledIds = [];
 
   @override
   Future<ActiveReservationModel> createReservation({
@@ -37,12 +44,14 @@ class FakeReservationRemoteDataSource implements ReservationRemoteDataSource {
   }) async {
     lastMachineId = machineId;
     lastStartTime = startTime;
-    return createdReservation;
+    createdMachineIds.add(machineId);
+    return createdReservationBuilder?.call(machineId) ?? createdReservation;
   }
 
   @override
   Future<CancelReservationResponse> cancelReservation({required int id}) async {
     cancelledId = id;
+    cancelledIds.add(id);
     final nextError = cancelError;
     if (nextError != null) {
       throw nextError;
@@ -391,6 +400,100 @@ void main() {
       expect(container.read(activeReservationProvider).value, const [
         _reservedReservation,
       ]);
+    });
+
+    test('#261: 다른 기기를 연달아 누르면 각각 별도 요청이 나간다', () async {
+      final reservationDataSource = FakeReservationRemoteDataSource(
+        createdReservationBuilder: (machineId) =>
+            _reservedReservation.copyWith(machineId: machineId),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          reservationRemoteDataSourceProvider.overrideWith(
+            (ref) => reservationDataSource,
+          ),
+          reservationPenaltyProvider.overrideWith(
+            FakeReservationPenaltyNotifier.new,
+          ),
+          homeRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeHomeRemoteDataSource(
+              machineStatusLoader: () async =>
+                  const MachineStatusResponse(machines: [], totalCount: 0),
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final notifier = container.read(reservationActionProvider.notifier);
+      // 83 이 아직 진행 중인 상태에서 84 를 누른다.
+      final first = notifier.reserve(machineId: 83);
+      final second = notifier.reserve(machineId: 84);
+      final results = await Future.wait([first, second]);
+
+      expect(reservationDataSource.createdMachineIds, [83, 84]);
+      expect(results[0]?.machineId, 83);
+      // 키가 없으면 84 호출이 83 의 결과를 그대로 받아 성공으로 처리된다.
+      expect(results[1]?.machineId, 84);
+    });
+
+    test('#261: 같은 기기를 연달아 누르면 요청은 한 번만 나간다', () async {
+      final reservationDataSource = FakeReservationRemoteDataSource();
+      final container = ProviderContainer(
+        overrides: [
+          reservationRemoteDataSourceProvider.overrideWith(
+            (ref) => reservationDataSource,
+          ),
+          reservationPenaltyProvider.overrideWith(
+            FakeReservationPenaltyNotifier.new,
+          ),
+          homeRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeHomeRemoteDataSource(
+              machineStatusLoader: () async =>
+                  const MachineStatusResponse(machines: [], totalCount: 0),
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final notifier = container.read(reservationActionProvider.notifier);
+      final results = await Future.wait([
+        notifier.reserve(machineId: 83),
+        notifier.reserve(machineId: 83),
+      ]);
+
+      expect(reservationDataSource.createdMachineIds, [83]);
+      expect(results[0], results[1]);
+    });
+
+    test('#261: 다른 예약을 연달아 취소하면 각각 별도 요청이 나간다', () async {
+      final reservationDataSource = FakeReservationRemoteDataSource();
+      final container = ProviderContainer(
+        overrides: [
+          reservationRemoteDataSourceProvider.overrideWith(
+            (ref) => reservationDataSource,
+          ),
+          reservationPenaltyProvider.overrideWith(
+            FakeReservationPenaltyNotifier.new,
+          ),
+          homeRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeHomeRemoteDataSource(
+              machineStatusLoader: () async =>
+                  const MachineStatusResponse(machines: [], totalCount: 0),
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final notifier = container.read(reservationActionProvider.notifier);
+      await Future.wait([
+        notifier.cancel(reservationId: 114),
+        notifier.cancel(reservationId: 115),
+      ]);
+
+      expect(reservationDataSource.cancelledIds, [114, 115]);
     });
 
     test('예약 전 조회 결과 이미 예약된 기기면 요청을 보내지 않고 예외를 담는다', () async {

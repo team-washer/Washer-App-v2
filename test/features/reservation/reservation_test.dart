@@ -414,6 +414,21 @@ void main() {
       expect(action.isSuccess(container), isFalse);
     });
 
+    test('AsyncLoading 은 성공으로 보지 않는다', () async {
+      // 공용 프리미티브 기준: AsyncError 가 아니라는 이유만으로 성공 처리하면
+      // 다른 액션이 state 를 덮은 경우 실패를 성공으로 보고한다.
+      final container = buildContainer(FakeReservationRemoteDataSource());
+      final action = DialogActions.reserve(machineName: '세탁기 1', machineId: 83);
+
+      await action.run(container);
+      expect(action.isSuccess(container), isTrue);
+
+      container.read(reservationActionProvider.notifier).state =
+          const AsyncLoading();
+
+      expect(action.isSuccess(container), isFalse);
+    });
+
     test('실패와 예약 없음이 state 로 구분된다', () async {
       // 둘 다 value 는 null 이라 반환값만으로는 구분되지 않던 부분.
       final failed = buildContainer(

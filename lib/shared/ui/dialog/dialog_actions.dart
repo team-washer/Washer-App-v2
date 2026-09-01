@@ -22,7 +22,7 @@ abstract final class DialogActions {
             machineId: machineId,
           ),
       isSuccess: (container) =>
-          !container.read(reservationActionProvider).hasError,
+          container.read(reservationActionProvider) is AsyncData,
       successMessage:
           '$machineName 예약이 완료되었습니다\n'
           '$reservationExpiryMinutes분 동안 기기 연결을 확인합니다',
@@ -43,7 +43,7 @@ abstract final class DialogActions {
             reservationId: reservationId,
           ),
       isSuccess: (container) =>
-          !container.read(reservationActionProvider).hasError,
+          container.read(reservationActionProvider) is AsyncData,
       successMessage: '예약이 취소되었습니다.',
       failureMessage: (container) => reservationActionErrorMessage(
         container.read(reservationActionProvider).error,
@@ -67,7 +67,7 @@ abstract final class DialogActions {
             machineId: machineId,
             description: description,
           ),
-      isSuccess: (container) => !container.read(reportProvider).hasError,
+      isSuccess: (container) => container.read(reportProvider) is AsyncData,
       successMessage: '신고가 완료되었습니다.',
       failureMessage: (container) =>
           reportErrorMessage(container.read(reportProvider).error),

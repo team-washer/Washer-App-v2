@@ -28,6 +28,10 @@ class DialogAction<R> {
 
   /// 성공 여부를 판정한다. 반환값이 아니라 [run] 이 갱신한 provider state 를
   /// 읽는다. 판정과 문구가 같은 출처를 봐야 서로를 검증할 수 있다(#262).
+  ///
+  /// 판정은 "AsyncData 인가"로 좁힌다. `!hasError` 로 두면 AsyncLoading 이나
+  /// 초기 상태까지 성공으로 새기 때문에, 다른 액션이 state 를 덮은 경우
+  /// 실패를 성공으로 보고할 수 있다. 애매하면 실패로 떨어뜨린다.
   final bool Function(ProviderContainer container) isSuccess;
   final String successMessage;
   final String Function(ProviderContainer container) failureMessage;

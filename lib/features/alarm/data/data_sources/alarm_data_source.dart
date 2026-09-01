@@ -43,8 +43,9 @@ class AlarmDataSourceImpl implements AlarmDataSource {
       return const AlarmListResponse(data: []);
     }
 
-    // 서버 응답은 `{ notifications: [...] }` 형태로 봉투가 없다.
-    return AlarmListResponse.fromJson(castJsonMap(response.data));
+    final body = castJsonMap(response.data);
+    final data = body.containsKey('data') ? extractDataMap(body) : body;
+    return AlarmListResponse.fromJson(data);
   }
 
   @override

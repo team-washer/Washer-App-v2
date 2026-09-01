@@ -27,17 +27,18 @@ class ReservationPenaltyException implements Exception {
 }
 
 class ReservationActionNotifier extends AsyncNotifier<ActiveReservationModel?> {
-  Future<ActiveReservationModel?>? _reserveRequest;
-  Future<bool>? _cancelRequest;
+  /// 진행 중인 요청을 대상(기기/예약) 단위로 보관한다.
+  /// 키 없이 단일 슬롯에 담으면 다른 대상의 요청에 합류해 그 결과가
+  /// 이 호출의 반환값이 된다(#261).
+  final Map<String, Future<Object?>> _inflight = {};
 
   @override
   Future<ActiveReservationModel?> build() async => null;
 
   Future<ActiveReservationModel?> reserve({required int machineId}) {
     return _runSingleFlight(
-      currentRequest: _reserveRequest,
-      setRequest: (request) => _reserveRequest = request,
-      action: () => _reserveInternal(machineId: machineId),
+      'reserve:$machineId',
+      () => _reserveInternal(machineId: machineId),
     );
   }
 
@@ -109,9 +110,8 @@ class ReservationActionNotifier extends AsyncNotifier<ActiveReservationModel?> {
 
   Future<bool> cancel({required int reservationId}) {
     return _runSingleFlight(
-      currentRequest: _cancelRequest,
-      setRequest: (request) => _cancelRequest = request,
-      action: () => _cancelInternal(reservationId: reservationId),
+      'cancel:$reservationId',
+      () => _cancelInternal(reservationId: reservationId),
     );
   }
 
@@ -156,18 +156,20 @@ class ReservationActionNotifier extends AsyncNotifier<ActiveReservationModel?> {
     ref.read(reservationSyncControllerProvider).stopPolling();
   }
 
-  Future<T> _runSingleFlight<T>({
-    required Future<T>? currentRequest,
-    required void Function(Future<T>? request) setRequest,
-    required Future<T> Function() action,
-  }) {
+  /// 같은 [key] 로 들어온 중복 요청만 하나로 합친다.
+  ///
+  /// 키가 다르면(다른 기기 예약, 다른 예약 취소) 각자 요청을 보낸다.
+  /// 합쳐 버리면 누르지 않은 대상의 결과가 반환값이 되어 호출부가 그것을
+  /// 성공으로 처리한다(#261).
+  Future<T> _runSingleFlight<T>(String key, Future<T> Function() action) {
+    final currentRequest = _inflight[key];
     if (currentRequest != null) {
-      return currentRequest;
+      return currentRequest.then((value) => value as T);
     }
 
     final request = action();
-    setRequest(request);
-    request.whenComplete(() => setRequest(null));
+    _inflight[key] = request;
+    request.whenComplete(() => _inflight.remove(key));
     return request;
   }
 }

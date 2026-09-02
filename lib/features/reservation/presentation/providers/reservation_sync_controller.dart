@@ -70,10 +70,8 @@ class ReservationSyncController {
         return;
       }
 
-      final hasPendingReservation = latest.any(
-        (reservation) => reservation.laundryStatus == LaundryStatus.reserved,
-      );
-      if (!hasPendingReservation) {
+      final shouldKeepPolling = latest.any(_shouldKeepPolling);
+      if (!shouldKeepPolling) {
         stopPolling();
       }
 
@@ -116,5 +114,18 @@ class ReservationSyncController {
     }
 
     return listEquals(current, latest);
+  }
+
+  bool _shouldKeepPolling(ActiveReservationModel reservation) {
+    if (reservation.laundryStatus == LaundryStatus.reserved) {
+      return true;
+    }
+
+    return reservation.laundryStatus == LaundryStatus.inUse &&
+        !_hasText(reservation.expectedCompletionTime);
+  }
+
+  bool _hasText(String? value) {
+    return value != null && value.trim().isNotEmpty;
   }
 }

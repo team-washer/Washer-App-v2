@@ -27,6 +27,8 @@ abstract final class DialogActions {
       failureMessage: (container) => reserveFailureMessage(
         container.read(reservationActionProvider).error,
       ),
+      failureError: (container) =>
+          container.read(reservationActionProvider).error,
       logName: 'ReserveAction',
       showLoading: true,
     );

@@ -1,5 +1,9 @@
 import 'package:dio/dio.dart';
 
+abstract interface class UserFacingException implements Exception {
+  String get userMessage;
+}
+
 class AppException {
   AppException({
     required this.message,
@@ -12,6 +16,13 @@ class AppException {
   final String? debugMessage;
 
   factory AppException.from(Object? error) {
+    if (error is UserFacingException) {
+      return AppException(
+        message: error.userMessage,
+        debugMessage: error.toString(),
+      );
+    }
+
     if (error is DioException) {
       return AppException._fromDioException(error);
     }

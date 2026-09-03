@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:washer/core/errors/app_exception.dart';
 import 'package:washer/core/enums/machine_state.dart';
 import 'package:washer/core/utils/date_time_formatter.dart';
 import 'package:washer/features/reservation/data/data_sources/remote/reservation_status_remote_data_source.dart';
@@ -536,6 +537,62 @@ void main() {
       expect(
         container.read(reservationActionProvider).error,
         isA<AlreadyReservedException>(),
+      );
+    });
+
+    test('#267: previous reservation failure is not rethrown on retry', () async {
+      final reservationDataSource = FakeReservationRemoteDataSource();
+      final container = ProviderContainer(
+        overrides: [
+          reservationRemoteDataSourceProvider.overrideWith(
+            (ref) => reservationDataSource,
+          ),
+          reservationPenaltyProvider.overrideWith(
+            FakeReservationPenaltyNotifier.new,
+          ),
+          homeRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeHomeRemoteDataSource(
+              machineStatusLoader: () async => const MachineStatusResponse(
+                machines: [
+                  MachineModel(
+                    machineId: 83,
+                    name: 'Washer-4F-L1',
+                    type: 'WASHER',
+                    status: 'NORMAL',
+                    availability: 'RESERVED',
+                    reservationId: 114,
+                  ),
+                ],
+                totalCount: 1,
+              ),
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final firstResult = await container
+          .read(reservationActionProvider.notifier)
+          .reserve(machineId: 83);
+
+      expect(firstResult, isNull);
+      expect(
+        container.read(reservationActionProvider).error,
+        isA<AlreadyReservedException>(),
+      );
+
+      await expectLater(
+        container
+            .read(reservationActionProvider.notifier)
+            .reserve(machineId: 83),
+        completion(isNull),
+      );
+    });
+
+    test('#267: AlreadyReservedException is mapped to user message', () {
+      expect(
+        AppException.from(const AlreadyReservedException()).message,
+        '이미 예약된 기기입니다.',
       );
     });
 

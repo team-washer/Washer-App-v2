@@ -56,10 +56,7 @@ class _ReservationSectionWidgetState
   }
 
   List<int> _floorsFrom(List<MachineModel> machines, int? userFloor) {
-    final floors = machines
-        .map((m) => m.floorNumber)
-        .whereType<int>()
-        .toSet();
+    final floors = machines.map((m) => m.floorNumber).whereType<int>().toSet();
     if (userFloor != null) {
       floors.add(userFloor);
     }
@@ -220,8 +217,7 @@ class _ReservationSectionWidgetState
       data: (data) {
         final typedMachines = _machinesForType(data.machines);
         final floors = _floorsFrom(typedMachines, userFloor);
-        final currentFloor =
-            _selectedFloor ?? (floors.isNotEmpty ? floors.first : 0);
+        final currentFloor = _selectedFloor ?? (userFloor ?? floors.first);
         final items = _buildItems(
           typedMachines,
           activeReservations,

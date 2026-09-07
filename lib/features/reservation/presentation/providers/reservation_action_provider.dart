@@ -167,7 +167,14 @@ class ReservationActionNotifier extends AsyncNotifier<ActiveReservationModel?> {
 
     final request = action();
     _inflight[key] = request;
-    request.whenComplete(() => _inflight.remove(key));
+    unawaited(
+      request.then<void>(
+        (_) => _inflight.remove(key),
+        onError: (Object _, StackTrace __) {
+          _inflight.remove(key);
+        },
+      ),
+    );
     return request;
   }
 }

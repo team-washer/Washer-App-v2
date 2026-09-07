@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/features/report/data/data_sources/remote/report_remote_data_source.dart';
@@ -50,22 +49,6 @@ class ReportNotifier extends AsyncNotifier<void> {
   void reset() {
     state = const AsyncData(null);
   }
-}
-
-String reportErrorMessage(Object? error) {
-  const fallback = '고장 신고에 실패했습니다. 다시 시도해 주세요.';
-  if (error is! DioException || error.response?.data == null) {
-    return fallback;
-  }
-
-  final response = error.response!.data;
-  if (response is Map<String, dynamic> &&
-      response['message'] is String &&
-      (response['message'] as String).isNotEmpty) {
-    return response['message'] as String;
-  }
-
-  return fallback;
 }
 
 final reportProvider = AsyncNotifierProvider<ReportNotifier, void>(

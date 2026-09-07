@@ -55,7 +55,7 @@ class AppException {
         type == DioExceptionType.receiveTimeout ||
         type == DioExceptionType.sendTimeout ||
         type == DioExceptionType.connectionTimeout ||
-        statusCode == null) {
+        exception.response == null) {
       return AppException(
         message: '네트워크 연결을 확인해주세요.',
         statusCode: statusCode,
@@ -96,7 +96,7 @@ class AppException {
       );
     }
 
-    if (statusCode >= 500) {
+    if (statusCode != null && statusCode >= 500) {
       return AppException(
         message: '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
         statusCode: statusCode,

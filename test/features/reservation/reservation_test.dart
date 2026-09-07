@@ -15,6 +15,7 @@ import 'package:washer/features/reservation/data/data_sources/remote/reservation
 import 'package:washer/features/reservation/data/models/remote/cancel_reservation_response.dart';
 import 'package:washer/features/reservation/data/models/remote/confirm_reservation_response.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_action_provider.dart';
+import 'package:washer/features/reservation/presentation/providers/reservation_exceptions.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_penalty_provider.dart';
 
 class FakeReservationRemoteDataSource implements ReservationRemoteDataSource {
@@ -694,10 +695,9 @@ void main() {
       expect(reservationDataSource.cancelledId, 114);
       expect(result, isFalse);
       expect(
-        reservationActionErrorMessage(
+        AppException.from(
           container.read(reservationActionProvider).error,
-          fallback: '예약 취소에 실패했습니다.',
-        ),
+        ).message,
         '예약 취소 시간이 지났습니다.',
       );
     });

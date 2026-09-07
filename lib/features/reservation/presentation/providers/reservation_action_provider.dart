@@ -1,43 +1,18 @@
 import 'dart:async';
 
 import 'package:collection/collection.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/constants/durations.dart';
-import 'package:washer/core/errors/app_exception.dart';
 import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/core/utils/date_time_formatter.dart';
 import 'package:washer/features/reservation/data/data_sources/remote/reservation_remote_data_source.dart';
 import 'package:washer/features/reservation/data/data_sources/remote/reservation_status_remote_data_source.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/data/models/local/laundry_machine_model.dart';
+import 'package:washer/features/reservation/presentation/providers/reservation_exceptions.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_penalty_provider.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_sync_controller.dart';
-
-/// 예약 요청 직전 GET으로 확인한 결과, 이미 예약/사용 중이라 예약할 수 없는 경우.
-class AlreadyReservedException implements UserFacingException {
-  const AlreadyReservedException();
-
-  @override
-  String get userMessage => '이미 예약된 기기입니다.';
-}
-
-/// 취소 패널티 기간이라 서버 요청 없이 클라이언트에서 예약을 막은 경우.
-class ReservationPenaltyException implements UserFacingException {
-  const ReservationPenaltyException(this.expiresAt);
-
-  final DateTime expiresAt;
-
-  @override
-  String get userMessage {
-    final remaining = expiresAt.difference(DateTime.now());
-    final minutes = remaining.inMinutes;
-    return minutes >= 1
-        ? '예약이 제한된 상태입니다. 약 $minutes분 후 다시 시도해주세요.'
-        : '예약이 제한된 상태입니다. 잠시 후 다시 시도해주세요.';
-  }
-}
 
 class ReservationActionNotifier extends AsyncNotifier<ActiveReservationModel?> {
   /// 진행 중인 요청을 대상(기기/예약) 단위로 보관한다.
@@ -195,35 +170,6 @@ class ReservationActionNotifier extends AsyncNotifier<ActiveReservationModel?> {
     request.whenComplete(() => _inflight.remove(key));
     return request;
   }
-}
-
-String reservationActionErrorMessage(
-  Object? error, {
-  required String fallback,
-}) {
-  if (error is! DioException || error.response?.data == null) {
-    return fallback;
-  }
-
-  final response = error.response!.data;
-  if (response is Map<String, dynamic> &&
-      response['message'] is String &&
-      (response['message'] as String).isNotEmpty) {
-    return response['message'] as String;
-  }
-
-  return fallback;
-}
-
-/// 예약 시도 실패를 사용자에게 보여줄 문구로 변환합니다.
-///
-/// 사전 조회 단계에서 이미 예약/사용 중으로 확인된 경우는 별도 안내로,
-/// 그 외에는 서버 메시지(없으면 기본 문구)를 사용합니다.
-String reserveFailureMessage(Object? error) {
-  if (error is UserFacingException) {
-    return error.userMessage;
-  }
-  return '예약 실패: ${reservationActionErrorMessage(error, fallback: '예약에 실패했습니다. 다시 시도해주세요.')}';
 }
 
 final reservationActionProvider =

@@ -24,9 +24,9 @@ abstract final class DialogActions {
       successMessage:
           '$machineName 예약이 완료되었습니다\n'
           '$reservationExpiryMinutes분 동안 기기 연결을 확인합니다',
-      failureMessage: (container) => reserveFailureMessage(
-        container.read(reservationActionProvider).error,
-      ),
+      fallbackMessage: '예약에 실패했습니다. 다시 시도해주세요.',
+      failureError: (container) =>
+          container.read(reservationActionProvider).error,
       logName: 'ReserveAction',
       showLoading: true,
     );
@@ -42,10 +42,7 @@ abstract final class DialogActions {
           ),
       isSuccess: (didCancel) => didCancel,
       successMessage: '예약이 취소되었습니다.',
-      failureMessage: (container) => reservationActionErrorMessage(
-        container.read(reservationActionProvider).error,
-        fallback: '예약 취소에 실패했습니다.',
-      ),
+      fallbackMessage: '예약 취소에 실패했습니다.',
       failureError: (container) =>
           container.read(reservationActionProvider).error,
       logName: 'CancelReservationAction',
@@ -66,8 +63,8 @@ abstract final class DialogActions {
           ),
       isSuccess: (didReport) => didReport,
       successMessage: '신고가 완료되었습니다.',
-      failureMessage: (container) =>
-          reportErrorMessage(container.read(reportProvider).error),
+      fallbackMessage: '고장 신고에 실패했습니다. 다시 시도해 주세요.',
+      failureError: (container) => container.read(reportProvider).error,
       logName: 'ReportBrokenAction',
     );
   }

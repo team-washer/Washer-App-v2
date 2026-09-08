@@ -217,7 +217,9 @@ class _ReservationSectionWidgetState
       data: (data) {
         final typedMachines = _machinesForType(data.machines);
         final floors = _floorsFrom(typedMachines, userFloor);
-        final currentFloor = _selectedFloor ?? (userFloor ?? floors.first);
+        // 해당 타입 기기가 없고 방 번호로 층도 못 읽으면 floors 가 비어 있다.
+        final currentFloor =
+            _selectedFloor ?? userFloor ?? floors.firstOrNull ?? 0;
         final items = _buildItems(
           typedMachines,
           activeReservations,

@@ -63,15 +63,33 @@ jobs:
       - name: Install dependencies
         run: fvm flutter pub get
 
+      # .env.* 는 시크릿이라 저장소에 없지만 pubspec 의 assets 에 선언돼 있다.
+      # 파일이 없으면 analyze 는 asset_does_not_exist 경고로, test 는 asset
+      # bundle 빌드 실패로 죽는다. 시크릿이 있으면 실제 값을, 없으면 자리채움을
+      # 쓴다. 테스트는 env 를 읽지 않는다(AppEnvironment 는 main() 에서만 로드).
+      - name: Prepare env files
+        env:
+          ENV_DEVELOPMENT: ${{ secrets.ENV_DEVELOPMENT }}
+          ENV_PRODUCTION: ${{ secrets.ENV_PRODUCTION }}
+        run: |
+          write_env() {
+            if [ -n "$2" ]; then
+              printf '%s' "$2" > "$1"
+            else
+              echo "::warning::$1 secret is missing. Using a placeholder."
+              echo 'API_BASE_URL=https://example.invalid/' > "$1"
+            fi
+          }
+          write_env .env.development "$ENV_DEVELOPMENT"
+          write_env .env.production "$ENV_PRODUCTION"
+
       # 코드 분석
       - name: Analyze project source
         run: fvm flutter analyze --no-fatal-infos
-        continue-on-error: true
 
       # 테스트 실행
       - name: Run tests
         run: fvm flutter test
-        continue-on-error: true
 
       # Android APK 빌드 (main 브랜치에 push 시에만)
       - name: Build Android APK

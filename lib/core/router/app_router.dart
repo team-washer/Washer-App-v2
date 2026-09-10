@@ -14,40 +14,61 @@ import 'route_paths.dart';
 
 const _storage = FlutterSecureStorage();
 
+/// 토큰 상태와 목적지만으로 리다이렉트 대상을 정한다.
+///
+/// 저장소 접근과 토큰 삭제는 [appRouter] 에 남기고 판단만 분리해서,
+/// 인증 게이트를 기기 없이 검증할 수 있게 한다.
+String? resolveAuthRedirect({
+  required String location,
+  required String? accessToken,
+  required String? refreshToken,
+  DateTime? now,
+}) {
+  final hasRefreshToken =
+      refreshToken != null &&
+      refreshToken.isNotEmpty &&
+      !TokenUtils.isExpired(refreshToken, now: now);
+  final hasValidAccessToken =
+      accessToken != null &&
+      accessToken.isNotEmpty &&
+      !TokenUtils.isExpired(accessToken, now: now);
+  final hasSession = hasValidAccessToken || hasRefreshToken;
+  final isSplashRoute = location == RoutePaths.splash;
+  final isAuthRoute = location == RoutePaths.login;
+
+  if (isSplashRoute) {
+    return null;
+  }
+
+  if (!hasSession && !isAuthRoute) {
+    return RoutePaths.login;
+  }
+
+  if (hasSession && isAuthRoute) {
+    return RoutePaths.splash;
+  }
+
+  return null;
+}
+
 final appRouter = GoRouter(
   initialLocation: RoutePaths.splash,
   refreshListenable: authNotifier,
   redirect: (context, state) async {
     final accessToken = await _storage.read(key: 'access_token');
     final refreshToken = await _storage.read(key: 'refresh_token');
-    final hasRefreshToken =
-        refreshToken != null &&
-        refreshToken.isNotEmpty &&
-        !TokenUtils.isExpired(refreshToken);
-    final hasValidAccessToken =
-        accessToken != null &&
-        accessToken.isNotEmpty &&
-        !TokenUtils.isExpired(accessToken);
-    final hasSession = hasValidAccessToken || hasRefreshToken;
-    final location = state.matchedLocation;
-    final isSplashRoute = location == RoutePaths.splash;
-    final isAuthRoute = location == RoutePaths.login;
+    final destination = resolveAuthRedirect(
+      location: state.matchedLocation,
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+    );
 
-    if (isSplashRoute) {
-      return null;
-    }
-
-    if (!hasSession && !isAuthRoute) {
+    if (destination == RoutePaths.login) {
       await _storage.delete(key: 'access_token');
       await _storage.delete(key: 'refresh_token');
-      return RoutePaths.login;
     }
 
-    if (hasSession && isAuthRoute) {
-      return RoutePaths.splash;
-    }
-
-    return null;
+    return destination;
   },
   routes: [
     GoRoute(

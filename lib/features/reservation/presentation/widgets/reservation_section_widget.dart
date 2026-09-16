@@ -56,10 +56,7 @@ class _ReservationSectionWidgetState
   }
 
   List<int> _floorsFrom(List<MachineModel> machines, int? userFloor) {
-    final floors = machines
-        .map((m) => m.floorNumber)
-        .whereType<int>()
-        .toSet();
+    final floors = machines.map((m) => m.floorNumber).whereType<int>().toSet();
     if (userFloor != null) {
       floors.add(userFloor);
     }
@@ -220,8 +217,9 @@ class _ReservationSectionWidgetState
       data: (data) {
         final typedMachines = _machinesForType(data.machines);
         final floors = _floorsFrom(typedMachines, userFloor);
+        // 해당 타입 기기가 없고 방 번호로 층도 못 읽으면 floors 가 비어 있다.
         final currentFloor =
-            _selectedFloor ?? (floors.isNotEmpty ? floors.first : 0);
+            _selectedFloor ?? userFloor ?? floors.firstOrNull ?? 0;
         final items = _buildItems(
           typedMachines,
           activeReservations,

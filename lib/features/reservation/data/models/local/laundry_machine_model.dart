@@ -38,9 +38,6 @@ abstract class MachineModel with _$MachineModel {
     String? userStudentId,
     String? userName,
     String? roomNumber,
-    // 클라이언트가 SmartThings 상태를 직접 조회할 때 사용하는 기기 식별자.
-    // 서버 `/machines/status` 응답에 포함되어 내려온다.
-    String? smartThingsDeviceId,
   }) = _MachineModel;
 
   factory MachineModel.fromJson(Map<String, dynamic> json) =>
@@ -108,7 +105,7 @@ abstract class MachineModel with _$MachineModel {
 
   // 운전중 판정은 서버 availability 기준. (#228: SmartThings operatingState 판정 제거)
   // AVAILABLE=미사용, RESERVED=예약, 그 외(UNAVAILABLE)=운전중.
-  // 남은 시간 카운트다운은 계속 SmartThings expectedCompletionTime 오버레이를 사용한다.
+  // 남은 시간 카운트다운은 서버가 내려주는 expectedCompletionTime을 그대로 사용한다.
   bool get isInUse =>
       !isUnavailable &&
       normalizedAvailability != 'AVAILABLE' &&

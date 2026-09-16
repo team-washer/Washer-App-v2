@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:washer/core/errors/app_exception.dart';
 import 'package:washer/core/enums/machine_state.dart';
 import 'package:washer/core/utils/date_time_formatter.dart';
 import 'package:washer/features/reservation/data/data_sources/remote/reservation_status_remote_data_source.dart';
@@ -14,6 +15,7 @@ import 'package:washer/features/reservation/data/data_sources/remote/reservation
 import 'package:washer/features/reservation/data/models/remote/cancel_reservation_response.dart';
 import 'package:washer/features/reservation/data/models/remote/confirm_reservation_response.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_action_provider.dart';
+import 'package:washer/features/reservation/presentation/providers/reservation_exceptions.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_penalty_provider.dart';
 
 class FakeReservationRemoteDataSource implements ReservationRemoteDataSource {
@@ -539,6 +541,62 @@ void main() {
       );
     });
 
+    test('#267: previous reservation failure is not rethrown on retry', () async {
+      final reservationDataSource = FakeReservationRemoteDataSource();
+      final container = ProviderContainer(
+        overrides: [
+          reservationRemoteDataSourceProvider.overrideWith(
+            (ref) => reservationDataSource,
+          ),
+          reservationPenaltyProvider.overrideWith(
+            FakeReservationPenaltyNotifier.new,
+          ),
+          homeRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeHomeRemoteDataSource(
+              machineStatusLoader: () async => const MachineStatusResponse(
+                machines: [
+                  MachineModel(
+                    machineId: 83,
+                    name: 'Washer-4F-L1',
+                    type: 'WASHER',
+                    status: 'NORMAL',
+                    availability: 'RESERVED',
+                    reservationId: 114,
+                  ),
+                ],
+                totalCount: 1,
+              ),
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final firstResult = await container
+          .read(reservationActionProvider.notifier)
+          .reserve(machineId: 83);
+
+      expect(firstResult, isNull);
+      expect(
+        container.read(reservationActionProvider).error,
+        isA<AlreadyReservedException>(),
+      );
+
+      await expectLater(
+        container
+            .read(reservationActionProvider.notifier)
+            .reserve(machineId: 83),
+        completion(isNull),
+      );
+    });
+
+    test('#267: AlreadyReservedException is mapped to user message', () {
+      expect(
+        AppException.from(const AlreadyReservedException()).message,
+        '이미 예약된 기기입니다.',
+      );
+    });
+
     test('#256: 첫 조회에서만 사용중으로 보이면 재확인 후 예약을 진행한다', () async {
       var callCount = 0;
       const reservedResponse = MachineStatusResponse(
@@ -637,10 +695,9 @@ void main() {
       expect(reservationDataSource.cancelledId, 114);
       expect(result, isFalse);
       expect(
-        reservationActionErrorMessage(
+        AppException.from(
           container.read(reservationActionProvider).error,
-          fallback: '예약 취소에 실패했습니다.',
-        ),
+        ).message,
         '예약 취소 시간이 지났습니다.',
       );
     });

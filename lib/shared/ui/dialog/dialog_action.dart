@@ -10,15 +10,15 @@ import 'package:washer/core/utils/app_logger.dart';
 /// 액션 고유 정보만 담는다. 액션 종류별 정의는 `DialogActions` 팩토리 한 곳에
 /// 모아 두고, 호출부는 그것을 [runDialogAction]에 넘기기만 한다.
 ///
-/// [run]·[failureMessage]는 위젯의 `ref`가 아니라 lifecycle과 무관한
-/// [ProviderContainer]를 받는다. 따라서 pop(=widget dispose) 이후 실행돼도
-/// "bad state" 오류가 나지 않으며, 호출부가 notifier를 미리 캡처할 필요도 없다.
+/// [run]은 위젯의 `ref`가 아니라 lifecycle과 무관한 [ProviderContainer]를
+/// 받는다. 따라서 pop(=widget dispose) 이후 실행돼도 "bad state" 오류가 나지
+/// 않으며, 호출부가 notifier를 미리 캡처할 필요도 없다.
 class DialogAction<R> {
   const DialogAction({
     required this.run,
     required this.isSuccess,
     required this.successMessage,
-    required this.failureMessage,
+    required this.fallbackMessage,
     required this.logName,
     this.failureError,
     this.showLoading = false,
@@ -27,7 +27,7 @@ class DialogAction<R> {
   final Future<R> Function(ProviderContainer container) run;
   final bool Function(R result) isSuccess;
   final String successMessage;
-  final String Function(ProviderContainer container) failureMessage;
+  final String fallbackMessage;
   final String logName;
   final Object? Function(ProviderContainer container)? failureError;
 
@@ -78,7 +78,7 @@ Future<void> runDialogAction<R>(
         messenger.showErrorSnackBar(failureError);
       } else {
         messenger.showSnackBar(
-          SnackBar(content: Text(action.failureMessage(container))),
+          SnackBar(content: Text(action.fallbackMessage)),
         );
       }
     }

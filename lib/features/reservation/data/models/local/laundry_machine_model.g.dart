@@ -23,7 +23,6 @@ _MachineModel _$MachineModelFromJson(Map<String, dynamic> json) =>
       userStudentId: json['userStudentId'] as String?,
       userName: json['userName'] as String?,
       roomNumber: json['roomNumber'] as String?,
-      smartThingsDeviceId: json['smartThingsDeviceId'] as String?,
     );
 
 Map<String, dynamic> _$MachineModelToJson(_MachineModel instance) =>
@@ -43,7 +42,6 @@ Map<String, dynamic> _$MachineModelToJson(_MachineModel instance) =>
       'userStudentId': instance.userStudentId,
       'userName': instance.userName,
       'roomNumber': instance.roomNumber,
-      'smartThingsDeviceId': instance.smartThingsDeviceId,
     };
 
 _MachineStatusResponse _$MachineStatusResponseFromJson(

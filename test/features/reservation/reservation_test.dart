@@ -852,5 +852,38 @@ void main() {
       expect(controller.isPolling, isFalse);
       expect(container.read(activeReservationProvider).value, isEmpty);
     });
+
+    // 리뷰 반영: 조회가 계속 실패하면(서버 장애 등) 무한히 polling하지 않고
+    // 연속 실패 횟수를 세어 안전하게 중단해야 한다.
+    test('활성 예약 조회가 연속으로 계속 실패하면 polling을 중단하고 오류를 알린다', () async {
+      final container = ProviderContainer(
+        overrides: [
+          homeRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeHomeRemoteDataSource(
+              machineStatusLoader: () async =>
+                  const MachineStatusResponse(machines: [], totalCount: 0),
+              activeReservationsLoader: () async {
+                throw Exception('네트워크 오류');
+              },
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final controller = container.read(reservationSyncControllerProvider);
+      controller.startPolling();
+      addTearDown(controller.stopPolling);
+
+      for (var i = 0; i < 4; i++) {
+        await controller.syncActiveReservation();
+        expect(controller.isPolling, isTrue);
+      }
+
+      await controller.syncActiveReservation();
+
+      expect(controller.isPolling, isFalse);
+      expect(container.read(pollingErrorProvider), '서버 상태가 지연되고 있습니다.');
+    });
   });
 }

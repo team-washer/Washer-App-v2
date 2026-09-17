@@ -2,8 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:washer/core/constants/durations.dart';
-import 'package:washer/core/enums/laundry_status.dart';
 import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/features/reservation/data/data_sources/remote/reservation_status_remote_data_source.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
@@ -21,23 +19,19 @@ class ReservationSyncController {
   ReservationSyncController(this._ref);
 
   static const Duration _pollingInterval = Duration(seconds: 10);
-  static const Duration _pollingDuration = reservationExpiryDuration;
-  static const Duration _finalSyncDelay = Duration(seconds: 1);
 
   final Ref _ref;
   Timer? _pollingTimer;
-  Timer? _expiryTimer;
 
+  bool get isPolling => _pollingTimer != null;
+
+  // 서버가 활성 예약을 반환하는 한 완료가 확정되지 않은 것이므로, 정상적으로 긴
+  // 세탁/건조 사이클이라도 시간 기반으로 polling을 조기 종료하지 않는다(#276).
   void startPolling() {
     stopPolling();
 
     _pollingTimer = Timer.periodic(_pollingInterval, (_) {
       unawaited(syncActiveReservation());
-    });
-
-    _expiryTimer = Timer(_pollingDuration + _finalSyncDelay, () {
-      stopPolling();
-      unawaited(syncActiveReservation(forceMachineRefresh: true));
     });
   }
 
@@ -70,11 +64,6 @@ class ReservationSyncController {
         return;
       }
 
-      final shouldKeepPolling = latest.any(_shouldKeepPolling);
-      if (!shouldKeepPolling) {
-        stopPolling();
-      }
-
       final hasChanged = !_sameReservations(current, latest);
 
       if (hasChanged) {
@@ -96,9 +85,7 @@ class ReservationSyncController {
 
   void stopPolling() {
     _pollingTimer?.cancel();
-    _expiryTimer?.cancel();
     _pollingTimer = null;
-    _expiryTimer = null;
   }
 
   void dispose() {
@@ -114,18 +101,5 @@ class ReservationSyncController {
     }
 
     return listEquals(current, latest);
-  }
-
-  bool _shouldKeepPolling(ActiveReservationModel reservation) {
-    if (reservation.laundryStatus == LaundryStatus.reserved) {
-      return true;
-    }
-
-    return reservation.laundryStatus == LaundryStatus.inUse &&
-        !_hasText(reservation.expectedCompletionTime);
-  }
-
-  bool _hasText(String? value) {
-    return value != null && value.trim().isNotEmpty;
   }
 }

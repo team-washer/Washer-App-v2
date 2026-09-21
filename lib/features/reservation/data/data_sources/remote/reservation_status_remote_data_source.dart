@@ -5,6 +5,7 @@ import 'package:washer/core/network/api_response_parser.dart';
 import 'package:washer/core/network/dio_client.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/data/models/local/machine_model.dart';
+import 'package:washer/features/reservation/data/models/remote/reservation_availability_response.dart';
 
 part 'reservation_status_remote_data_source.g.dart';
 
@@ -19,6 +20,9 @@ abstract class ReservationStatusRemoteDataSource {
   /// 내 활성 예약 한 건(`reservations/active`). polling 전용이다.
   /// 서버는 활성 예약이 없으면 `data`를 null로 내려주므로 null을 반환한다.
   Future<ActiveReservationModel?> getMyActiveReservation();
+
+  /// 내 예약 가능 여부와 패널티 만료 시각(`reservations/availability`).
+  Future<ReservationAvailabilityResponse> getReservationAvailability();
 }
 
 @RestApi()
@@ -34,6 +38,9 @@ abstract class ReservationStatusApiService {
 
   @GET('reservations/active')
   Future<HttpResponse<dynamic>> getMyActiveReservation();
+
+  @GET('reservations/availability')
+  Future<HttpResponse<dynamic>> getReservationAvailability();
 }
 
 /// 서버 응답 코드(204/404/451)를 빈 결과로 변환하는 구현체.
@@ -101,6 +108,16 @@ class ReservationStatusRemoteDataSourceImpl
 
     final data = extractNullableDataMap(castJsonMap(response.data));
     return data == null ? null : ActiveReservationModel.fromJson(data);
+  }
+
+  @override
+  Future<ReservationAvailabilityResponse> getReservationAvailability() async {
+    final response = await _api.getReservationAvailability();
+    final body = castJsonMap(response.data);
+    // 응답이 `{data: {...}}`로 감싸져 있든 본문 자체든 받을 수 있게 한다.
+    final data = body['data'] is Map ? castJsonMap(body['data']) : body;
+
+    return ReservationAvailabilityResponse.fromJson(data);
   }
 }
 

@@ -2,8 +2,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+/// 실행 환경(개발/운영).
 enum AppFlavor { development, production }
 
+/// `.env.*` 파일과 빌드 옵션(APP_ENV)에서 읽은 앱 환경 설정.
 class AppEnvironment {
   AppEnvironment._({
     required this.flavor,
@@ -25,6 +27,7 @@ class AppEnvironment {
 
   bool get isDevelopment => flavor == AppFlavor.development;
 
+  /// 환경 파일을 로드해 [instance]를 초기화한다. 앱 시작 시 한 번 호출해야 한다.
   static Future<void> initialize() async {
     final flavor = _resolveFlavor();
 
@@ -109,6 +112,7 @@ extension on AppFlavor {
   }
 }
 
+/// [AppEnvironment.instance]를 노출하는 provider.
 final appEnvironmentProvider = Provider<AppEnvironment>((_) {
   return AppEnvironment.instance;
 });

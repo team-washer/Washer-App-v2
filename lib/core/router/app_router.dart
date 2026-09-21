@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
 import 'package:washer/core/network/auth_notifier.dart';
 import 'package:washer/core/network/token_utils.dart';
-import 'package:washer/shared/ui/main_shell.dart';
+import 'package:washer/shared/ui/layout/main_shell.dart';
 import 'package:washer/features/alarm/presentation/screens/alarm_screen.dart';
 import 'package:washer/features/auth/presentation/screens/login_screen.dart';
 import 'package:washer/features/home/presentation/screens/home_screen.dart';
@@ -51,6 +51,7 @@ String? resolveAuthRedirect({
   return null;
 }
 
+/// 앱 전역 라우터. 인증 상태에 따라 로그인/스플래시로 리다이렉트한다.
 final appRouter = GoRouter(
   initialLocation: RoutePaths.splash,
   refreshListenable: authNotifier,

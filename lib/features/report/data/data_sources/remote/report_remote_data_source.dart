@@ -5,6 +5,7 @@ import 'package:washer/core/network/dio_client.dart';
 
 part 'report_remote_data_source.g.dart';
 
+/// 고장 신고 API를 추상화한 데이터 소스
 abstract class ReportRemoteDataSource {
   Future<void> createMalfunctionReport({
     required int machineId,
@@ -12,6 +13,7 @@ abstract class ReportRemoteDataSource {
   });
 }
 
+/// Retrofit이 구현을 생성하는 고장 신고 REST API 정의
 @RestApi()
 abstract class ReportApiService {
   factory ReportApiService(Dio dio, {String baseUrl}) = _ReportApiService;
@@ -22,6 +24,7 @@ abstract class ReportApiService {
   );
 }
 
+/// [ReportApiService]를 사용하는 [ReportRemoteDataSource] 구현체
 class ReportRemoteDataSourceImpl implements ReportRemoteDataSource {
   const ReportRemoteDataSourceImpl(this._api);
 

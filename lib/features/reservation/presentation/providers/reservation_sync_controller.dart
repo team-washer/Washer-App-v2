@@ -7,6 +7,7 @@ import 'package:washer/features/reservation/data/data_sources/remote/reservation
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
 
+/// [ReservationSyncController] provider. dispose 시 polling을 정리한다.
 final reservationSyncControllerProvider = Provider<ReservationSyncController>((
   ref,
 ) {
@@ -15,6 +16,7 @@ final reservationSyncControllerProvider = Provider<ReservationSyncController>((
   return controller;
 });
 
+/// 활성 예약을 주기적으로 조회(polling)해 예약/기기 상태 provider와 동기화한다.
 class ReservationSyncController {
   ReservationSyncController(this._ref);
 
@@ -33,6 +35,7 @@ class ReservationSyncController {
   // 서버가 활성 예약을 반환하는 한 완료가 확정되지 않은 것이므로, 정상적으로 긴
   // 세탁/건조 사이클이라도 시간 기반으로 polling을 조기 종료하지 않는다(#276).
   // 대신 조회 자체가 계속 실패하는 경우에는 아래 실패 카운터로 종료한다.
+  /// polling을 (재)시작한다. 이미 돌고 있으면 정지 후 실패 카운터를 초기화해 다시 시작한다.
   void startPolling() {
     stopPolling();
     _consecutiveFailures = 0;
@@ -42,6 +45,8 @@ class ReservationSyncController {
     });
   }
 
+  /// 활성 예약을 한 번 조회해 변경이 있을 때만 상태를 갱신한다.
+  /// 활성 예약이 없어지면 polling을 멈춘다. [forceMachineRefresh]는 변경이 없어도 기기 상태를 새로고침한다.
   Future<void> syncActiveReservation({
     bool forceMachineRefresh = false,
   }) async {
@@ -54,7 +59,7 @@ class ReservationSyncController {
           );
 
       final latest = await _ref
-          .read(homeRemoteDataSourceProvider)
+          .read(reservationStatusRemoteDataSourceProvider)
           .getActiveReservations();
       _consecutiveFailures = 0;
 
@@ -104,6 +109,7 @@ class ReservationSyncController {
     }
   }
 
+  /// polling 타이머를 정지한다.
   void stopPolling() {
     _pollingTimer?.cancel();
     _pollingTimer = null;

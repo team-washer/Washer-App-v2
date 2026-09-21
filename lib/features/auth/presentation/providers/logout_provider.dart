@@ -3,6 +3,7 @@ import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/core/network/auth_notifier.dart';
 import 'package:washer/features/auth/data/repositories/auth_repository.dart';
 
+/// 로그아웃 처리(서버 FCM 토큰/로컬 토큰 정리 후 세션 종료) Notifier
 class LogoutNotifier extends AsyncNotifier<void> {
   late final AuthRepository _authRepository;
 

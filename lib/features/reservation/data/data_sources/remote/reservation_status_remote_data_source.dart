@@ -4,18 +4,20 @@ import 'package:retrofit/retrofit.dart';
 import 'package:washer/core/network/api_response_parser.dart';
 import 'package:washer/core/network/dio_client.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
-import 'package:washer/features/reservation/data/models/local/laundry_machine_model.dart';
+import 'package:washer/features/reservation/data/models/local/machine_model.dart';
 
 part 'reservation_status_remote_data_source.g.dart';
 
-abstract class HomeRemoteDataSource {
+/// 기기 상태와 활성 예약 조회(GET)를 담당하는 원격 데이터소스.
+abstract class ReservationStatusRemoteDataSource {
   Future<MachineStatusResponse> getMachineStatus();
   Future<List<ActiveReservationModel>> getActiveReservations();
 }
 
 @RestApi()
-abstract class HomeApiService {
-  factory HomeApiService(Dio dio, {String baseUrl}) = _HomeApiService;
+abstract class ReservationStatusApiService {
+  factory ReservationStatusApiService(Dio dio, {String baseUrl}) =
+      _ReservationStatusApiService;
 
   @GET('machines/status')
   Future<HttpResponse<dynamic>> getMachineStatus();
@@ -24,10 +26,12 @@ abstract class HomeApiService {
   Future<HttpResponse<dynamic>> getActiveReservations();
 }
 
-class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
-  const HomeRemoteDataSourceImpl(this._api);
+/// 서버 응답 코드(204/404/451)를 빈 결과로 변환하는 구현체.
+class ReservationStatusRemoteDataSourceImpl
+    implements ReservationStatusRemoteDataSource {
+  const ReservationStatusRemoteDataSourceImpl(this._api);
 
-  final HomeApiService _api;
+  final ReservationStatusApiService _api;
 
   @override
   Future<MachineStatusResponse> getMachineStatus() async {
@@ -37,6 +41,7 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
 
       return MachineStatusResponse.fromJson(data);
     } on DioException catch (e) {
+      // 451: 서비스 이용 불가 상태이므로 빈 목록으로 대체한다.
       if (e.response?.statusCode == 451) {
         return const MachineStatusResponse(machines: [], totalCount: 0);
       }
@@ -72,7 +77,10 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
   }
 }
 
-final homeRemoteDataSourceProvider = Provider<HomeRemoteDataSource>((ref) {
-  final dio = ref.watch(dioProvider);
-  return HomeRemoteDataSourceImpl(HomeApiService(dio));
-});
+final reservationStatusRemoteDataSourceProvider =
+    Provider<ReservationStatusRemoteDataSource>((ref) {
+      final dio = ref.watch(dioProvider);
+      return ReservationStatusRemoteDataSourceImpl(
+        ReservationStatusApiService(dio),
+      );
+    });

@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/widgets/error_snack_bar.dart';
-import 'package:washer/shared/theme/color.dart';
-import 'package:washer/shared/theme/spacing.dart';
-import 'package:washer/shared/theme/typography.dart';
+import 'package:washer/shared/theme/washer_color.dart';
+import 'package:washer/shared/theme/app_spacing.dart';
+import 'package:washer/shared/theme/washer_typography.dart';
 import 'package:washer/shared/ui/dialog/washer_dialog.dart';
-import 'package:washer/shared/ui/reservation_state_widget.dart';
-import 'package:washer/core/utils/date_time_formatter.dart';
-import 'package:washer/features/history/data/models/machine_history_response.dart';
-import 'package:washer/features/history/presentation/models/history_status.dart';
 import 'package:washer/features/history/presentation/states/history_state.dart';
 import 'package:washer/features/history/presentation/providers/history_provider.dart';
+import 'package:washer/features/history/presentation/widgets/history_card.dart';
 
+/// 기기의 당일 사용 기록을 보여주는 다이얼로그
 class HistoryDialog extends ConsumerStatefulWidget {
   const HistoryDialog({
     super.key,
@@ -102,97 +100,12 @@ class _HistoryDialogState extends ConsumerState<HistoryDialog> {
         itemBuilder: (context, index) {
           final item = state.historyList[index];
 
-          return _HistoryCard(
+          return HistoryCard(
             machineName: widget.machineName,
             item: item,
           );
         },
       ),
-    );
-  }
-}
-
-class _HistoryCard extends StatelessWidget {
-  const _HistoryCard({
-    required this.machineName,
-    required this.item,
-  });
-
-  final String machineName;
-  final HistoryContent item;
-
-  @override
-  Widget build(BuildContext context) {
-    final status = HistoryStatusX.fromString(item.status);
-    final rawTime = status == HistoryStatus.cancelled
-        ? item.createdAt
-        : item.completionTime;
-    final timeValue = rawTime == null
-        ? '-'
-        : DateTimeFormatter.formatToShortWithTime(rawTime);
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: WasherColor.baseGray300),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  machineName,
-                  style: WasherTypography.body1(WasherColor.baseGray700),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              ReservationStateWidget(
-                label: status.label,
-                color: status.color,
-              ),
-            ],
-          ),
-          AppGap.v8,
-          Divider(color: WasherColor.baseGray300, height: 1),
-          AppGap.v8,
-          _buildInfoRow('예약 호실', '${item.userRoomNumber}호'),
-          AppGap.v8,
-          _buildInfoRow(
-            '예약 시간',
-            DateTimeFormatter.formatToShortWithTime(item.startTime),
-          ),
-          AppGap.v8,
-          _buildInfoRow(status.timeLabel, timeValue),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: WasherTypography.body2(WasherColor.baseGray600),
-        ),
-        AppGap.h8,
-        Expanded(
-          child: Text(
-            value,
-            style: WasherTypography.body2(WasherColor.baseGray500),
-            textAlign: TextAlign.right,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
     );
   }
 }

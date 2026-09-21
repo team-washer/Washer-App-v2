@@ -1,8 +1,10 @@
 ﻿import 'dart:convert';
 
+/// JWT 토큰의 payload(`exp`)를 읽어 만료 여부를 판단하는 유틸.
 class TokenUtils {
   const TokenUtils._();
 
+  /// 토큰이 [now] 기준으로 만료되었는지 반환한다. 만료 시각을 알 수 없으면 false.
   static bool isExpired(String token, {DateTime? now}) {
     final expiration = getExpiration(token);
     if (expiration == null) {
@@ -12,6 +14,7 @@ class TokenUtils {
     return !expiration.isAfter(now ?? DateTime.now());
   }
 
+  /// JWT payload의 `exp`(초 단위)를 로컬 [DateTime]으로 변환한다. 파싱 실패 시 null.
   static DateTime? getExpiration(String token) {
     final parts = token.split('.');
     if (parts.length != 3) {

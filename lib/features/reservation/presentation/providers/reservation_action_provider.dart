@@ -2,18 +2,21 @@ import 'dart:async';
 
 import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:washer/core/constants/durations.dart';
+import 'package:washer/core/constants/reservation_durations.dart';
 import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/core/utils/date_time_formatter.dart';
 import 'package:washer/features/reservation/data/data_sources/remote/reservation_remote_data_source.dart';
 import 'package:washer/features/reservation/data/data_sources/remote/reservation_status_remote_data_source.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
-import 'package:washer/features/reservation/data/models/local/laundry_machine_model.dart';
+import 'package:washer/features/reservation/data/models/local/machine_model.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_exceptions.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_penalty_provider.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_sync_controller.dart';
 
+/// 예약 생성/취소 요청을 실행하고 진행 상태(로딩/성공/실패)를 노출한다.
+///
+/// 상태 값은 마지막으로 생성된 예약이며, 실패는 [AsyncError]로 전달된다.
 class ReservationActionNotifier extends AsyncNotifier<ActiveReservationModel?> {
   /// 진행 중인 요청을 대상(기기/예약) 단위로 보관한다.
   /// 키 없이 단일 슬롯에 담으면 다른 대상의 요청에 합류해 그 결과가
@@ -24,6 +27,7 @@ class ReservationActionNotifier extends AsyncNotifier<ActiveReservationModel?> {
   @override
   Future<ActiveReservationModel?> build() async => null;
 
+  /// 기기 예약을 요청한다. 실패하면 상태를 에러로 두고 null을 반환한다.
   Future<ActiveReservationModel?> reserve({required int machineId}) {
     return _runSingleFlight(
       'reserve:$machineId',
@@ -88,6 +92,7 @@ class ReservationActionNotifier extends AsyncNotifier<ActiveReservationModel?> {
     }
   }
 
+  /// build() 완료를 최초 한 번만 기다린다.
   Future<void> _waitForInitialBuild() async {
     if (_didWaitForBuild) {
       return;
@@ -97,15 +102,17 @@ class ReservationActionNotifier extends AsyncNotifier<ActiveReservationModel?> {
     _didWaitForBuild = true;
   }
 
+  /// 서버에서 최신 기기 상태를 조회해 대상 기기를 찾는다.
   Future<MachineModel?> _findMachine(int machineId) async {
     final latestStatus = await ref
-        .read(homeRemoteDataSourceProvider)
+        .read(reservationStatusRemoteDataSourceProvider)
         .getMachineStatus();
     return latestStatus.machines.firstWhereOrNull(
       (machine) => machine.machineId == machineId,
     );
   }
 
+  /// 예약을 취소한다. 성공 여부를 반환하며, 패널티가 부과되면 만료시각을 기록한다.
   Future<bool> cancel({required int reservationId}) {
     return _runSingleFlight(
       'cancel:$reservationId',
@@ -149,6 +156,7 @@ class ReservationActionNotifier extends AsyncNotifier<ActiveReservationModel?> {
     }
   }
 
+  /// 상태를 초기화하고 활성 예약 polling을 멈춘다.
   void reset() {
     state = const AsyncData(null);
     ref.read(reservationSyncControllerProvider).stopPolling();
@@ -179,6 +187,7 @@ class ReservationActionNotifier extends AsyncNotifier<ActiveReservationModel?> {
   }
 }
 
+/// 예약 생성/취소 액션 provider.
 final reservationActionProvider =
     AsyncNotifierProvider<ReservationActionNotifier, ActiveReservationModel?>(
       ReservationActionNotifier.new,

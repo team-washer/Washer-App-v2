@@ -2,6 +2,7 @@
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+/// 서버가 내려주는 알림 종류. JSON 값과 1:1로 대응한다.
 enum AlarmType {
   @JsonValue('COMPLETION')
   COMPLETION,

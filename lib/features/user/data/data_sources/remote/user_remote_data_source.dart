@@ -7,11 +7,13 @@ import 'package:washer/features/user/data/models/my_user_model.dart';
 
 part 'user_remote_data_source.g.dart';
 
+/// 사용자 API를 추상화한 데이터 소스 (내 정보 조회, 회원 탈퇴)
 abstract class UserRemoteDataSource {
   Future<MyUserModel?> getMyUser();
   Future<void> withdraw();
 }
 
+/// Retrofit이 구현을 생성하는 사용자 REST API 정의
 @RestApi()
 abstract class UserApiService {
   factory UserApiService(Dio dio, {String baseUrl}) = _UserApiService;
@@ -23,12 +25,14 @@ abstract class UserApiService {
   Future<HttpResponse<dynamic>> withdraw();
 }
 
+/// [UserApiService]를 사용하는 [UserRemoteDataSource] 구현체
 class UserRemoteDataSourceImpl implements UserRemoteDataSource {
   const UserRemoteDataSourceImpl(this._api);
 
   final UserApiService _api;
 
   @override
+  /// 내 정보를 조회한다. 응답이 비었거나 404이면 null을 반환한다.
   Future<MyUserModel?> getMyUser() async {
     try {
       final response = await _api.getMyUser();

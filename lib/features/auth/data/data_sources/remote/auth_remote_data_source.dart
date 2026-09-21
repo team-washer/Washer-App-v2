@@ -9,12 +9,14 @@ import 'package:washer/features/auth/data/models/response/login_response.dart';
 
 part 'auth_remote_data_source.g.dart';
 
+/// 인증 서버 API 호출 계약
 abstract class AuthRemoteDataSource {
   Future<LoginResponse> login(LoginRequest request);
   Future<LoginResponse> refresh(RefreshRequest request);
 }
 
 @RestApi()
+/// retrofit 기반 인증 API 정의
 abstract class AuthApiService {
   factory AuthApiService(Dio dio, {String baseUrl}) = _AuthApiService;
 

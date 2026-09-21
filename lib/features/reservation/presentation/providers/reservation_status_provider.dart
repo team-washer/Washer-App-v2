@@ -2,12 +2,14 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/data/models/local/machine_model.dart';
 import 'package:washer/features/reservation/data/data_sources/remote/reservation_status_remote_data_source.dart';
+import 'package:washer/features/reservation/presentation/providers/my_reservation_update.dart';
 
 /// 1초마다 현재 시각을 내보내는 시계. 카운트다운 UI가 구독한다.
 final clockProvider = StreamProvider<DateTime>((ref) {
@@ -138,18 +140,51 @@ final activeReservationProvider =
     );
 
 /// 활성 예약 목록을 불러오고 새로고침한다.
+///
+/// 이 목록은 호실 목록 요청(`reservations/active/room`)과 polling(내 활성 예약)이
+/// 함께 갱신한다. 두 요청의 응답이 도착하는 순서는 보장되지 않으므로, 요청을 시작할 때마다
+/// 순번(요청 id)을 부여하고 **늦게 시작한 요청의 결과가 오래된 결과를 이기게** 한다.
+///
+/// - 호실 스냅샷: 이미 반영된 것보다 먼저 시작한 요청의 응답은 버린다.
+/// - 내 예약(polling): 이미 반영된 것보다 먼저 시작한 응답은 버린다. 호실 목록 응답을
+///   기다리는 중이면 결과만 기록해 두고, 스냅샷이 도착할 때 그 위에 겹쳐 쓴다.
 class ActiveReservationNotifier
     extends AsyncNotifier<List<ActiveReservationModel>> {
   bool _hasFetched = false;
 
+  /// 요청을 시작한 순서. [beginRequest]가 부를 때마다 1씩 증가한다.
+  int _requestSeq = 0;
+
+  /// 지금까지 반영한 호실 스냅샷 중 가장 늦게 시작한 요청의 id.
+  int _appliedRoomRequestId = 0;
+
+  /// 지금까지 반영한 내 예약(polling) 결과 중 가장 늦게 시작한 요청의 id.
+  int _appliedMineRequestId = 0;
+
+  /// 아직 응답이 오지 않은 호실 목록 요청 수.
+  int _roomRequestsInFlight = 0;
+
+  /// 가장 최근에 반영한 내 예약(polling) 결과. 호실 스냅샷 위에 겹쳐 쓰는 데 쓴다.
+  MyReservationUpdate? _latestMyUpdate;
+
+  /// 마지막으로 반영한 호실 목록.
+  List<ActiveReservationModel> _latestList = const [];
+
+  /// 요청을 시작할 때 부른다. 시작 순서를 나타내는 요청 id를 돌려준다.
+  int beginRequest() => ++_requestSeq;
+
   @override
   Future<List<ActiveReservationModel>> build() async {
     ref.keepAlive();
+    final requestId = beginRequest();
+    _roomRequestsInFlight += 1;
     try {
       _hasFetched = true;
-      return await ref
+      final snapshot = await ref
           .read(reservationStatusRemoteDataSourceProvider)
           .getActiveReservations();
+      // 더 늦게 시작한 새로고침이 먼저 반영됐다면 그 목록을 유지한다.
+      return _resolveRoomSnapshot(requestId, snapshot) ?? _latestList;
     } on DioException catch (e, st) {
       AppLogger.error(
         '활성 예약을 불러오는 중 오류가 발생했습니다.',
@@ -162,6 +197,8 @@ class ActiveReservationNotifier
         ref.read(pollingErrorProvider.notifier).state = message;
       }
       rethrow;
+    } finally {
+      _roomRequestsInFlight -= 1;
     }
   }
 
@@ -177,12 +214,17 @@ class ActiveReservationNotifier
 
   Future<void> refresh() async {
     state = const AsyncLoading();
+    final requestId = beginRequest();
+    _roomRequestsInFlight += 1;
     try {
       _hasFetched = true;
-      final reservations = await ref
+      final snapshot = await ref
           .read(reservationStatusRemoteDataSourceProvider)
           .getActiveReservations();
-      state = AsyncData(reservations);
+      final resolved = _resolveRoomSnapshot(requestId, snapshot);
+      if (resolved != null) {
+        state = AsyncData(resolved);
+      }
     } on DioException catch (e, st) {
       AppLogger.error(
         '활성 예약을 새로고침하는 중 오류가 발생했습니다.',
@@ -194,7 +236,7 @@ class ActiveReservationNotifier
       if (message != null) {
         ref.read(pollingErrorProvider.notifier).state = message;
       }
-      state = AsyncError(e, st);
+      _setErrorIfLatest(requestId, e, st);
     } catch (e, st) {
       AppLogger.error(
         '활성 예약을 새로고침하는 중 오류가 발생했습니다.',
@@ -202,13 +244,65 @@ class ActiveReservationNotifier
         error: e,
         stackTrace: st,
       );
-      state = AsyncError(e, st);
+      _setErrorIfLatest(requestId, e, st);
+    } finally {
+      _roomRequestsInFlight -= 1;
     }
   }
 
-  /// 조회 없이 상태를 직접 갱신한다(polling 결과 반영용).
-  void setReservations(List<ActiveReservationModel> reservations) {
-    _hasFetched = true;
-    state = AsyncData(reservations);
+  /// polling으로 확인한 내 활성 예약 결과를 호실 목록에 반영한다.
+  ///
+  /// 이미 반영된 더 최근 결과(내 예약 polling 또는 호실 스냅샷)보다 먼저 시작한 요청의
+  /// 응답이면 버리고 `isStale`을 true로 돌려준다.
+  MyReservationApplyResult applyMyReservation(MyReservationUpdate update) {
+    if (update.requestId < _appliedMineRequestId ||
+        update.requestId < _appliedRoomRequestId) {
+      return const MyReservationApplyResult(isStale: true, hasChanged: false);
+    }
+    _appliedMineRequestId = update.requestId;
+    _latestMyUpdate = update;
+
+    // 호실 목록 응답을 기다리는 중이면 지금 목록은 곧 교체된다. 결과만 기록해 두고
+    // 스냅샷이 도착할 때 그 위에 겹쳐 쓴다. 변경 여부는 알 수 없으므로 changed로 본다.
+    if (_roomRequestsInFlight > 0) {
+      return const MyReservationApplyResult(isStale: false, hasChanged: true);
+    }
+
+    final merged = update.applyTo(_latestList);
+    final hasChanged = !listEquals(_latestList, merged);
+    if (hasChanged) {
+      _hasFetched = true;
+      _latestList = merged;
+      state = AsyncData(merged);
+    }
+    return MyReservationApplyResult(isStale: false, hasChanged: hasChanged);
+  }
+
+  /// 호실 스냅샷을 반영할 목록으로 정리한다. 더 늦게 시작한 스냅샷이 이미 반영됐다면 null.
+  ///
+  /// 이 스냅샷보다 늦게 시작한 내 예약(polling) 결과가 있으면, 스냅샷이 그 이전 시점의
+  /// 서버 상태이므로 내 예약만 그 결과로 다시 겹쳐 쓴다.
+  List<ActiveReservationModel>? _resolveRoomSnapshot(
+    int requestId,
+    List<ActiveReservationModel> snapshot,
+  ) {
+    if (requestId < _appliedRoomRequestId) {
+      return null;
+    }
+    _appliedRoomRequestId = requestId;
+
+    final update = _latestMyUpdate;
+    final resolved = update != null && update.requestId > requestId
+        ? update.applyTo(snapshot)
+        : snapshot;
+    _latestList = resolved;
+    return resolved;
+  }
+
+  /// 더 늦게 시작한 호실 요청이 이미 반영됐다면, 이 오래된 요청의 오류는 무시한다.
+  void _setErrorIfLatest(int requestId, Object error, StackTrace stackTrace) {
+    if (requestId >= _appliedRoomRequestId) {
+      state = AsyncError(error, stackTrace);
+    }
   }
 }

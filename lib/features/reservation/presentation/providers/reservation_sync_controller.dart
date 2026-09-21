@@ -1,10 +1,9 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/features/reservation/data/data_sources/remote/reservation_status_remote_data_source.dart';
-import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
+import 'package:washer/features/reservation/presentation/providers/my_reservation_update.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
 
 /// [ReservationSyncController] provider. dispose 시 polling을 정리한다.
@@ -22,6 +21,9 @@ final reservationSyncControllerProvider = Provider<ReservationSyncController>((
 /// 호실 전체 목록(`reservations/active/room`)은 홈 최초 진입 시에만 불러오므로,
 /// polling에서는 내 예약 한 건만 조회하고 그 결과를 이미 불러온 호실 목록에
 /// 반영(교체/제거)한다.
+///
+/// 요청은 시작할 때마다 순번(요청 id)을 받는다. 응답이 뒤바뀌어 도착하거나 호실 목록
+/// 요청과 겹쳐도, 늦게 시작한 요청의 결과가 이기고 오래된 응답은 버려진다.
 class ReservationSyncController {
   ReservationSyncController(this._ref);
 
@@ -64,20 +66,27 @@ class ReservationSyncController {
     bool forceMachineRefresh = false,
   }) async {
     try {
-      final current = _ref
-          .read(activeReservationProvider)
-          .maybeWhen(
-            data: (value) => value,
-            orElse: () => const <ActiveReservationModel>[],
-          );
+      final activeReservations = _ref.read(activeReservationProvider.notifier);
+      // 요청을 시작한 순서를 기록한다. 응답 도착 순서와 무관하게 늦게 시작한 요청이 이긴다.
+      final requestId = activeReservations.beginRequest();
 
       final mine = await _ref
           .read(reservationStatusRemoteDataSourceProvider)
           .getMyActiveReservation();
       _consecutiveFailures = 0;
 
-      final merged = _applyMyReservation(current, mine);
-      final hasChanged = !_sameReservations(current, merged);
+      final result = activeReservations.applyMyReservation(
+        MyReservationUpdate(
+          requestId: requestId,
+          mine: mine,
+          trackedId: _trackedReservationId,
+        ),
+      );
+      // 더 최근에 시작한 요청의 결과가 이미 반영됐다. 이 응답은 버리고, 종료 판단에도
+      // 쓰지 않는다(오래된 null이 최신 상태를 되돌리거나 polling을 끊으면 안 된다).
+      if (result.isStale) {
+        return;
+      }
 
       if (mine == null) {
         // 서버가 내 활성 예약이 없다고 확정했으므로(완료/취소) polling을 끝낸다.
@@ -85,12 +94,8 @@ class ReservationSyncController {
         _trackedReservationId = null;
         stopPolling();
 
-        if (hasChanged) {
-          _ref.read(activeReservationProvider.notifier).setReservations(merged);
-        }
-
         // 예약이 끝나면 점유하던 기기 상태도 바뀌므로 함께 갱신한다.
-        if (hasChanged || wasTracking || forceMachineRefresh) {
+        if (result.hasChanged || wasTracking || forceMachineRefresh) {
           await _ref.read(machineStatusProvider.notifier).refresh();
         }
         return;
@@ -98,11 +103,7 @@ class ReservationSyncController {
 
       _trackedReservationId = mine.id;
 
-      if (hasChanged) {
-        _ref.read(activeReservationProvider.notifier).setReservations(merged);
-      }
-
-      if (hasChanged || forceMachineRefresh) {
+      if (result.hasChanged || forceMachineRefresh) {
         await _ref.read(machineStatusProvider.notifier).refresh();
       }
     } catch (error, stackTrace) {
@@ -135,39 +136,5 @@ class ReservationSyncController {
 
   void dispose() {
     stopPolling();
-  }
-
-  /// 호실 목록 [current]에 내 예약 조회 결과 [mine]을 반영한다.
-  /// [mine]이 있으면 같은 예약을 교체(없으면 추가)하고, null이면 내 예약을 제거한다.
-  /// 룸메이트 등 다른 사람의 예약은 그대로 둔다.
-  List<ActiveReservationModel> _applyMyReservation(
-    List<ActiveReservationModel> current,
-    ActiveReservationModel? mine,
-  ) {
-    final targetId = mine?.id ?? _trackedReservationId;
-    final index = current.indexWhere((item) => item.id == targetId);
-
-    if (mine == null) {
-      if (index < 0) {
-        return current;
-      }
-      return [...current]..removeAt(index);
-    }
-
-    if (index < 0) {
-      return [...current, mine];
-    }
-    return [...current]..[index] = mine;
-  }
-
-  bool _sameReservations(
-    List<ActiveReservationModel> current,
-    List<ActiveReservationModel> latest,
-  ) {
-    if (current.length != latest.length) {
-      return false;
-    }
-
-    return listEquals(current, latest);
   }
 }

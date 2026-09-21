@@ -16,7 +16,12 @@ final reservationSyncControllerProvider = Provider<ReservationSyncController>((
   return controller;
 });
 
-/// 활성 예약을 주기적으로 조회(polling)해 예약/기기 상태 provider와 동기화한다.
+/// 내 활성 예약(`reservations/active`)을 주기적으로 조회(polling)해
+/// 예약/기기 상태 provider와 동기화한다.
+///
+/// 호실 전체 목록(`reservations/active/room`)은 홈 최초 진입 시에만 불러오므로,
+/// polling에서는 내 예약 한 건만 조회하고 그 결과를 이미 불러온 호실 목록에
+/// 반영(교체/제거)한다.
 class ReservationSyncController {
   ReservationSyncController(this._ref);
 
@@ -30,23 +35,31 @@ class ReservationSyncController {
   Timer? _pollingTimer;
   int _consecutiveFailures = 0;
 
+  /// 호실 목록에서 "내 예약"을 가리키는 예약 ID.
+  /// 서버가 내 예약이 없다고(null) 응답할 때 목록에서 무엇을 지울지 알기 위해 보관한다.
+  int? _trackedReservationId;
+
   bool get isPolling => _pollingTimer != null;
 
-  // 서버가 활성 예약을 반환하는 한 완료가 확정되지 않은 것이므로, 정상적으로 긴
-  // 세탁/건조 사이클이라도 시간 기반으로 polling을 조기 종료하지 않는다(#276).
-  // 대신 조회 자체가 계속 실패하는 경우에는 아래 실패 카운터로 종료한다.
   /// polling을 (재)시작한다. 이미 돌고 있으면 정지 후 실패 카운터를 초기화해 다시 시작한다.
-  void startPolling() {
+  ///
+  /// 서버가 내 활성 예약을 반환하는 한 완료가 확정되지 않은 것이므로, 정상적으로 긴
+  /// 세탁/건조 사이클이라도 시간 기반으로 polling을 조기 종료하지 않는다(#276).
+  /// 대신 조회 자체가 계속 실패하는 경우에는 실패 카운터로 종료한다.
+  /// [reservationId]는 방금 생성한 내 예약의 ID다.
+  void startPolling({int? reservationId}) {
     stopPolling();
     _consecutiveFailures = 0;
+    _trackedReservationId = reservationId ?? _trackedReservationId;
 
     _pollingTimer = Timer.periodic(_pollingInterval, (_) {
       unawaited(syncActiveReservation());
     });
   }
 
-  /// 활성 예약을 한 번 조회해 변경이 있을 때만 상태를 갱신한다.
-  /// 활성 예약이 없어지면 polling을 멈춘다. [forceMachineRefresh]는 변경이 없어도 기기 상태를 새로고침한다.
+  /// 내 활성 예약을 한 번 조회해 변경이 있을 때만 상태를 갱신한다.
+  /// 내 활성 예약이 없어지면(서버가 null 응답) 목록에서 제거하고 polling을 멈춘다.
+  /// [forceMachineRefresh]는 변경이 없어도 기기 상태를 새로고침한다.
   Future<void> syncActiveReservation({
     bool forceMachineRefresh = false,
   }) async {
@@ -58,30 +71,35 @@ class ReservationSyncController {
             orElse: () => const <ActiveReservationModel>[],
           );
 
-      final latest = await _ref
+      final mine = await _ref
           .read(reservationStatusRemoteDataSourceProvider)
-          .getActiveReservations();
+          .getMyActiveReservation();
       _consecutiveFailures = 0;
 
-      if (latest.isEmpty) {
+      final merged = _applyMyReservation(current, mine);
+      final hasChanged = !_sameReservations(current, merged);
+
+      if (mine == null) {
+        // 서버가 내 활성 예약이 없다고 확정했으므로(완료/취소) polling을 끝낸다.
+        final wasTracking = _trackedReservationId != null;
+        _trackedReservationId = null;
         stopPolling();
 
-        if (current.isNotEmpty) {
-          _ref
-              .read(activeReservationProvider.notifier)
-              .setReservations(const <ActiveReservationModel>[]);
+        if (hasChanged) {
+          _ref.read(activeReservationProvider.notifier).setReservations(merged);
         }
 
-        if (current.isNotEmpty || forceMachineRefresh) {
+        // 예약이 끝나면 점유하던 기기 상태도 바뀌므로 함께 갱신한다.
+        if (hasChanged || wasTracking || forceMachineRefresh) {
           await _ref.read(machineStatusProvider.notifier).refresh();
         }
         return;
       }
 
-      final hasChanged = !_sameReservations(current, latest);
+      _trackedReservationId = mine.id;
 
       if (hasChanged) {
-        _ref.read(activeReservationProvider.notifier).setReservations(latest);
+        _ref.read(activeReservationProvider.notifier).setReservations(merged);
       }
 
       if (hasChanged || forceMachineRefresh) {
@@ -117,6 +135,29 @@ class ReservationSyncController {
 
   void dispose() {
     stopPolling();
+  }
+
+  /// 호실 목록 [current]에 내 예약 조회 결과 [mine]을 반영한다.
+  /// [mine]이 있으면 같은 예약을 교체(없으면 추가)하고, null이면 내 예약을 제거한다.
+  /// 룸메이트 등 다른 사람의 예약은 그대로 둔다.
+  List<ActiveReservationModel> _applyMyReservation(
+    List<ActiveReservationModel> current,
+    ActiveReservationModel? mine,
+  ) {
+    final targetId = mine?.id ?? _trackedReservationId;
+    final index = current.indexWhere((item) => item.id == targetId);
+
+    if (mine == null) {
+      if (index < 0) {
+        return current;
+      }
+      return [...current]..removeAt(index);
+    }
+
+    if (index < 0) {
+      return [...current, mine];
+    }
+    return [...current]..[index] = mine;
   }
 
   bool _sameReservations(

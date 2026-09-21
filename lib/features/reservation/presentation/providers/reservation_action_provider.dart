@@ -78,7 +78,9 @@ class ReservationActionNotifier extends AsyncNotifier<ActiveReservationModel?> {
       await refreshReservationStatusProviders(ref);
 
       state = AsyncData(createdReservation);
-      ref.read(reservationSyncControllerProvider).startPolling();
+      ref
+          .read(reservationSyncControllerProvider)
+          .startPolling(reservationId: createdReservation.id);
       return createdReservation;
     } catch (error, stackTrace) {
       AppLogger.error(

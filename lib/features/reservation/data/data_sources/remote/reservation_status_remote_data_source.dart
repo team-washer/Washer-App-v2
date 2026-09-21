@@ -11,7 +11,14 @@ part 'reservation_status_remote_data_source.g.dart';
 /// 기기 상태와 활성 예약 조회(GET)를 담당하는 원격 데이터소스.
 abstract class ReservationStatusRemoteDataSource {
   Future<MachineStatusResponse> getMachineStatus();
+
+  /// 내 호실의 활성 예약 목록(`reservations/active/room`).
+  /// 홈 최초 진입 시 한 번 불러온다. 없으면 빈 목록이다.
   Future<List<ActiveReservationModel>> getActiveReservations();
+
+  /// 내 활성 예약 한 건(`reservations/active`). polling 전용이다.
+  /// 서버는 활성 예약이 없으면 `data`를 null로 내려주므로 null을 반환한다.
+  Future<ActiveReservationModel?> getMyActiveReservation();
 }
 
 @RestApi()
@@ -24,6 +31,9 @@ abstract class ReservationStatusApiService {
 
   @GET('reservations/active/room')
   Future<HttpResponse<dynamic>> getActiveReservations();
+
+  @GET('reservations/active')
+  Future<HttpResponse<dynamic>> getMyActiveReservation();
 }
 
 /// 서버 응답 코드(204/404/451)를 빈 결과로 변환하는 구현체.
@@ -57,9 +67,13 @@ class ReservationStatusRemoteDataSourceImpl
         return const [];
       }
 
-      final responseMap = castJsonMap(response.data);
-      final data = extractDataMap(responseMap);
-      final reservations = data['reservations'];
+      // 서버가 `data`를 `{reservations: [...]}` 또는 배열 그대로 내려줘도 모두 받는다.
+      final data = castJsonMap(response.data)['data'];
+      final Object? reservations = switch (data) {
+        List() => data,
+        Map() => data['reservations'],
+        _ => null,
+      };
       if (reservations is! List || reservations.isEmpty) {
         return const [];
       }
@@ -74,6 +88,19 @@ class ReservationStatusRemoteDataSourceImpl
       }
       rethrow;
     }
+  }
+
+  @override
+  Future<ActiveReservationModel?> getMyActiveReservation() async {
+    final response = await _api.getMyActiveReservation();
+    // 활성 예약이 없으면 서버가 data를 null로 내려준다(204/빈 본문도 없음으로 본다).
+    // 404 등 오류 응답은 "없음"이 아니라 조회 실패이므로 그대로 던진다.
+    if (response.response.statusCode == 204 || response.data == null) {
+      return null;
+    }
+
+    final data = extractNullableDataMap(castJsonMap(response.data));
+    return data == null ? null : ActiveReservationModel.fromJson(data);
   }
 }
 

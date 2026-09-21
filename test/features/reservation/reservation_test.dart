@@ -121,15 +121,22 @@ class FakeReservationStatusRemoteDataSource
   FakeReservationStatusRemoteDataSource({
     required this.machineStatusLoader,
     this.activeReservationsLoader,
+    this.myActiveReservationLoader,
   });
 
   final Future<MachineStatusResponse> Function() machineStatusLoader;
   final Future<List<ActiveReservationModel>> Function()?
   activeReservationsLoader;
+  final Future<ActiveReservationModel?> Function()? myActiveReservationLoader;
 
   @override
   Future<List<ActiveReservationModel>> getActiveReservations() {
     return activeReservationsLoader?.call() ?? Future.value(const []);
+  }
+
+  @override
+  Future<ActiveReservationModel?> getMyActiveReservation() {
+    return myActiveReservationLoader?.call() ?? Future.value(null);
   }
 
   @override
@@ -809,12 +816,15 @@ void main() {
             (ref) => FakeReservationStatusRemoteDataSource(
               machineStatusLoader: () async =>
                   const MachineStatusResponse(machines: [], totalCount: 0),
-              activeReservationsLoader: () async => const [runningReservation],
+              myActiveReservationLoader: () async => runningReservation,
             ),
           ),
         ],
       );
       addTearDown(container.dispose);
+
+      // 호실 목록의 첫 조회(build)를 먼저 소비시켜, polling 결과가 덮이지 않게 한다.
+      await container.read(activeReservationProvider.future);
 
       final controller = container.read(reservationSyncControllerProvider);
       controller.startPolling();
@@ -828,18 +838,19 @@ void main() {
       ]);
     });
 
-    test('서버가 활성 예약을 더 이상 반환하지 않으면 polling을 멈추고 홈 예약을 제거한다', () async {
-      var callCount = 0;
+    test('서버가 내 활성 예약을 null로 응답하면 polling을 멈추고 홈 예약을 제거한다', () async {
+      var pollCount = 0;
       final container = ProviderContainer(
         overrides: [
           reservationStatusRemoteDataSourceProvider.overrideWith(
             (ref) => FakeReservationStatusRemoteDataSource(
               machineStatusLoader: () async =>
                   const MachineStatusResponse(machines: [], totalCount: 0),
-              activeReservationsLoader: () async {
-                callCount += 1;
-                // 1번째 호출은 activeReservationProvider.build()가 소비한다.
-                return callCount <= 2 ? const [runningReservation] : const [];
+              // 호실 목록은 홈 최초 진입 시 한 번만 불러온다.
+              activeReservationsLoader: () async => const [runningReservation],
+              myActiveReservationLoader: () async {
+                pollCount += 1;
+                return pollCount <= 1 ? runningReservation : null;
               },
             ),
           ),
@@ -847,20 +858,60 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      // build()의 첫 조회(1번째 호출)를 먼저 소비시켜, 이후 호출 순서를 고정한다.
       await container.read(activeReservationProvider.future);
 
       final controller = container.read(reservationSyncControllerProvider);
-      controller.startPolling();
+      controller.startPolling(reservationId: runningReservation.id);
       addTearDown(controller.stopPolling);
 
-      await controller.syncActiveReservation(); // 2번째 호출: 여전히 RUNNING
+      await controller.syncActiveReservation(); // 1번째 조회: 여전히 RUNNING
       expect(controller.isPolling, isTrue);
 
-      await controller.syncActiveReservation(); // 3번째 호출: 활성 예약 없음
+      await controller.syncActiveReservation(); // 2번째 조회: 활성 예약 없음(null)
 
       expect(controller.isPolling, isFalse);
       expect(container.read(activeReservationProvider).value, isEmpty);
+    });
+
+    test('내 예약이 끝나도 룸메이트의 활성 예약은 목록에 남긴다', () async {
+      const roommateReservation = ActiveReservationModel(
+        id: 200,
+        userId: 16,
+        userName: '룸메이트',
+        userRoomNumber: '420',
+        machineId: 90,
+        machineName: 'Dryer-4F-R1',
+        status: 'RUNNING',
+      );
+      final container = ProviderContainer(
+        overrides: [
+          reservationStatusRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeReservationStatusRemoteDataSource(
+              machineStatusLoader: () async =>
+                  const MachineStatusResponse(machines: [], totalCount: 0),
+              activeReservationsLoader: () async => const [
+                runningReservation,
+                roommateReservation,
+              ],
+              myActiveReservationLoader: () async => null,
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(activeReservationProvider.future);
+
+      final controller = container.read(reservationSyncControllerProvider);
+      controller.startPolling(reservationId: runningReservation.id);
+      addTearDown(controller.stopPolling);
+
+      await controller.syncActiveReservation();
+
+      expect(controller.isPolling, isFalse);
+      expect(container.read(activeReservationProvider).value, const [
+        roommateReservation,
+      ]);
     });
 
     // 리뷰 반영: 조회가 계속 실패하면(서버 장애 등) 무한히 polling하지 않고
@@ -872,7 +923,7 @@ void main() {
             (ref) => FakeReservationStatusRemoteDataSource(
               machineStatusLoader: () async =>
                   const MachineStatusResponse(machines: [], totalCount: 0),
-              activeReservationsLoader: () async {
+              myActiveReservationLoader: () async {
                 throw Exception('네트워크 오류');
               },
             ),

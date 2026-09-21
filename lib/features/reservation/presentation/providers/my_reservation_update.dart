@@ -10,6 +10,7 @@ class MyReservationUpdate {
     required this.requestId,
     required this.mine,
     required this.trackedId,
+    this.userId,
   });
 
   /// 요청을 시작한 순서. 클수록 나중에 시작한 요청이다.
@@ -21,27 +22,48 @@ class MyReservationUpdate {
   /// [mine]이 null일 때 목록에서 지울 내 예약 ID.
   final int? trackedId;
 
+  /// 내 사용자 ID. 예약 ID를 모를 때도 목록에서 내 예약을 찾는 데 쓴다.
+  ///
+  /// 개인은 활성 예약을 1개만 가질 수 있으므로, 같은 사용자의 항목은 모두 "내 예약"이다.
+  final int? userId;
+
   /// 호실 목록 [reservations]에 이 결과를 반영한 새 목록을 반환한다.
   ///
-  /// [mine]이 있으면 같은 예약을 교체(없으면 추가)하고, null이면 내 예약을 제거한다.
+  /// [mine]이 있으면 내 예약을 교체(없으면 추가)하고, null이면 내 예약을 제거한다.
   /// 룸메이트 등 다른 사람의 예약은 그대로 둔다.
   List<ActiveReservationModel> applyTo(
     List<ActiveReservationModel> reservations,
   ) {
     final targetId = mine?.id ?? trackedId;
-    final index = reservations.indexWhere((item) => item.id == targetId);
+    final ownerId = mine?.userId ?? userId;
+    bool isMine(ActiveReservationModel item) =>
+        (targetId != null && item.id == targetId) ||
+        (ownerId != null && item.userId == ownerId);
+
+    final firstIndex = reservations.indexWhere(isMine);
 
     if (mine == null) {
-      if (index < 0) {
+      if (firstIndex < 0) {
         return reservations;
       }
-      return [...reservations]..removeAt(index);
+      return reservations.where((item) => !isMine(item)).toList();
     }
 
-    if (index < 0) {
+    if (firstIndex < 0) {
       return [...reservations, mine!];
     }
-    return [...reservations]..[index] = mine!;
+
+    // 첫 번째 항목을 최신 값으로 교체하고, 같은 사용자의 오래된 중복 항목은 지운다.
+    final result = <ActiveReservationModel>[];
+    for (var i = 0; i < reservations.length; i++) {
+      final item = reservations[i];
+      if (i == firstIndex) {
+        result.add(mine!);
+      } else if (!isMine(item)) {
+        result.add(item);
+      }
+    }
+    return result;
   }
 }
 

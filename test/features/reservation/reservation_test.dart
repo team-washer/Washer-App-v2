@@ -855,14 +855,18 @@ void main() {
 
     test('서버가 내 활성 예약을 null로 응답하면 polling을 멈추고 홈 예약을 제거한다', () async {
       var pollCount = 0;
+      var roomCount = 0;
       final container = ProviderContainer(
         overrides: [
           reservationStatusRemoteDataSourceProvider.overrideWith(
             (ref) => FakeReservationStatusRemoteDataSource(
               machineStatusLoader: () async =>
                   const MachineStatusResponse(machines: [], totalCount: 0),
-              // 호실 목록은 홈 최초 진입 시 한 번만 불러온다.
-              activeReservationsLoader: () async => const [runningReservation],
+              // 첫 호출은 홈 최초 진입. 이후(종료 시 동기화)에는 끝난 예약이 서버 목록에서도 빠진다.
+              activeReservationsLoader: () async {
+                roomCount += 1;
+                return roomCount == 1 ? const [runningReservation] : const [];
+              },
               myActiveReservationLoader: () async {
                 pollCount += 1;
                 return pollCount <= 1 ? runningReservation : null;
@@ -883,6 +887,7 @@ void main() {
       expect(controller.isPolling, isTrue);
 
       await controller.syncActiveReservation(); // 2번째 조회: 활성 예약 없음(null)
+      await Future<void>.delayed(Duration.zero); // 종료 시 백그라운드 동기화 대기
 
       expect(controller.isPolling, isFalse);
       expect(container.read(activeReservationProvider).value, isEmpty);
@@ -898,16 +903,20 @@ void main() {
         machineName: 'Dryer-4F-R1',
         status: 'RUNNING',
       );
+      var roomCount = 0;
       final container = ProviderContainer(
         overrides: [
           reservationStatusRemoteDataSourceProvider.overrideWith(
             (ref) => FakeReservationStatusRemoteDataSource(
               machineStatusLoader: () async =>
                   const MachineStatusResponse(machines: [], totalCount: 0),
-              activeReservationsLoader: () async => const [
-                runningReservation,
-                roommateReservation,
-              ],
+              activeReservationsLoader: () async {
+                roomCount += 1;
+                // 내 예약이 끝나면 서버 호실 목록에는 룸메이트 예약만 남는다.
+                return roomCount == 1
+                    ? const [runningReservation, roommateReservation]
+                    : const [roommateReservation];
+              },
               myActiveReservationLoader: () async => null,
             ),
           ),
@@ -922,6 +931,7 @@ void main() {
       addTearDown(controller.stopPolling);
 
       await controller.syncActiveReservation();
+      await Future<void>.delayed(Duration.zero); // 종료 시 백그라운드 동기화 대기
 
       expect(controller.isPolling, isFalse);
       expect(container.read(activeReservationProvider).value, const [

@@ -250,6 +250,37 @@ class ActiveReservationNotifier
     }
   }
 
+  /// 화면을 로딩 상태로 바꾸지 않고 호실 목록을 다시 불러와 맞춘다.
+  ///
+  /// polling은 내 예약만 조회하므로 룸메이트 예약의 변화는 이 재조회로 반영한다.
+  /// [refresh]와 달리 `AsyncLoading`을 거치지 않아 카드에 스피너가 깜빡이지 않고,
+  /// 실패해도 화면 상태나 안내 문구를 바꾸지 않고 로그만 남긴다.
+  Future<void> reloadInBackground() async {
+    final requestId = beginRequest();
+    _roomRequestsInFlight += 1;
+    try {
+      final before = _latestList;
+      final snapshot = await ref
+          .read(reservationStatusRemoteDataSourceProvider)
+          .getActiveReservations();
+      final resolved = _resolveRoomSnapshot(requestId, snapshot);
+      if (resolved != null &&
+          (!state.hasValue || !listEquals(before, resolved))) {
+        _hasFetched = true;
+        state = AsyncData(resolved);
+      }
+    } catch (e, st) {
+      AppLogger.error(
+        '호실 활성 예약 백그라운드 동기화 중 오류가 발생했습니다.',
+        name: 'ActiveReservationNotifier',
+        error: e,
+        stackTrace: st,
+      );
+    } finally {
+      _roomRequestsInFlight -= 1;
+    }
+  }
+
   /// polling으로 확인한 내 활성 예약 결과를 호실 목록에 반영한다.
   ///
   /// 이미 반영된 더 최근 결과(내 예약 polling 또는 호실 스냅샷)보다 먼저 시작한 요청의

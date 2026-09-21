@@ -64,6 +64,9 @@ class _HomeBodyWidgetState extends ConsumerState<HomeBodyWidget>
       _lastResumeRefreshAt = now;
       ref.invalidate(machineStatusProvider);
       ref.invalidate(myUserProvider);
+      // machineStatusProvider만 갱신하면 활성 예약이 서버에서 완료 처리된 뒤에도
+      // 홈 화면 예약 카드가 갱신되지 않을 수 있다(#276).
+      ref.read(activeReservationProvider.notifier).refresh();
     }
   }
 

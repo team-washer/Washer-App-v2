@@ -17,6 +17,7 @@ import 'package:washer/features/reservation/data/models/remote/confirm_reservati
 import 'package:washer/features/reservation/presentation/providers/reservation_action_provider.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_exceptions.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_penalty_provider.dart';
+import 'package:washer/features/reservation/presentation/providers/reservation_sync_controller.dart';
 
 class FakeReservationRemoteDataSource implements ReservationRemoteDataSource {
   FakeReservationRemoteDataSource({
@@ -772,6 +773,117 @@ void main() {
         container.read(reservationPenaltyProvider),
         DateTimeFormatter.parseServerDateTime('2999-01-01T00:00:00'),
       );
+    });
+  });
+
+  group('ReservationSyncController', () {
+    const runningReservation = ActiveReservationModel(
+      id: 114,
+      userId: 15,
+      userName: '이주언',
+      userRoomNumber: '420',
+      userStudentId: '3413',
+      machineId: 83,
+      machineName: 'Washer-4F-L1',
+      reservedAt: '2026-04-09T15:28:44.436305512',
+      expectedCompletionTime: '2026-04-09T16:28:44.436305512',
+      status: 'RUNNING',
+    );
+
+    // #276: RUNNING + expectedCompletionTime이 있어도, 서버가 여전히 활성
+    // 예약으로 응답하는 한 완료 확정 전까지 polling을 멈추면 안 된다.
+    test('서버가 활성 예약을 계속 반환하면 완료 예정 시각이 있어도 polling을 유지한다', () async {
+      final container = ProviderContainer(
+        overrides: [
+          homeRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeHomeRemoteDataSource(
+              machineStatusLoader: () async =>
+                  const MachineStatusResponse(machines: [], totalCount: 0),
+              activeReservationsLoader: () async => const [runningReservation],
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final controller = container.read(reservationSyncControllerProvider);
+      controller.startPolling();
+      addTearDown(controller.stopPolling);
+
+      await controller.syncActiveReservation();
+
+      expect(controller.isPolling, isTrue);
+      expect(container.read(activeReservationProvider).value, const [
+        runningReservation,
+      ]);
+    });
+
+    test('서버가 활성 예약을 더 이상 반환하지 않으면 polling을 멈추고 홈 예약을 제거한다', () async {
+      var callCount = 0;
+      final container = ProviderContainer(
+        overrides: [
+          homeRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeHomeRemoteDataSource(
+              machineStatusLoader: () async =>
+                  const MachineStatusResponse(machines: [], totalCount: 0),
+              activeReservationsLoader: () async {
+                callCount += 1;
+                // 1번째 호출은 activeReservationProvider.build()가 소비한다.
+                return callCount <= 2 ? const [runningReservation] : const [];
+              },
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      // build()의 첫 조회(1번째 호출)를 먼저 소비시켜, 이후 호출 순서를 고정한다.
+      await container.read(activeReservationProvider.future);
+
+      final controller = container.read(reservationSyncControllerProvider);
+      controller.startPolling();
+      addTearDown(controller.stopPolling);
+
+      await controller.syncActiveReservation(); // 2번째 호출: 여전히 RUNNING
+      expect(controller.isPolling, isTrue);
+
+      await controller.syncActiveReservation(); // 3번째 호출: 활성 예약 없음
+
+      expect(controller.isPolling, isFalse);
+      expect(container.read(activeReservationProvider).value, isEmpty);
+    });
+
+    // 리뷰 반영: 조회가 계속 실패하면(서버 장애 등) 무한히 polling하지 않고
+    // 연속 실패 횟수를 세어 안전하게 중단해야 한다.
+    test('활성 예약 조회가 연속으로 계속 실패하면 polling을 중단하고 오류를 알린다', () async {
+      final container = ProviderContainer(
+        overrides: [
+          homeRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeHomeRemoteDataSource(
+              machineStatusLoader: () async =>
+                  const MachineStatusResponse(machines: [], totalCount: 0),
+              activeReservationsLoader: () async {
+                throw Exception('네트워크 오류');
+              },
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final controller = container.read(reservationSyncControllerProvider);
+      controller.startPolling();
+      addTearDown(controller.stopPolling);
+
+      for (var i = 0; i < 4; i++) {
+        await controller.syncActiveReservation();
+        expect(controller.isPolling, isTrue);
+      }
+
+      await controller.syncActiveReservation();
+
+      expect(controller.isPolling, isFalse);
+      expect(container.read(pollingErrorProvider), '서버 상태가 지연되고 있습니다.');
     });
   });
 }

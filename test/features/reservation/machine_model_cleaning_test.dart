@@ -19,7 +19,7 @@ MachineModel _machine({
 
 void main() {
   group('MachineModel availability=CLEANING', () {
-    test('청소중이면 예약 가능도 운전중도 아니다', () {
+    test('통세척중이면 예약 가능도 운전중도 아니다', () {
       final machine = _machine(availability: 'CLEANING');
 
       expect(machine.isCleaning, isTrue);
@@ -29,18 +29,18 @@ void main() {
       expect(machine.isUnavailable, isFalse);
     });
 
-    test('reservationId가 남아 있어도 예약 상태가 아니라 청소중으로 본다', () {
+    test('reservationId가 남아 있어도 예약 상태가 아니라 통세척중으로 본다', () {
       final machine = _machine(availability: 'CLEANING', reservationId: 10);
 
       expect(machine.isCleaning, isTrue);
       expect(machine.isReserved, isFalse);
     });
 
-    test('대소문자·공백이 달라도 청소중으로 본다', () {
+    test('대소문자·공백이 달라도 통세척중으로 본다', () {
       expect(_machine(availability: ' cleaning ').isCleaning, isTrue);
     });
 
-    test('고장(status != NORMAL)이면 청소중보다 고장이 우선한다', () {
+    test('고장(status != NORMAL)이면 통세척중보다 고장이 우선한다', () {
       final machine = _machine(availability: 'CLEANING', status: 'MALFUNCTION');
 
       expect(machine.isUnavailable, isTrue);
@@ -57,7 +57,7 @@ void main() {
 
   group('ReservationState.cleaning', () {
     test('문구와 색상이 정의돼 있다', () {
-      expect(ReservationState.cleaning.label, '청소중');
+      expect(ReservationState.cleaning.label, '통세척중');
       expect(
         ReservationState.cleaning.color,
         ReservationState.available.color,

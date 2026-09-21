@@ -121,7 +121,7 @@ class LaundryStatusDialog extends ConsumerWidget {
     required bool isCleaning,
   }) {
     if (isUnavailable) return '사용 불가(기기고장)';
-    if (isCleaning) return '청소중';
+    if (isCleaning) return '통세척중';
     if (isReserved) return '예약중';
     if (!isUsed) return '사용 가능';
     if (machineState != null) return '사용중 (${machineState.text})';
@@ -139,7 +139,7 @@ class LaundryStatusDialog extends ConsumerWidget {
     required DateTime now,
   }) {
     if (isCleaning) {
-      return '청소 중이라 잠시 사용할 수 없습니다.';
+      return '자동 통세척 중이라 잠시 사용할 수 없습니다.';
     }
 
     if (isUnavailable) {

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:washer/features/report/presentation/providers/report_dialog_actions.dart';
 import 'package:washer/shared/theme/washer_color.dart';
 import 'package:washer/shared/theme/app_spacing.dart';
 import 'package:washer/shared/theme/washer_typography.dart';
 import 'package:washer/shared/ui/indicators/status_dot.dart';
 import 'package:washer/shared/ui/dialog/dialog_action.dart';
-import 'package:washer/shared/ui/dialog/laundry_dialog_actions.dart';
 import 'package:washer/shared/ui/dialog/washer_dialog.dart';
 
 /// 기기 고장 내용을 입력받아 신고하는 다이얼로그
@@ -14,10 +14,17 @@ class ReportBrokenDialog extends ConsumerStatefulWidget {
     super.key,
     required this.machineId,
     required this.deviceId,
+    this.onReported,
   });
 
   final int machineId;
   final String deviceId;
+
+  /// 신고가 접수된 뒤 호출된다. 호출한 쪽이 화면 갱신 등을 넘긴다.
+  ///
+  /// 다이얼로그가 닫힌 뒤에 실행되므로 위젯의 `ref`/`context`가 아니라 미리
+  /// 캡처한 값만 사용해야 한다.
+  final VoidCallback? onReported;
 
   @override
   ConsumerState<ReportBrokenDialog> createState() => _ReportBrokenDialogState();
@@ -55,10 +62,11 @@ class _ReportBrokenDialogState extends ConsumerState<ReportBrokenDialog> {
 
     await runDialogAction(
       context,
-      LaundryDialogActions.reportBroken(
+      ReportDialogActions.reportBroken(
         machineId: widget.machineId,
         description: description,
       ),
+      onSuccess: widget.onReported,
     );
   }
 

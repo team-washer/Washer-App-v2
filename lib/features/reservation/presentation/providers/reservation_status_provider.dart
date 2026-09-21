@@ -165,7 +165,8 @@ class ActiveReservationNotifier
     }
   }
 
-  /// 아직 불러온 적이 없을 때만 조회한다.
+  /// 아직 불러온 적이 없을 때만 호실 활성 예약 목록(`reservations/active/room`)을 조회한다.
+  /// 홈 최초 진입 시 호출되며, 이후 변경은 polling이 내 예약만 조회해 이 목록에 반영한다.
   Future<void> ensureLoaded() async {
     if (_hasFetched || state.isLoading) {
       return;

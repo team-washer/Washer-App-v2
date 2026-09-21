@@ -697,7 +697,9 @@ void main() {
       '서버가 패널티 중(canReserve=false, 만료 전)이라고 하면 요청을 보내지 않고 예외를 담는다',
       () async {
         final reservationDataSource = FakeReservationRemoteDataSource();
-        final expiry = DateTime.now().add(const Duration(minutes: 5));
+        // 오프셋 없는 문자열은 앱이 KST로 해석하므로, 실행 환경의 시간대(CI=UTC 등)와
+        // 무관하게 미래가 되도록 절대 시각(Z)으로 만든다.
+        final expiry = DateTime.now().toUtc().add(const Duration(minutes: 5));
         final container = penaltyContainer(
           reservationDataSource: reservationDataSource,
           availabilityLoader: () async => ReservationAvailabilityResponse(

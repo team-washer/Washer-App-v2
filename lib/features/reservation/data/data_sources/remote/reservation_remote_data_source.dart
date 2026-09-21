@@ -9,6 +9,7 @@ import 'package:washer/features/reservation/data/models/remote/confirm_reservati
 
 part 'reservation_remote_data_source.g.dart';
 
+/// 예약 생성/취소/확정(변경 요청)을 담당하는 원격 데이터소스.
 abstract class ReservationRemoteDataSource {
   Future<ActiveReservationModel> createReservation({
     required int machineId,

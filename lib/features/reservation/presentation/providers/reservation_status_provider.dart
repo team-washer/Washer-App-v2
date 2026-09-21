@@ -6,15 +6,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
-import 'package:washer/features/reservation/data/models/local/laundry_machine_model.dart';
+import 'package:washer/features/reservation/data/models/local/machine_model.dart';
 import 'package:washer/features/reservation/data/data_sources/remote/reservation_status_remote_data_source.dart';
 
+/// 1초마다 현재 시각을 내보내는 시계. 카운트다운 UI가 구독한다.
 final clockProvider = StreamProvider<DateTime>((ref) {
   return Stream.periodic(const Duration(seconds: 1), (_) => DateTime.now());
 });
 
+/// polling/조회 실패 시 사용자에게 보여줄 안내 문구. 없으면 null.
 final pollingErrorProvider = StateProvider<String?>((ref) => null);
 
+/// 기기 상태와 활성 예약을 함께 새로고침한다(Provider 내부에서 사용).
 Future<void> refreshReservationStatusProviders(Ref ref) {
   return Future.wait([
     ref.read(machineStatusProvider.notifier).refresh(),
@@ -22,6 +25,7 @@ Future<void> refreshReservationStatusProviders(Ref ref) {
   ]);
 }
 
+/// 기기 상태와 활성 예약을 함께 새로고침한다(위젯에서 사용).
 Future<void> refreshReservationStatusWidgets(WidgetRef ref) {
   return Future.wait([
     ref.read(machineStatusProvider.notifier).refresh(),
@@ -29,6 +33,7 @@ Future<void> refreshReservationStatusWidgets(WidgetRef ref) {
   ]);
 }
 
+/// Dio 오류를 사용자용 문구로 변환한다. 안내할 필요가 없는 오류면 null.
 String? _pollingErrorMessageFor(DioException error) {
   final statusCode = error.response?.statusCode;
   if (statusCode != null && statusCode >= 500) {
@@ -60,14 +65,18 @@ String? _pollingErrorMessageFor(DioException error) {
   return null;
 }
 
+/// 전체 기기 상태 provider.
 final machineStatusProvider =
     AsyncNotifierProvider<MachineStatusNotifier, MachineStatusResponse>(
       MachineStatusNotifier.new,
     );
 
+/// 서버의 기기 상태를 불러오고 새로고침한다. keepAlive로 화면 이동 시에도 유지된다.
 class MachineStatusNotifier extends AsyncNotifier<MachineStatusResponse> {
   Future<MachineStatusResponse> _load() async {
-    return ref.read(homeRemoteDataSourceProvider).getMachineStatus();
+    return ref
+        .read(reservationStatusRemoteDataSourceProvider)
+        .getMachineStatus();
   }
 
   @override
@@ -119,6 +128,7 @@ class MachineStatusNotifier extends AsyncNotifier<MachineStatusResponse> {
   }
 }
 
+/// 내 방의 활성 예약 목록 provider.
 final activeReservationProvider =
     AsyncNotifierProvider<
       ActiveReservationNotifier,
@@ -127,6 +137,7 @@ final activeReservationProvider =
       ActiveReservationNotifier.new,
     );
 
+/// 활성 예약 목록을 불러오고 새로고침한다.
 class ActiveReservationNotifier
     extends AsyncNotifier<List<ActiveReservationModel>> {
   bool _hasFetched = false;
@@ -137,7 +148,7 @@ class ActiveReservationNotifier
     try {
       _hasFetched = true;
       return await ref
-          .read(homeRemoteDataSourceProvider)
+          .read(reservationStatusRemoteDataSourceProvider)
           .getActiveReservations();
     } on DioException catch (e, st) {
       AppLogger.error(
@@ -154,6 +165,7 @@ class ActiveReservationNotifier
     }
   }
 
+  /// 아직 불러온 적이 없을 때만 조회한다.
   Future<void> ensureLoaded() async {
     if (_hasFetched || state.isLoading) {
       return;
@@ -167,7 +179,7 @@ class ActiveReservationNotifier
     try {
       _hasFetched = true;
       final reservations = await ref
-          .read(homeRemoteDataSourceProvider)
+          .read(reservationStatusRemoteDataSourceProvider)
           .getActiveReservations();
       state = AsyncData(reservations);
     } on DioException catch (e, st) {
@@ -193,6 +205,7 @@ class ActiveReservationNotifier
     }
   }
 
+  /// 조회 없이 상태를 직접 갱신한다(polling 결과 반영용).
   void setReservations(List<ActiveReservationModel> reservations) {
     _hasFetched = true;
     state = AsyncData(reservations);

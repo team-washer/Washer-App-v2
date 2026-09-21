@@ -10,10 +10,12 @@ import 'package:washer/core/network/dio_client.dart';
 import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/firebase_options.dart';
 
+/// FCM 토큰을 secure storage에 저장할 때 쓰는 키.
 const fcmTokenStorageKey = 'fcm_token';
 const _apnsTokenRetryDelay = Duration(seconds: 1);
 const _apnsTokenMaxRetries = 10;
 
+/// 백그라운드/종료 상태에서 FCM 메시지를 받을 때 호출되는 핸들러.
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,6 +27,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   }
 }
 
+/// FCM 권한 요청과 토큰 저장/갱신을 담당하는 서비스.
 class NotificationService {
   NotificationService(this._messaging, this._storage);
 
@@ -34,6 +37,7 @@ class NotificationService {
   StreamSubscription<String>? _tokenRefreshSubscription;
   bool _isInitialized = false;
 
+  /// 권한 요청, 토큰 저장, 토큰 갱신 구독을 한 번만 수행한다.
   Future<void> initialize() async {
     if (_isInitialized) return;
 
@@ -57,6 +61,7 @@ class NotificationService {
     return _storage.read(key: fcmTokenStorageKey);
   }
 
+  /// 저장된 토큰이 없으면 발급을 시도한 뒤 토큰을 반환한다.
   Future<String?> ensureFcmToken() async {
     await initialize();
 
@@ -130,6 +135,7 @@ class NotificationService {
     }
   }
 
+  /// iOS에서 FCM 토큰 발급 전 필요한 APNS 토큰을 재시도하며 기다린다.
   Future<bool> _waitForApnsToken() async {
     for (var attempt = 0; attempt < _apnsTokenMaxRetries; attempt++) {
       try {
@@ -165,6 +171,7 @@ class NotificationService {
   }
 }
 
+/// [NotificationService] provider.
 final notificationServiceProvider = Provider<NotificationService>((ref) {
   final service = NotificationService(
     FirebaseMessaging.instance,
@@ -174,6 +181,7 @@ final notificationServiceProvider = Provider<NotificationService>((ref) {
   return service;
 });
 
+/// 알림 초기화 1회 실행용 provider.
 final notificationInitializationProvider = FutureProvider<void>((ref) async {
   await ref.watch(notificationServiceProvider).initialize();
 });

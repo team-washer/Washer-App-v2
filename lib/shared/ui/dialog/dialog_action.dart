@@ -7,7 +7,7 @@ import 'package:washer/core/utils/app_logger.dart';
 /// 다이얼로그/위젯에서 실행하는 비동기 액션 한 건의 정의.
 ///
 /// "무엇을 실행하고, 성공/실패를 어떻게 판단하며, 어떤 메시지를 띄울지"라는
-/// 액션 고유 정보만 담는다. 액션 종류별 정의는 `DialogActions` 팩토리 한 곳에
+/// 액션 고유 정보만 담는다. 액션 종류별 정의는 `LaundryDialogActions` 팩토리 한 곳에
 /// 모아 두고, 호출부는 그것을 [runDialogAction]에 넘기기만 한다.
 ///
 /// [run]은 위젯의 `ref`가 아니라 lifecycle과 무관한 [ProviderContainer]를

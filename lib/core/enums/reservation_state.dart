@@ -1,7 +1,8 @@
 import 'dart:ui';
 
-import 'package:washer/shared/theme/color.dart';
+import 'package:washer/shared/theme/washer_color.dart';
 
+/// 기기 카드에 표시되는 예약 관점의 기기 상태.
 enum ReservationState {
   inUse, // 사용중
   available, // 예약가능
@@ -11,6 +12,7 @@ enum ReservationState {
 }
 
 extension ReservationStateText on ReservationState {
+  /// 화면에 표시할 상태 문구.
   String get label {
     switch (this) {
       case ReservationState.inUse:
@@ -26,6 +28,7 @@ extension ReservationStateText on ReservationState {
     }
   }
 
+  /// 상태별 강조 색상.
   Color get color {
     switch (this) {
       case ReservationState.available:

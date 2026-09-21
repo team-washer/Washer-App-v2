@@ -3,10 +3,12 @@ import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/features/report/data/data_sources/remote/report_remote_data_source.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
 
+/// 기기 고장 신고 요청과 그 진행 상태를 관리하는 Notifier.
 class ReportNotifier extends AsyncNotifier<void> {
   @override
   Future<void> build() async {}
 
+  /// 고장 신고를 접수하고 성공 여부를 반환한다. 성공 시 예약 상태를 새로고침한다.
   Future<bool> createMalfunctionReport({
     required int machineId,
     required String description,
@@ -21,6 +23,7 @@ class ReportNotifier extends AsyncNotifier<void> {
             description: description,
           );
 
+      // 새로고침 실패는 신고 결과에 영향을 주지 않도록 로그만 남긴다.
       try {
         await refreshReservationStatusProviders(ref);
       } catch (error, stackTrace) {
@@ -46,6 +49,7 @@ class ReportNotifier extends AsyncNotifier<void> {
     }
   }
 
+  /// 신고 상태를 초기값으로 되돌린다.
   void reset() {
     state = const AsyncData(null);
   }

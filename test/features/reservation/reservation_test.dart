@@ -9,7 +9,7 @@ import 'package:washer/core/enums/machine_state.dart';
 import 'package:washer/core/utils/date_time_formatter.dart';
 import 'package:washer/features/reservation/data/data_sources/remote/reservation_status_remote_data_source.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
-import 'package:washer/features/reservation/data/models/local/laundry_machine_model.dart';
+import 'package:washer/features/reservation/data/models/local/machine_model.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
 import 'package:washer/features/reservation/data/data_sources/remote/reservation_remote_data_source.dart';
 import 'package:washer/features/reservation/data/models/remote/cancel_reservation_response.dart';
@@ -116,8 +116,9 @@ const _reservedReservation = ActiveReservationModel(
   status: 'RESERVED',
 );
 
-class FakeHomeRemoteDataSource implements HomeRemoteDataSource {
-  FakeHomeRemoteDataSource({
+class FakeReservationStatusRemoteDataSource
+    implements ReservationStatusRemoteDataSource {
+  FakeReservationStatusRemoteDataSource({
     required this.machineStatusLoader,
     this.activeReservationsLoader,
   });
@@ -202,36 +203,42 @@ void main() {
       expect(model.isInUse, isTrue);
     });
 
-    test('server UNAVAILABLE stays in use even if SmartThings reports finished', () {
-      // #228: 운전중 판정은 서버 availability가 기준. operatingState는 판정에 쓰지 않는다.
-      const model = MachineModel(
-        machineId: 1,
-        name: 'Dryer-4F-R2',
-        type: 'DRYER',
-        status: 'NORMAL',
-        availability: 'UNAVAILABLE',
-        operatingState: 'FINISHED',
-      );
+    test(
+      'server UNAVAILABLE stays in use even if SmartThings reports finished',
+      () {
+        // #228: 운전중 판정은 서버 availability가 기준. operatingState는 판정에 쓰지 않는다.
+        const model = MachineModel(
+          machineId: 1,
+          name: 'Dryer-4F-R2',
+          type: 'DRYER',
+          status: 'NORMAL',
+          availability: 'UNAVAILABLE',
+          operatingState: 'FINISHED',
+        );
 
-      expect(model.isInUse, isTrue);
-      expect(model.isAvailable, isFalse);
-    });
+        expect(model.isInUse, isTrue);
+        expect(model.isAvailable, isFalse);
+      },
+    );
 
-    test('server AVAILABLE is reservable even if SmartThings reports running', () {
-      // #228: availability가 AVAILABLE이면 예약 가능. operatingState는 무시한다.
-      const model = MachineModel(
-        machineId: 1,
-        name: 'Washer-3F-L1',
-        type: 'WASHER',
-        status: 'NORMAL',
-        availability: 'AVAILABLE',
-        operatingState: 'RUN',
-      );
+    test(
+      'server AVAILABLE is reservable even if SmartThings reports running',
+      () {
+        // #228: availability가 AVAILABLE이면 예약 가능. operatingState는 무시한다.
+        const model = MachineModel(
+          machineId: 1,
+          name: 'Washer-3F-L1',
+          type: 'WASHER',
+          status: 'NORMAL',
+          availability: 'AVAILABLE',
+          operatingState: 'RUN',
+        );
 
-      expect(model.isInUse, isFalse);
-      expect(model.isReserved, isFalse);
-      expect(model.isAvailable, isTrue);
-    });
+        expect(model.isInUse, isFalse);
+        expect(model.isReserved, isFalse);
+        expect(model.isAvailable, isTrue);
+      },
+    );
 
     test(
       'treats unavailable status as not in use even without operating state',
@@ -267,8 +274,8 @@ void main() {
 
       final container = ProviderContainer(
         overrides: [
-          homeRemoteDataSourceProvider.overrideWith(
-            (ref) => FakeHomeRemoteDataSource(
+          reservationStatusRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeReservationStatusRemoteDataSource(
               machineStatusLoader: () async => response,
             ),
           ),
@@ -291,8 +298,8 @@ void main() {
 
       final container = ProviderContainer(
         overrides: [
-          homeRemoteDataSourceProvider.overrideWith(
-            (ref) => FakeHomeRemoteDataSource(
+          reservationStatusRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeReservationStatusRemoteDataSource(
               machineStatusLoader: () =>
                   Future<MachineStatusResponse>.error(error),
             ),
@@ -350,8 +357,8 @@ void main() {
 
       final container = ProviderContainer(
         overrides: [
-          homeRemoteDataSourceProvider.overrideWith(
-            (ref) => FakeHomeRemoteDataSource(
+          reservationStatusRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeReservationStatusRemoteDataSource(
               machineStatusLoader: () async {
                 callCount += 1;
                 return callCount == 1 ? firstResponse : secondResponse;
@@ -380,8 +387,8 @@ void main() {
           reservationPenaltyProvider.overrideWith(
             FakeReservationPenaltyNotifier.new,
           ),
-          homeRemoteDataSourceProvider.overrideWith(
-            (ref) => FakeHomeRemoteDataSource(
+          reservationStatusRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeReservationStatusRemoteDataSource(
               machineStatusLoader: () async =>
                   const MachineStatusResponse(machines: [], totalCount: 0),
               activeReservationsLoader: () async => const [
@@ -418,8 +425,8 @@ void main() {
           reservationPenaltyProvider.overrideWith(
             FakeReservationPenaltyNotifier.new,
           ),
-          homeRemoteDataSourceProvider.overrideWith(
-            (ref) => FakeHomeRemoteDataSource(
+          reservationStatusRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeReservationStatusRemoteDataSource(
               machineStatusLoader: () async =>
                   const MachineStatusResponse(machines: [], totalCount: 0),
             ),
@@ -450,8 +457,8 @@ void main() {
           reservationPenaltyProvider.overrideWith(
             FakeReservationPenaltyNotifier.new,
           ),
-          homeRemoteDataSourceProvider.overrideWith(
-            (ref) => FakeHomeRemoteDataSource(
+          reservationStatusRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeReservationStatusRemoteDataSource(
               machineStatusLoader: () async =>
                   const MachineStatusResponse(machines: [], totalCount: 0),
             ),
@@ -480,8 +487,8 @@ void main() {
           reservationPenaltyProvider.overrideWith(
             FakeReservationPenaltyNotifier.new,
           ),
-          homeRemoteDataSourceProvider.overrideWith(
-            (ref) => FakeHomeRemoteDataSource(
+          reservationStatusRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeReservationStatusRemoteDataSource(
               machineStatusLoader: () async =>
                   const MachineStatusResponse(machines: [], totalCount: 0),
             ),
@@ -509,8 +516,8 @@ void main() {
           reservationPenaltyProvider.overrideWith(
             FakeReservationPenaltyNotifier.new,
           ),
-          homeRemoteDataSourceProvider.overrideWith(
-            (ref) => FakeHomeRemoteDataSource(
+          reservationStatusRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeReservationStatusRemoteDataSource(
               machineStatusLoader: () async => const MachineStatusResponse(
                 machines: [
                   MachineModel(
@@ -542,54 +549,57 @@ void main() {
       );
     });
 
-    test('#267: previous reservation failure is not rethrown on retry', () async {
-      final reservationDataSource = FakeReservationRemoteDataSource();
-      final container = ProviderContainer(
-        overrides: [
-          reservationRemoteDataSourceProvider.overrideWith(
-            (ref) => reservationDataSource,
-          ),
-          reservationPenaltyProvider.overrideWith(
-            FakeReservationPenaltyNotifier.new,
-          ),
-          homeRemoteDataSourceProvider.overrideWith(
-            (ref) => FakeHomeRemoteDataSource(
-              machineStatusLoader: () async => const MachineStatusResponse(
-                machines: [
-                  MachineModel(
-                    machineId: 83,
-                    name: 'Washer-4F-L1',
-                    type: 'WASHER',
-                    status: 'NORMAL',
-                    availability: 'RESERVED',
-                    reservationId: 114,
-                  ),
-                ],
-                totalCount: 1,
+    test(
+      '#267: previous reservation failure is not rethrown on retry',
+      () async {
+        final reservationDataSource = FakeReservationRemoteDataSource();
+        final container = ProviderContainer(
+          overrides: [
+            reservationRemoteDataSourceProvider.overrideWith(
+              (ref) => reservationDataSource,
+            ),
+            reservationPenaltyProvider.overrideWith(
+              FakeReservationPenaltyNotifier.new,
+            ),
+            reservationStatusRemoteDataSourceProvider.overrideWith(
+              (ref) => FakeReservationStatusRemoteDataSource(
+                machineStatusLoader: () async => const MachineStatusResponse(
+                  machines: [
+                    MachineModel(
+                      machineId: 83,
+                      name: 'Washer-4F-L1',
+                      type: 'WASHER',
+                      status: 'NORMAL',
+                      availability: 'RESERVED',
+                      reservationId: 114,
+                    ),
+                  ],
+                  totalCount: 1,
+                ),
               ),
             ),
-          ),
-        ],
-      );
-      addTearDown(container.dispose);
+          ],
+        );
+        addTearDown(container.dispose);
 
-      final firstResult = await container
-          .read(reservationActionProvider.notifier)
-          .reserve(machineId: 83);
-
-      expect(firstResult, isNull);
-      expect(
-        container.read(reservationActionProvider).error,
-        isA<AlreadyReservedException>(),
-      );
-
-      await expectLater(
-        container
+        final firstResult = await container
             .read(reservationActionProvider.notifier)
-            .reserve(machineId: 83),
-        completion(isNull),
-      );
-    });
+            .reserve(machineId: 83);
+
+        expect(firstResult, isNull);
+        expect(
+          container.read(reservationActionProvider).error,
+          isA<AlreadyReservedException>(),
+        );
+
+        await expectLater(
+          container
+              .read(reservationActionProvider.notifier)
+              .reserve(machineId: 83),
+          completion(isNull),
+        );
+      },
+    );
 
     test('#267: AlreadyReservedException is mapped to user message', () {
       expect(
@@ -634,8 +644,8 @@ void main() {
           reservationPenaltyProvider.overrideWith(
             FakeReservationPenaltyNotifier.new,
           ),
-          homeRemoteDataSourceProvider.overrideWith(
-            (ref) => FakeHomeRemoteDataSource(
+          reservationStatusRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeReservationStatusRemoteDataSource(
               // 첫 조회는 사용중, 그 이후로는 계속 사용 가능으로 응답한다.
               // (재확인 이후 refreshReservationStatusProviders가 추가로 상태를 조회한다)
               machineStatusLoader: () async {
@@ -679,8 +689,8 @@ void main() {
           reservationPenaltyProvider.overrideWith(
             FakeReservationPenaltyNotifier.new,
           ),
-          homeRemoteDataSourceProvider.overrideWith(
-            (ref) => FakeHomeRemoteDataSource(
+          reservationStatusRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeReservationStatusRemoteDataSource(
               machineStatusLoader: () async =>
                   const MachineStatusResponse(machines: [], totalCount: 0),
             ),
@@ -714,8 +724,8 @@ void main() {
           reservationPenaltyProvider.overrideWith(
             () => FakeReservationPenaltyNotifier(expiry),
           ),
-          homeRemoteDataSourceProvider.overrideWith(
-            (ref) => FakeHomeRemoteDataSource(
+          reservationStatusRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeReservationStatusRemoteDataSource(
               machineStatusLoader: () async =>
                   const MachineStatusResponse(machines: [], totalCount: 0),
             ),
@@ -754,8 +764,8 @@ void main() {
           reservationPenaltyProvider.overrideWith(
             FakeReservationPenaltyNotifier.new,
           ),
-          homeRemoteDataSourceProvider.overrideWith(
-            (ref) => FakeHomeRemoteDataSource(
+          reservationStatusRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeReservationStatusRemoteDataSource(
               machineStatusLoader: () async =>
                   const MachineStatusResponse(machines: [], totalCount: 0),
             ),
@@ -795,8 +805,8 @@ void main() {
     test('서버가 활성 예약을 계속 반환하면 완료 예정 시각이 있어도 polling을 유지한다', () async {
       final container = ProviderContainer(
         overrides: [
-          homeRemoteDataSourceProvider.overrideWith(
-            (ref) => FakeHomeRemoteDataSource(
+          reservationStatusRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeReservationStatusRemoteDataSource(
               machineStatusLoader: () async =>
                   const MachineStatusResponse(machines: [], totalCount: 0),
               activeReservationsLoader: () async => const [runningReservation],
@@ -822,8 +832,8 @@ void main() {
       var callCount = 0;
       final container = ProviderContainer(
         overrides: [
-          homeRemoteDataSourceProvider.overrideWith(
-            (ref) => FakeHomeRemoteDataSource(
+          reservationStatusRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeReservationStatusRemoteDataSource(
               machineStatusLoader: () async =>
                   const MachineStatusResponse(machines: [], totalCount: 0),
               activeReservationsLoader: () async {
@@ -858,8 +868,8 @@ void main() {
     test('활성 예약 조회가 연속으로 계속 실패하면 polling을 중단하고 오류를 알린다', () async {
       final container = ProviderContainer(
         overrides: [
-          homeRemoteDataSourceProvider.overrideWith(
-            (ref) => FakeHomeRemoteDataSource(
+          reservationStatusRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeReservationStatusRemoteDataSource(
               machineStatusLoader: () async =>
                   const MachineStatusResponse(machines: [], totalCount: 0),
               activeReservationsLoader: () async {

@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:washer/shared/theme/color.dart';
-import 'package:washer/shared/theme/spacing.dart';
-import 'package:washer/shared/theme/typography.dart';
-import 'package:washer/shared/ui/circle_widget.dart';
+import 'package:washer/shared/theme/washer_color.dart';
+import 'package:washer/shared/theme/app_spacing.dart';
+import 'package:washer/shared/theme/washer_typography.dart';
+import 'package:washer/shared/ui/indicators/status_dot.dart';
 import 'package:washer/shared/ui/dialog/dialog_action.dart';
-import 'package:washer/shared/ui/dialog/dialog_actions.dart';
+import 'package:washer/shared/ui/dialog/laundry_dialog_actions.dart';
 import 'package:washer/shared/ui/dialog/washer_dialog.dart';
 
+/// 기기 고장 내용을 입력받아 신고하는 다이얼로그
 class ReportBrokenDialog extends ConsumerStatefulWidget {
   const ReportBrokenDialog({
     super.key,
@@ -40,6 +41,7 @@ class _ReportBrokenDialogState extends ConsumerState<ReportBrokenDialog> {
     super.dispose();
   }
 
+  /// 내용이 비어 있으면 안내 후 포커스를 주고, 아니면 고장 신고를 실행한다.
   Future<void> _handleConfirm() async {
     final description = _textController.text.trim();
 
@@ -53,7 +55,7 @@ class _ReportBrokenDialogState extends ConsumerState<ReportBrokenDialog> {
 
     await runDialogAction(
       context,
-      DialogActions.reportBroken(
+      LaundryDialogActions.reportBroken(
         machineId: widget.machineId,
         description: description,
       ),
@@ -84,7 +86,9 @@ class _ReportBrokenDialogState extends ConsumerState<ReportBrokenDialog> {
             ),
           ),
           AppGap.v16,
-          _ReportTextField(
+          const _FieldLabel(),
+          AppGap.v4,
+          _ReportInputField(
             controller: _textController,
             focusNode: _focusNode,
           ),
@@ -95,31 +99,7 @@ class _ReportBrokenDialogState extends ConsumerState<ReportBrokenDialog> {
   }
 }
 
-class _ReportTextField extends StatelessWidget {
-  const _ReportTextField({
-    required this.controller,
-    required this.focusNode,
-  });
-
-  final TextEditingController controller;
-  final FocusNode focusNode;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const _FieldLabel(),
-        AppGap.v4,
-        _ReportInputField(
-          controller: controller,
-          focusNode: focusNode,
-        ),
-      ],
-    );
-  }
-}
-
+/// '고장 내용' 라벨과 필수 표시 점
 class _FieldLabel extends StatelessWidget {
   const _FieldLabel();
 
@@ -138,8 +118,8 @@ class _FieldLabel extends StatelessWidget {
         ),
         Transform.translate(
           offset: const Offset(0, -2),
-          child: const CircleWidget(
-            color: CircleColor.red,
+          child: const StatusDot(
+            color: StatusDotColor.red,
           ),
         ),
       ],
@@ -147,6 +127,7 @@ class _FieldLabel extends StatelessWidget {
   }
 }
 
+/// 고장 증상을 입력하는 여러 줄 텍스트 필드
 class _ReportInputField extends StatelessWidget {
   const _ReportInputField({
     required this.controller,

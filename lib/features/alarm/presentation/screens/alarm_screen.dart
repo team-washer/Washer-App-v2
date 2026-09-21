@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:washer/shared/theme/color.dart';
-import 'package:washer/features/alarm/presentation/widgets/alarm_list_widget.dart';
+import 'package:washer/shared/theme/washer_color.dart';
+import 'package:washer/features/alarm/presentation/widgets/alarm_list.dart';
 
 /// 알람 화면 — 세탁/건조 완료 알람 리스트
 ///
-/// AlarmListWidget으로 이루어져 있으므로 최상위 화면 역할
+/// AlarmList로 이루어져 있으므로 최상위 화면 역할
 class AlarmScreen extends ConsumerWidget {
   const AlarmScreen({super.key});
 
@@ -13,7 +13,7 @@ class AlarmScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       color: WasherColor.backgroundColor,
-      child: const AlarmListWidget(),
+      child: const AlarmList(),
     );
   }
 }

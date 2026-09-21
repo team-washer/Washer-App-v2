@@ -1,9 +1,11 @@
 import 'package:dio/dio.dart';
 
+/// 사용자에게 그대로 보여줄 메시지를 가진 예외.
 abstract interface class UserFacingException implements Exception {
   String get userMessage;
 }
 
+/// 다양한 예외를 사용자용 메시지로 정규화한 앱 공통 예외.
 class AppException {
   AppException({
     required this.message,
@@ -15,6 +17,7 @@ class AppException {
   final int? statusCode;
   final String? debugMessage;
 
+  /// 임의의 에러를 종류별로 분류해 [AppException]으로 변환한다.
   factory AppException.from(Object? error) {
     if (error is UserFacingException) {
       return AppException(

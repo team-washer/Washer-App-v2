@@ -43,7 +43,12 @@ abstract class ReservationStatusApiService {
   Future<HttpResponse<dynamic>> getReservationAvailability();
 }
 
-/// 서버 응답 코드(204/404/451)를 빈 결과로 변환하는 구현체.
+/// 기기 현황·활성 예약 조회 구현체.
+///
+/// 서버 계약: 활성 예약이 없으면 호실 조회는 200 + `data.reservations: []`,
+/// 내 예약 조회는 200 + `data: null`이다. 404는 사용자·예약·기기가 없는 **오류**이고
+/// "없음"이 아니다. 451(이용 대상이 아닌 사용자)만 빈 결과로 대체한다.
+/// 204 처리는 서버가 보장하지 않는 응답에 대한 방어 코드다.
 class ReservationStatusRemoteDataSourceImpl
     implements ReservationStatusRemoteDataSource {
   const ReservationStatusRemoteDataSourceImpl(this._api);
@@ -89,8 +94,8 @@ class ReservationStatusRemoteDataSourceImpl
           .map((item) => ActiveReservationModel.fromJson(castJsonMap(item)))
           .toList(growable: false);
     } on DioException catch (e) {
-      final statusCode = e.response?.statusCode;
-      if (statusCode == 404 || statusCode == 204 || statusCode == 451) {
+      // 451: 이용 대상이 아닌 사용자라 활성 예약이 있을 수 없으므로 빈 목록으로 본다.
+      if (e.response?.statusCode == 451) {
         return const [];
       }
       rethrow;
@@ -99,15 +104,23 @@ class ReservationStatusRemoteDataSourceImpl
 
   @override
   Future<ActiveReservationModel?> getMyActiveReservation() async {
-    final response = await _api.getMyActiveReservation();
-    // 활성 예약이 없으면 서버가 data를 null로 내려준다(204/빈 본문도 없음으로 본다).
-    // 404 등 오류 응답은 "없음"이 아니라 조회 실패이므로 그대로 던진다.
-    if (response.response.statusCode == 204 || response.data == null) {
-      return null;
-    }
+    try {
+      final response = await _api.getMyActiveReservation();
+      // 활성 예약이 없으면 서버가 200 + data null로 내려준다(204/빈 본문은 방어 코드).
+      // 404 등 오류 응답은 "없음"이 아니라 조회 실패이므로 그대로 던진다.
+      if (response.response.statusCode == 204 || response.data == null) {
+        return null;
+      }
 
-    final data = extractNullableDataMap(castJsonMap(response.data));
-    return data == null ? null : ActiveReservationModel.fromJson(data);
+      final data = extractNullableDataMap(castJsonMap(response.data));
+      return data == null ? null : ActiveReservationModel.fromJson(data);
+    } on DioException catch (e) {
+      // 451: 이용 대상이 아닌 사용자는 활성 예약이 없다.
+      if (e.response?.statusCode == 451) {
+        return null;
+      }
+      rethrow;
+    }
   }
 
   @override

@@ -87,6 +87,24 @@ void main() {
 
       expect(source.getMyActiveReservation(), throwsA(isA<DioException>()));
     });
+
+    test('451(이용 대상이 아닌 사용자)은 활성 예약 없음으로 본다', () async {
+      final source = _dataSource({'reservations/active': (451, '{}')});
+
+      expect(await source.getMyActiveReservation(), isNull);
+    });
+
+    test('401·403·409·502·503은 그대로 던진다', () async {
+      for (final code in [401, 403, 409, 502, 503]) {
+        final source = _dataSource({'reservations/active': (code, '{}')});
+
+        await expectLater(
+          source.getMyActiveReservation(),
+          throwsA(isA<DioException>()),
+          reason: 'status $code',
+        );
+      }
+    });
   });
 
   group('getActiveReservations (reservations/active/room)', () {
@@ -121,6 +139,51 @@ void main() {
       });
 
       expect(await source.getActiveReservations(), isEmpty);
+    });
+
+    // 서버 계약: 활성 예약이 없으면 200 + data.reservations [] 이다.
+    test('서버 계약대로 200 + data.reservations 빈 배열이면 빈 목록이다', () async {
+      final source = _dataSource({
+        'reservations/active/room': (
+          200,
+          _envelope({'reservations': <Object>[]}),
+        ),
+      });
+
+      expect(await source.getActiveReservations(), isEmpty);
+    });
+
+    test('404(사용자·예약·기기 없음)는 "없음"이 아니라 오류로 던진다', () async {
+      final source = _dataSource({'reservations/active/room': (404, '{}')});
+
+      await expectLater(
+        source.getActiveReservations(),
+        throwsA(isA<DioException>()),
+      );
+    });
+
+    test('451(이용 대상이 아닌 사용자)은 빈 목록으로 본다', () async {
+      final source = _dataSource({'reservations/active/room': (451, '{}')});
+
+      expect(await source.getActiveReservations(), isEmpty);
+    });
+
+    test('204는 서버가 보장하지 않는 응답이지만 방어적으로 빈 목록으로 본다', () async {
+      final source = _dataSource({'reservations/active/room': (204, null)});
+
+      expect(await source.getActiveReservations(), isEmpty);
+    });
+
+    test('401·403·409·502·503은 그대로 던진다', () async {
+      for (final code in [401, 403, 409, 502, 503]) {
+        final source = _dataSource({'reservations/active/room': (code, '{}')});
+
+        await expectLater(
+          source.getActiveReservations(),
+          throwsA(isA<DioException>()),
+          reason: 'status $code',
+        );
+      }
     });
 
     test('{reservations: []} 도 빈 목록을 반환한다', () async {

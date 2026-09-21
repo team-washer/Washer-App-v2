@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:washer/core/errors/app_exception.dart';
 import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/data/models/local/machine_model.dart';
@@ -36,9 +37,21 @@ Future<void> refreshReservationStatusWidgets(WidgetRef ref) {
 }
 
 /// Dio 오류를 사용자용 문구로 변환한다. 안내할 필요가 없는 오류면 null.
+///
+/// 상태 코드별 문구는 서버 오류 응답 계약을 따른다(자세한 계약은 [AppException] 참고).
 String? _pollingErrorMessageFor(DioException error) {
+  // 인증 갱신에 실패해 요청 자체가 취소된 경우다. 로그아웃 흐름이 처리하므로
+  // 여기서 "네트워크 오류" 같은 잘못된 안내를 띄우지 않는다.
+  if (error.type == DioExceptionType.cancel) {
+    return null;
+  }
+
   final statusCode = error.response?.statusCode;
   if (statusCode != null && statusCode >= 500) {
+    // 502(기기 서비스 실패)/503(일시 장애)은 원인별 문구를, 그 외 5xx는 코드를 보여준다.
+    if (statusCode == 502 || statusCode == 503) {
+      return AppException.from(error).message;
+    }
     return '서버 오류가 발생했습니다. ($statusCode)';
   }
 
@@ -64,7 +77,8 @@ String? _pollingErrorMessageFor(DioException error) {
     return '네트워크 오류가 발생했습니다.';
   }
 
-  return null;
+  // 4xx(400 검증, 401 인증, 403 권한, 404 없음, 409 충돌 등)는 서버 메시지를 따른다.
+  return AppException.from(error).message;
 }
 
 /// 전체 기기 상태 provider.

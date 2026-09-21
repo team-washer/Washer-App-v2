@@ -25,6 +25,7 @@ class LaundryStatusDialog extends ConsumerWidget {
     required this.machineId,
     required this.isUsed,
     this.isUnavailable = false,
+    this.isCleaning = false,
     this.machineState,
     this.roomNumber,
     this.expectedTime,
@@ -35,6 +36,7 @@ class LaundryStatusDialog extends ConsumerWidget {
   final int machineId;
   final bool isUsed;
   final bool isUnavailable;
+  final bool isCleaning;
   final MachineState? machineState;
   final String? roomNumber;
   final String? expectedTime;
@@ -62,6 +64,7 @@ class LaundryStatusDialog extends ConsumerWidget {
       isUsed,
       machineState,
       isReserved: isReserved,
+      isCleaning: isCleaning,
     );
     final roomText = RoomFormatter.formatRoomNumber(
       syncedReservation?.userRoomNumber ?? roomNumber,
@@ -69,6 +72,7 @@ class LaundryStatusDialog extends ConsumerWidget {
     final notesText = _buildNotesText(
       machineType: machineType,
       isUnavailable: isUnavailable,
+      isCleaning: isCleaning,
       machineState: machineState,
       expectedTime: syncedReservation?.expectedCompletionTime ?? expectedTime,
       reservedAt: syncedReservation?.reservedAt,
@@ -114,8 +118,10 @@ class LaundryStatusDialog extends ConsumerWidget {
     bool isUsed,
     MachineState? machineState, {
     required bool isReserved,
+    required bool isCleaning,
   }) {
     if (isUnavailable) return '사용 불가(기기고장)';
+    if (isCleaning) return '청소중';
     if (isReserved) return '예약중';
     if (!isUsed) return '사용 가능';
     if (machineState != null) return '사용중 (${machineState.text})';
@@ -125,12 +131,17 @@ class LaundryStatusDialog extends ConsumerWidget {
   static String _buildNotesText({
     required LaundryMachineType machineType,
     required bool isUnavailable,
+    required bool isCleaning,
     required MachineState? machineState,
     required String? expectedTime,
     required String? reservedAt,
     required bool isReserved,
     required DateTime now,
   }) {
+    if (isCleaning) {
+      return '청소 중이라 잠시 사용할 수 없습니다.';
+    }
+
     if (isUnavailable) {
       final machineTypeText = machineType == LaundryMachineType.washer
           ? '세탁기'

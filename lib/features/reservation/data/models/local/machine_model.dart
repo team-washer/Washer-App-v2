@@ -100,22 +100,28 @@ abstract class MachineModel with _$MachineModel {
 
   bool get isUnavailable => normalizedStatus != 'NORMAL';
 
+  // 청소중(availability=CLEANING). 운전 중도 예약 가능도 아닌 별도 상태다.
+  bool get isCleaning => !isUnavailable && normalizedAvailability == 'CLEANING';
+
   // 운전 중이면 reservationId가 남아있어도 예약이 아니라 사용 중으로 본다.
   bool get isReserved =>
       !isUnavailable &&
+      !isCleaning &&
       !isInUse &&
       (hasReservation || normalizedAvailability == 'RESERVED');
 
   // 운전중 판정은 서버 availability 기준. (#228: SmartThings operatingState 판정 제거)
-  // AVAILABLE=미사용, RESERVED=예약, 그 외(UNAVAILABLE)=운전중.
+  // AVAILABLE=미사용, RESERVED=예약, CLEANING=청소중, 그 외(IN_USE/UNAVAILABLE)=운전중.
   // 남은 시간 카운트다운은 서버가 내려주는 expectedCompletionTime을 그대로 사용한다.
   bool get isInUse =>
       !isUnavailable &&
       normalizedAvailability != 'AVAILABLE' &&
-      normalizedAvailability != 'RESERVED';
+      normalizedAvailability != 'RESERVED' &&
+      normalizedAvailability != 'CLEANING';
 
-  // 예약 가능 = 고장 아님 + 예약 안 됨 + 사용 중 아님.
-  bool get isAvailable => !isUnavailable && !isReserved && !isInUse;
+  // 예약 가능 = 고장 아님 + 청소중 아님 + 예약 안 됨 + 사용 중 아님.
+  bool get isAvailable =>
+      !isUnavailable && !isCleaning && !isReserved && !isInUse;
 }
 
 /// `machines/status` 응답. 전체 기기 목록과 개수.

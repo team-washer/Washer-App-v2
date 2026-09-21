@@ -1,6 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
+import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/features/report/presentation/widgets/report_broken_dialog.dart';
+import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
 import 'package:washer/features/reservation/presentation/widgets/machine_card_layout_helpers.dart';
 import 'package:washer/shared/theme/washer_color.dart';
 import 'package:washer/shared/theme/washer_icon.dart';
@@ -58,12 +63,15 @@ class MachineCardAvailableFooter extends StatelessWidget {
               size: 33,
               padding: EdgeInsets.zero,
               onTap: () {
+                // 다이얼로그가 닫힌 뒤에도 안전하도록 container를 미리 캡처한다.
+                final container = ProviderScope.containerOf(context);
                 showDialog(
                   context: context,
                   builder: (context) => Dialog(
                     child: ReportBrokenDialog(
                       machineId: machineId,
                       deviceId: machineName,
+                      onReported: () => _refreshAfterReport(container),
                     ),
                   ),
                 );
@@ -74,4 +82,25 @@ class MachineCardAvailableFooter extends StatelessWidget {
       ],
     );
   }
+}
+
+/// 고장 신고가 접수되면 기기 상태와 활성 예약을 다시 불러온다.
+///
+/// report feature는 예약 상태를 알지 않으므로 이 갱신은 호출한 쪽(reservation)이
+/// 맡는다. 새로고침 실패는 신고 결과에 영향을 주지 않도록 로그만 남긴다.
+void _refreshAfterReport(ProviderContainer container) {
+  unawaited(
+    Future.wait([
+      container.read(machineStatusProvider.notifier).refresh(),
+      container.read(activeReservationProvider.notifier).refresh(),
+    ]).catchError((Object error, StackTrace stackTrace) {
+      AppLogger.error(
+        '고장 신고 후 상태 새로고침 중 오류가 발생했습니다.',
+        name: 'MachineCardAvailableFooter',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      return <void>[];
+    }),
+  );
 }

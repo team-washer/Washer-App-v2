@@ -15,7 +15,6 @@ class MyReservationStatusBody extends StatelessWidget {
     required this.laundryMachineType,
     required this.laundryStatus,
     required this.reservedAt,
-    required this.confirmedAt,
     required this.remainDuration,
     required this.finishedAt,
   });
@@ -23,7 +22,6 @@ class MyReservationStatusBody extends StatelessWidget {
   final LaundryMachineType laundryMachineType;
   final LaundryStatus laundryStatus;
   final String? reservedAt;
-  final String? confirmedAt;
   final String? remainDuration;
   final String? finishedAt;
 

@@ -13,7 +13,6 @@ import 'package:washer/features/reservation/data/models/local/machine_model.dart
 import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
 import 'package:washer/features/reservation/data/data_sources/remote/reservation_remote_data_source.dart';
 import 'package:washer/features/reservation/data/models/remote/cancel_reservation_response.dart';
-import 'package:washer/features/reservation/data/models/remote/confirm_reservation_response.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_action_provider.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_exceptions.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_penalty_provider.dart';
@@ -60,17 +59,6 @@ class FakeReservationRemoteDataSource implements ReservationRemoteDataSource {
       throw nextError;
     }
     return cancelResponse;
-  }
-
-  @override
-  Future<ConfirmReservationResponse> confirmReservation({
-    required int id,
-  }) async {
-    return const ConfirmReservationResponse(
-      status: 'success',
-      code: 200,
-      message: '확정되었습니다.',
-    );
   }
 }
 

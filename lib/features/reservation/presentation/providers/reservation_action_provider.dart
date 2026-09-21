@@ -154,8 +154,12 @@ class ReservationActionNotifier extends AsyncNotifier<ActiveReservationModel?> {
   Future<bool> _cancelInternal({required int reservationId}) async {
     state = const AsyncLoading();
 
+    final sync = ref.read(reservationSyncControllerProvider);
+    final wasPolling = sync.isPolling;
+
     try {
-      ref.read(reservationSyncControllerProvider).stopPolling();
+      // 취소하는 동안 polling 응답이 취소된 예약을 되살리지 않도록 잠시 멈춘다.
+      sync.stopPolling();
 
       await ref
           .read(reservationRemoteDataSourceProvider)
@@ -173,6 +177,11 @@ class ReservationActionNotifier extends AsyncNotifier<ActiveReservationModel?> {
         stackTrace: stackTrace,
       );
       state = AsyncError(error, stackTrace);
+      // 취소가 실패했으면 예약은 그대로 유지된다(예: 이미 사용이 시작돼 409).
+      // 멈췄던 polling을 다시 켜야 완료·종료가 화면에 계속 반영된다.
+      if (wasPolling) {
+        sync.startPolling();
+      }
       return false;
     }
   }

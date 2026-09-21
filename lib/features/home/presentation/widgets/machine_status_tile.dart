@@ -30,6 +30,7 @@ class MachineStatusTile extends StatelessWidget {
             machineId: machine.machineId,
             isUsed: !isAvailable,
             isUnavailable: machine.isUnavailable,
+            isCleaning: machine.isCleaning,
             machineState: machineState,
             roomNumber: machine.roomNumber,
             expectedTime: machine.expectedCompletionTime,

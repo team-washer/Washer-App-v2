@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
 import 'package:washer/core/enums/reservation_state.dart';
 import 'package:washer/features/reservation/presentation/widgets/machine_card_available_footer.dart';
+import 'package:washer/features/reservation/presentation/widgets/machine_card_cleaning_footer.dart';
 import 'package:washer/features/reservation/presentation/widgets/machine_card_in_use_footer.dart';
 import 'package:washer/features/reservation/presentation/widgets/machine_card_reserved_by_me_footer.dart';
 import 'package:washer/features/reservation/presentation/widgets/machine_card_reserved_by_other_footer.dart';
@@ -87,6 +88,11 @@ class MachineCardFooter extends StatelessWidget {
         );
       case ReservationState.unavailable:
         return MachineCardUnavailableFooter(
+          laundryMachineType: laundryMachineType,
+          trailing: trailing,
+        );
+      case ReservationState.cleaning:
+        return MachineCardCleaningFooter(
           laundryMachineType: laundryMachineType,
           trailing: trailing,
         );

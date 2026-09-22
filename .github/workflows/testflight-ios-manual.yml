@@ -1,6 +1,9 @@
 name: Manual - iOS TestFlight
 
 on:
+  push:
+    branches:
+      - 'fix/#251-ios-laundry-push-notification'
   workflow_dispatch:
     inputs:
       changelog:

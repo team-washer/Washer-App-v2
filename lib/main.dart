@@ -22,20 +22,28 @@ void main() async {
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp, // 세로 방향으로 고정
     ]),
-    Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform),
+    // TODO(#298): Firebase 콘솔에 web 앱을 등록하고 firebase_options.dart에
+    // web case를 추가하면 web에서도 초기화한다. 그 전까지는 web에서 건너뛴다.
+    if (!kIsWeb)
+      Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform),
   ]);
-  if (kDebugMode) {
-    await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(false);
+  // firebase_crashlytics는 Flutter Web을 지원하지 않는다.
+  if (!kIsWeb) {
+    if (kDebugMode) {
+      await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(
+        false,
+      );
+    }
+    FlutterError.onError = (errorDetails) {
+      FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
+      FlutterError.presentError(errorDetails);
+    };
+    // Pass all uncaught asynchronous errors that aren't handled by the Flutter framework to Crashlytics
+    PlatformDispatcher.instance.onError = (error, stack) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      return !kDebugMode;
+    };
   }
-  FlutterError.onError = (errorDetails) {
-    FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
-    FlutterError.presentError(errorDetails);
-  };
-  // Pass all uncaught asynchronous errors that aren't handled by the Flutter framework to Crashlytics
-  PlatformDispatcher.instance.onError = (error, stack) {
-    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-    return !kDebugMode;
-  };
 
   runApp(
     const ProviderScope(

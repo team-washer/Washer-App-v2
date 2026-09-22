@@ -24,6 +24,10 @@ enum AlarmType {
   CANCELLATION_BLOCKED,
   @JsonValue('CANCELLATION_BLOCK_EXTENDED')
   CANCELLATION_BLOCK_EXTENDED,
+  @JsonValue('FORCE_STOPPED')
+  FORCE_STOPPED,
+  @JsonValue('ADMIN_PENALTY_BLOCKED')
+  ADMIN_PENALTY_BLOCKED,
   // 서버가 추가한 알 수 없는 타입에 대한 폴백 값.
   unknown,
 }

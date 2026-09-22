@@ -9,6 +9,7 @@ enum ReservationState {
   reservedByMe, // 예약완료 (본인)
   reservedByOther, // 예약완료 (타인)
   unavailable, // 사용불가
+  cleaning, // 통세척중 (매주 금요일 오전 10시 자동 통세척)
 }
 
 extension ReservationStateText on ReservationState {
@@ -25,6 +26,8 @@ extension ReservationStateText on ReservationState {
         return '예약완료';
       case ReservationState.unavailable:
         return '사용불가';
+      case ReservationState.cleaning:
+        return '통세척중';
     }
   }
 
@@ -32,6 +35,7 @@ extension ReservationStateText on ReservationState {
   Color get color {
     switch (this) {
       case ReservationState.available:
+      case ReservationState.cleaning:
         return WasherColor.baseGray300;
       case ReservationState.inUse:
       case ReservationState.reservedByMe:

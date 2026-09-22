@@ -6,17 +6,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:washer/core/errors/app_exception.dart';
 import 'package:washer/core/enums/machine_state.dart';
-import 'package:washer/core/utils/date_time_formatter.dart';
 import 'package:washer/features/reservation/data/data_sources/remote/reservation_status_remote_data_source.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/data/models/local/machine_model.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
 import 'package:washer/features/reservation/data/data_sources/remote/reservation_remote_data_source.dart';
 import 'package:washer/features/reservation/data/models/remote/cancel_reservation_response.dart';
-import 'package:washer/features/reservation/data/models/remote/confirm_reservation_response.dart';
+import 'package:washer/features/reservation/data/models/remote/reservation_availability_response.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_action_provider.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_exceptions.dart';
-import 'package:washer/features/reservation/presentation/providers/reservation_penalty_provider.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_sync_controller.dart';
 
 class FakeReservationRemoteDataSource implements ReservationRemoteDataSource {
@@ -61,17 +59,6 @@ class FakeReservationRemoteDataSource implements ReservationRemoteDataSource {
     }
     return cancelResponse;
   }
-
-  @override
-  Future<ConfirmReservationResponse> confirmReservation({
-    required int id,
-  }) async {
-    return const ConfirmReservationResponse(
-      status: 'success',
-      code: 200,
-      message: '확정되었습니다.',
-    );
-  }
 }
 
 const _noPenaltyCancel = CancelReservationResponse(
@@ -80,28 +67,6 @@ const _noPenaltyCancel = CancelReservationResponse(
   penaltyApplied: false,
   penaltyExpiresAt: '',
 );
-
-/// 예약 패널티 상태를 storage 없이 메모리로만 다루는 테스트용 notifier.
-class FakeReservationPenaltyNotifier extends ReservationPenaltyNotifier {
-  FakeReservationPenaltyNotifier([this.initialExpiry]);
-
-  final DateTime? initialExpiry;
-  DateTime? recorded;
-
-  @override
-  DateTime? build() => initialExpiry;
-
-  @override
-  void record(DateTime expiresAt) {
-    recorded = expiresAt;
-    state = expiresAt;
-  }
-
-  @override
-  void clear() {
-    state = null;
-  }
-}
 
 const _reservedReservation = ActiveReservationModel(
   id: 114,
@@ -121,15 +86,30 @@ class FakeReservationStatusRemoteDataSource
   FakeReservationStatusRemoteDataSource({
     required this.machineStatusLoader,
     this.activeReservationsLoader,
+    this.myActiveReservationLoader,
+    this.availabilityLoader,
   });
 
   final Future<MachineStatusResponse> Function() machineStatusLoader;
   final Future<List<ActiveReservationModel>> Function()?
   activeReservationsLoader;
+  final Future<ActiveReservationModel?> Function()? myActiveReservationLoader;
+  final Future<ReservationAvailabilityResponse> Function()? availabilityLoader;
 
   @override
   Future<List<ActiveReservationModel>> getActiveReservations() {
     return activeReservationsLoader?.call() ?? Future.value(const []);
+  }
+
+  @override
+  Future<ActiveReservationModel?> getMyActiveReservation() {
+    return myActiveReservationLoader?.call() ?? Future.value(null);
+  }
+
+  @override
+  Future<ReservationAvailabilityResponse> getReservationAvailability() {
+    return availabilityLoader?.call() ??
+        Future.value(const ReservationAvailabilityResponse());
   }
 
   @override
@@ -384,9 +364,6 @@ void main() {
           reservationRemoteDataSourceProvider.overrideWith(
             (ref) => reservationDataSource,
           ),
-          reservationPenaltyProvider.overrideWith(
-            FakeReservationPenaltyNotifier.new,
-          ),
           reservationStatusRemoteDataSourceProvider.overrideWith(
             (ref) => FakeReservationStatusRemoteDataSource(
               machineStatusLoader: () async =>
@@ -422,9 +399,6 @@ void main() {
           reservationRemoteDataSourceProvider.overrideWith(
             (ref) => reservationDataSource,
           ),
-          reservationPenaltyProvider.overrideWith(
-            FakeReservationPenaltyNotifier.new,
-          ),
           reservationStatusRemoteDataSourceProvider.overrideWith(
             (ref) => FakeReservationStatusRemoteDataSource(
               machineStatusLoader: () async =>
@@ -454,9 +428,6 @@ void main() {
           reservationRemoteDataSourceProvider.overrideWith(
             (ref) => reservationDataSource,
           ),
-          reservationPenaltyProvider.overrideWith(
-            FakeReservationPenaltyNotifier.new,
-          ),
           reservationStatusRemoteDataSourceProvider.overrideWith(
             (ref) => FakeReservationStatusRemoteDataSource(
               machineStatusLoader: () async =>
@@ -484,9 +455,6 @@ void main() {
           reservationRemoteDataSourceProvider.overrideWith(
             (ref) => reservationDataSource,
           ),
-          reservationPenaltyProvider.overrideWith(
-            FakeReservationPenaltyNotifier.new,
-          ),
           reservationStatusRemoteDataSourceProvider.overrideWith(
             (ref) => FakeReservationStatusRemoteDataSource(
               machineStatusLoader: () async =>
@@ -512,9 +480,6 @@ void main() {
         overrides: [
           reservationRemoteDataSourceProvider.overrideWith(
             (ref) => reservationDataSource,
-          ),
-          reservationPenaltyProvider.overrideWith(
-            FakeReservationPenaltyNotifier.new,
           ),
           reservationStatusRemoteDataSourceProvider.overrideWith(
             (ref) => FakeReservationStatusRemoteDataSource(
@@ -557,9 +522,6 @@ void main() {
           overrides: [
             reservationRemoteDataSourceProvider.overrideWith(
               (ref) => reservationDataSource,
-            ),
-            reservationPenaltyProvider.overrideWith(
-              FakeReservationPenaltyNotifier.new,
             ),
             reservationStatusRemoteDataSourceProvider.overrideWith(
               (ref) => FakeReservationStatusRemoteDataSource(
@@ -641,9 +603,6 @@ void main() {
           reservationRemoteDataSourceProvider.overrideWith(
             (ref) => reservationDataSource,
           ),
-          reservationPenaltyProvider.overrideWith(
-            FakeReservationPenaltyNotifier.new,
-          ),
           reservationStatusRemoteDataSourceProvider.overrideWith(
             (ref) => FakeReservationStatusRemoteDataSource(
               // 첫 조회는 사용중, 그 이후로는 계속 사용 가능으로 응답한다.
@@ -686,9 +645,6 @@ void main() {
           reservationRemoteDataSourceProvider.overrideWith(
             (ref) => reservationDataSource,
           ),
-          reservationPenaltyProvider.overrideWith(
-            FakeReservationPenaltyNotifier.new,
-          ),
           reservationStatusRemoteDataSourceProvider.overrideWith(
             (ref) => FakeReservationStatusRemoteDataSource(
               machineStatusLoader: () async =>
@@ -713,41 +669,60 @@ void main() {
       );
     });
 
-    test('취소 패널티 기간이면 요청을 보내지 않고 예외를 담는다', () async {
-      final reservationDataSource = FakeReservationRemoteDataSource();
-      final expiry = DateTime.now().add(const Duration(minutes: 5));
+    // 패널티는 앱이 기록하지 않고 서버(reservations/availability) 상태를 따른다.
+    ProviderContainer penaltyContainer({
+      required FakeReservationRemoteDataSource reservationDataSource,
+      required Future<ReservationAvailabilityResponse> Function()
+      availabilityLoader,
+    }) {
       final container = ProviderContainer(
         overrides: [
           reservationRemoteDataSourceProvider.overrideWith(
             (ref) => reservationDataSource,
           ),
-          reservationPenaltyProvider.overrideWith(
-            () => FakeReservationPenaltyNotifier(expiry),
-          ),
           reservationStatusRemoteDataSourceProvider.overrideWith(
             (ref) => FakeReservationStatusRemoteDataSource(
               machineStatusLoader: () async =>
                   const MachineStatusResponse(machines: [], totalCount: 0),
+              availabilityLoader: availabilityLoader,
             ),
           ),
         ],
       );
       addTearDown(container.dispose);
+      return container;
+    }
 
-      final result = await container
-          .read(reservationActionProvider.notifier)
-          .reserve(machineId: 83);
+    test(
+      '서버가 패널티 중(canReserve=false, 만료 전)이라고 하면 요청을 보내지 않고 예외를 담는다',
+      () async {
+        final reservationDataSource = FakeReservationRemoteDataSource();
+        // 오프셋 없는 문자열은 앱이 KST로 해석하므로, 실행 환경의 시간대(CI=UTC 등)와
+        // 무관하게 미래가 되도록 절대 시각(Z)으로 만든다.
+        final expiry = DateTime.now().toUtc().add(const Duration(minutes: 5));
+        final container = penaltyContainer(
+          reservationDataSource: reservationDataSource,
+          availabilityLoader: () async => ReservationAvailabilityResponse(
+            canReserve: false,
+            penaltyExpiresAt: expiry.toIso8601String(),
+          ),
+        );
 
-      expect(result, isNull);
-      // 서버 조회(GET)·예약(POST) 요청이 나가지 않아야 한다.
-      expect(reservationDataSource.lastMachineId, isNull);
-      expect(
-        container.read(reservationActionProvider).error,
-        isA<ReservationPenaltyException>(),
-      );
-    });
+        final result = await container
+            .read(reservationActionProvider.notifier)
+            .reserve(machineId: 83);
 
-    test('취소 시 패널티가 부과되면 만료시각을 로컬에 기록한다', () async {
+        expect(result, isNull);
+        // 예약(POST) 요청이 나가지 않아야 한다.
+        expect(reservationDataSource.lastMachineId, isNull);
+        expect(
+          container.read(reservationActionProvider).error,
+          isA<ReservationPenaltyException>(),
+        );
+      },
+    );
+
+    test('취소로 패널티가 부과돼도 앱이 기록하지 않고 다음 예약 시 서버 상태로 판단한다', () async {
       final reservationDataSource = FakeReservationRemoteDataSource(
         cancelResponse: const CancelReservationResponse(
           success: true,
@@ -756,33 +731,82 @@ void main() {
           penaltyExpiresAt: '2999-01-01T00:00:00',
         ),
       );
-      final container = ProviderContainer(
-        overrides: [
-          reservationRemoteDataSourceProvider.overrideWith(
-            (ref) => reservationDataSource,
-          ),
-          reservationPenaltyProvider.overrideWith(
-            FakeReservationPenaltyNotifier.new,
-          ),
-          reservationStatusRemoteDataSourceProvider.overrideWith(
-            (ref) => FakeReservationStatusRemoteDataSource(
-              machineStatusLoader: () async =>
-                  const MachineStatusResponse(machines: [], totalCount: 0),
-            ),
-          ),
-        ],
+      var penalized = false;
+      final container = penaltyContainer(
+        reservationDataSource: reservationDataSource,
+        availabilityLoader: () async => penalized
+            ? const ReservationAvailabilityResponse(
+                canReserve: false,
+                penaltyExpiresAt: '2999-01-01T00:00:00',
+              )
+            : const ReservationAvailabilityResponse(),
       );
-      addTearDown(container.dispose);
+
+      final cancelled = await container
+          .read(reservationActionProvider.notifier)
+          .cancel(reservationId: 114);
+      expect(cancelled, isTrue);
+
+      // 서버가 패널티를 반영한 뒤의 첫 예약 시도만 막힌다.
+      penalized = true;
+      final result = await container
+          .read(reservationActionProvider.notifier)
+          .reserve(machineId: 83);
+
+      expect(result, isNull);
+      expect(
+        container.read(reservationActionProvider).error,
+        isA<ReservationPenaltyException>(),
+      );
+    });
+
+    test('예약 불가이지만 패널티 만료 시각이 없으면(호실 금지 등) 막지 않고 서버에 맡긴다', () async {
+      final reservationDataSource = FakeReservationRemoteDataSource();
+      final container = penaltyContainer(
+        reservationDataSource: reservationDataSource,
+        availabilityLoader: () async => const ReservationAvailabilityResponse(
+          canReserve: false,
+          isBanned: true,
+        ),
+      );
+
+      await container
+          .read(reservationActionProvider.notifier)
+          .reserve(machineId: 83);
+
+      expect(reservationDataSource.lastMachineId, 83);
+    });
+
+    test('패널티 만료 시각이 이미 지났으면 예약을 진행한다', () async {
+      final reservationDataSource = FakeReservationRemoteDataSource();
+      final container = penaltyContainer(
+        reservationDataSource: reservationDataSource,
+        availabilityLoader: () async => const ReservationAvailabilityResponse(
+          canReserve: false,
+          penaltyExpiresAt: '2000-01-01T00:00:00',
+        ),
+      );
+
+      await container
+          .read(reservationActionProvider.notifier)
+          .reserve(machineId: 83);
+
+      expect(reservationDataSource.lastMachineId, 83);
+    });
+
+    test('예약 가능 상태 조회가 실패해도 예약 요청은 진행한다(서버가 최종 검증)', () async {
+      final reservationDataSource = FakeReservationRemoteDataSource();
+      final container = penaltyContainer(
+        reservationDataSource: reservationDataSource,
+        availabilityLoader: () async => throw Exception('네트워크 오류'),
+      );
 
       final result = await container
           .read(reservationActionProvider.notifier)
-          .cancel(reservationId: 114);
+          .reserve(machineId: 83);
 
-      expect(result, isTrue);
-      expect(
-        container.read(reservationPenaltyProvider),
-        DateTimeFormatter.parseServerDateTime('2999-01-01T00:00:00'),
-      );
+      expect(reservationDataSource.lastMachineId, 83);
+      expect(result, _reservedReservation);
     });
   });
 
@@ -809,12 +833,15 @@ void main() {
             (ref) => FakeReservationStatusRemoteDataSource(
               machineStatusLoader: () async =>
                   const MachineStatusResponse(machines: [], totalCount: 0),
-              activeReservationsLoader: () async => const [runningReservation],
+              myActiveReservationLoader: () async => runningReservation,
             ),
           ),
         ],
       );
       addTearDown(container.dispose);
+
+      // 호실 목록의 첫 조회(build)를 먼저 소비시켜, polling 결과가 덮이지 않게 한다.
+      await container.read(activeReservationProvider.future);
 
       final controller = container.read(reservationSyncControllerProvider);
       controller.startPolling();
@@ -828,18 +855,23 @@ void main() {
       ]);
     });
 
-    test('서버가 활성 예약을 더 이상 반환하지 않으면 polling을 멈추고 홈 예약을 제거한다', () async {
-      var callCount = 0;
+    test('서버가 내 활성 예약을 null로 응답하면 polling을 멈추고 홈 예약을 제거한다', () async {
+      var pollCount = 0;
+      var roomCount = 0;
       final container = ProviderContainer(
         overrides: [
           reservationStatusRemoteDataSourceProvider.overrideWith(
             (ref) => FakeReservationStatusRemoteDataSource(
               machineStatusLoader: () async =>
                   const MachineStatusResponse(machines: [], totalCount: 0),
+              // 첫 호출은 홈 최초 진입. 이후(종료 시 동기화)에는 끝난 예약이 서버 목록에서도 빠진다.
               activeReservationsLoader: () async {
-                callCount += 1;
-                // 1번째 호출은 activeReservationProvider.build()가 소비한다.
-                return callCount <= 2 ? const [runningReservation] : const [];
+                roomCount += 1;
+                return roomCount == 1 ? const [runningReservation] : const [];
+              },
+              myActiveReservationLoader: () async {
+                pollCount += 1;
+                return pollCount <= 1 ? runningReservation : null;
               },
             ),
           ),
@@ -847,20 +879,66 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      // build()의 첫 조회(1번째 호출)를 먼저 소비시켜, 이후 호출 순서를 고정한다.
       await container.read(activeReservationProvider.future);
 
       final controller = container.read(reservationSyncControllerProvider);
-      controller.startPolling();
+      controller.startPolling(reservationId: runningReservation.id);
       addTearDown(controller.stopPolling);
 
-      await controller.syncActiveReservation(); // 2번째 호출: 여전히 RUNNING
+      await controller.syncActiveReservation(); // 1번째 조회: 여전히 RUNNING
       expect(controller.isPolling, isTrue);
 
-      await controller.syncActiveReservation(); // 3번째 호출: 활성 예약 없음
+      await controller.syncActiveReservation(); // 2번째 조회: 활성 예약 없음(null)
+      await Future<void>.delayed(Duration.zero); // 종료 시 백그라운드 동기화 대기
 
       expect(controller.isPolling, isFalse);
       expect(container.read(activeReservationProvider).value, isEmpty);
+    });
+
+    test('내 예약이 끝나도 룸메이트의 활성 예약은 목록에 남긴다', () async {
+      const roommateReservation = ActiveReservationModel(
+        id: 200,
+        userId: 16,
+        userName: '룸메이트',
+        userRoomNumber: '420',
+        machineId: 90,
+        machineName: 'Dryer-4F-R1',
+        status: 'RUNNING',
+      );
+      var roomCount = 0;
+      final container = ProviderContainer(
+        overrides: [
+          reservationStatusRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeReservationStatusRemoteDataSource(
+              machineStatusLoader: () async =>
+                  const MachineStatusResponse(machines: [], totalCount: 0),
+              activeReservationsLoader: () async {
+                roomCount += 1;
+                // 내 예약이 끝나면 서버 호실 목록에는 룸메이트 예약만 남는다.
+                return roomCount == 1
+                    ? const [runningReservation, roommateReservation]
+                    : const [roommateReservation];
+              },
+              myActiveReservationLoader: () async => null,
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(activeReservationProvider.future);
+
+      final controller = container.read(reservationSyncControllerProvider);
+      controller.startPolling(reservationId: runningReservation.id);
+      addTearDown(controller.stopPolling);
+
+      await controller.syncActiveReservation();
+      await Future<void>.delayed(Duration.zero); // 종료 시 백그라운드 동기화 대기
+
+      expect(controller.isPolling, isFalse);
+      expect(container.read(activeReservationProvider).value, const [
+        roommateReservation,
+      ]);
     });
 
     // 리뷰 반영: 조회가 계속 실패하면(서버 장애 등) 무한히 polling하지 않고
@@ -872,7 +950,7 @@ void main() {
             (ref) => FakeReservationStatusRemoteDataSource(
               machineStatusLoader: () async =>
                   const MachineStatusResponse(machines: [], totalCount: 0),
-              activeReservationsLoader: () async {
+              myActiveReservationLoader: () async {
                 throw Exception('네트워크 오류');
               },
             ),

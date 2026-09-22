@@ -85,6 +85,7 @@ class _ReservationMachineListState
     );
 
     if (machine.isUnavailable) return ReservationState.unavailable;
+    if (machine.isCleaning) return ReservationState.cleaning;
 
     if (isMyMachine && activeReservation != null) {
       final myReservation = activeReservation;

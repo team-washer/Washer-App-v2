@@ -69,7 +69,6 @@ class MyReservationCard extends StatelessWidget {
             laundryMachineType: reservation.machineType,
             laundryStatus: reservation.laundryStatus,
             reservedAt: reservation.reservedAt,
-            confirmedAt: reservation.confirmedAt,
             remainDuration: null,
             finishedAt: reservation.expectedCompletionTime,
           ),

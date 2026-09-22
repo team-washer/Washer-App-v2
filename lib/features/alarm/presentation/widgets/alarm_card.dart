@@ -98,6 +98,10 @@ class AlarmCard extends StatelessWidget {
         return '취소 제한';
       case AlarmType.CANCELLATION_BLOCK_EXTENDED:
         return '취소 제한 연장';
+      case AlarmType.FORCE_STOPPED:
+        return '강제 종료';
+      case AlarmType.ADMIN_PENALTY_BLOCKED:
+        return '관리자 패널티';
       case AlarmType.unknown:
         return '알림';
     }

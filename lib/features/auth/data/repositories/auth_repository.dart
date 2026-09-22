@@ -35,6 +35,7 @@ class AuthRepository {
       _storage.write(key: 'refresh_token', value: response.refreshToken),
     ]);
 
+    _alarmRepository.enableFcmRegistration();
     unawaited(_alarmRepository.registerCurrentFcmToken());
   }
 

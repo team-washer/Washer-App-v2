@@ -132,7 +132,7 @@ jobs:
       - name: Resolve iOS version metadata
         run: |
           VERSION_LINE="$(grep '^version:' pubspec.yaml | head -n 1 | awk '{print $2}')"
-          VERSION_NAME="${VERSION_LINE%%+*}"
+          VERSION_NAME="1.1.7"
           BASE_BUILD_NUMBER="${VERSION_LINE#*+}"
 
           if [ -z "$VERSION_NAME" ] || [ -z "$BASE_BUILD_NUMBER" ] || \

@@ -22,7 +22,7 @@ jobs:
 
     steps:
       - name: Checkout selected branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
 
@@ -32,12 +32,12 @@ jobs:
           echo "Commit: $GITHUB_SHA"
 
       - name: Set up Xcode
-        uses: maxim-lobanov/setup-xcode@v1
+        uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1
         with:
           xcode-version: latest-stable
 
       - name: Set up Dart
-        uses: dart-lang/setup-dart@v1
+        uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1
 
       - name: Install FVM
         run: |
@@ -50,7 +50,7 @@ jobs:
           fvm use --force
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@e8944e80fb94b20106697132f8c20c665fab29e9 # v1
         with:
           ruby-version: '3.3'
           bundler-cache: true
@@ -111,7 +111,7 @@ jobs:
 
           CERT_OUTPUT=$(security find-identity -v -p codesigning "$KEYCHAIN_PATH")
           echo "$CERT_OUTPUT"
-          if echo "$CERT_OUTPUT" | grep -qE "^\s+0 valid identities found"; then
+          if echo "$CERT_OUTPUT" | grep -qE "^[[:space:]]*0 valid identities found"; then
             echo "::error::No valid signing certificate found in keychain."
             exit 1
           fi
@@ -130,14 +130,15 @@ jobs:
         run: |
           VERSION_LINE="$(grep '^version:' pubspec.yaml | head -n 1 | awk '{print $2}')"
           VERSION_NAME="${VERSION_LINE%%+*}"
+          BASE_BUILD_NUMBER="${VERSION_LINE#*+}"
 
-          if [ -z "$VERSION_NAME" ]; then
-            echo "::error::Unable to parse version from pubspec.yaml"
+          if [ -z "$VERSION_NAME" ] || [ -z "$BASE_BUILD_NUMBER" ] || \
+             [ "$BASE_BUILD_NUMBER" = "$VERSION_LINE" ]; then
+            echo "::error::Unable to parse version and build number from pubspec.yaml"
             exit 1
           fi
 
-          YEAR_DIGIT="$(date -u +%y | cut -c2)"
-          BUILD_NUMBER="${YEAR_DIGIT}$(date -u +%j).$(date -u +%H).$(date -u +%M)"
+          BUILD_NUMBER="${BASE_BUILD_NUMBER}.${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}"
 
           echo "IOS_VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
           echo "IOS_BUILD_NUMBER=$BUILD_NUMBER" >> "$GITHUB_ENV"

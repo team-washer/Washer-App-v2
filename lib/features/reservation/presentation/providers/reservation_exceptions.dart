@@ -1,4 +1,4 @@
-import 'package:washer/core/errors/app_exception.dart';
+import 'package:washer/core/network/error.dart';
 
 /// 예약 요청 직전 조회에서 이미 예약 또는 사용 중인 기기로 확인된 경우.
 class AlreadyReservedException implements UserFacingException {

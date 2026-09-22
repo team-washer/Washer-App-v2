@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:washer/core/errors/app_exception.dart';
+import 'package:washer/core/network/error.dart';
 
 /// [BuildContext]에서 바로 에러 스낵바를 띄우는 확장.
 extension ErrorSnackBarExtension on BuildContext {

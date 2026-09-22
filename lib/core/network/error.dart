@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:washer/core/utils/app_logger.dart';
 
 /// 사용자에게 그대로 보여줄 메시지를 가진 예외.
 abstract interface class UserFacingException implements Exception {
@@ -55,37 +56,29 @@ class AppException {
   static const String _genericServerMessage = '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
 
   /// 임의의 에러를 종류별로 분류해 [AppException]으로 변환한다.
-  factory AppException.from(Object? error) {
-    if (error is UserFacingException) {
-      return AppException(
-        message: error.userMessage,
-        debugMessage: error.toString(),
-      );
-    }
-
-    if (error is DioException) {
-      return AppException._fromDioException(error);
-    }
-
-    if (error is FormatException) {
-      return AppException(
-        message: '데이터를 불러오는 중 오류가 발생했습니다.',
-        debugMessage: error.message,
-      );
-    }
-
-    if (error is TypeError) {
-      return AppException(
-        message: '데이터를 불러오는 중 오류가 발생했습니다.',
-        debugMessage: error.toString(),
-      );
-    }
-
-    return AppException(
+  ///
+  /// 이미 [AppException]으로 정규화된 값(예: [guardApiCall] 결과)이 들어오면
+  /// 그대로 반환한다(멱등). 그래야 정규화된 에러를 다시 넘겨도 메시지가 유지된다.
+  factory AppException.from(Object? error) => switch (error) {
+    AppException e => e,
+    UserFacingException e => AppException(
+      message: e.userMessage,
+      debugMessage: e.toString(),
+    ),
+    DioException e => AppException._fromDioException(e),
+    FormatException e => AppException(
+      message: '데이터를 불러오는 중 오류가 발생했습니다.',
+      debugMessage: e.message,
+    ),
+    TypeError e => AppException(
+      message: '데이터를 불러오는 중 오류가 발생했습니다.',
+      debugMessage: e.toString(),
+    ),
+    _ => AppException(
       message: '알 수 없는 오류가 발생했습니다.',
       debugMessage: error?.toString(),
-    );
-  }
+    ),
+  };
 
   factory AppException._fromDioException(DioException exception) {
     final statusCode = exception.response?.statusCode;
@@ -179,5 +172,48 @@ class AppException {
       return base;
     }
     return '${base ?? ''} [${extras.join(', ')}]'.trim();
+  }
+}
+
+/// API 호출 결과를 성공/실패로 표현하는 공통 타입.
+///
+/// Flutter 공식 클린 아키텍처 샘플(flutter/samples)의 `Result` 패턴을 따른다.
+/// viewmodel(Notifier)이 매번 try-catch로 에러를 잡는 대신 [guardApiCall]로
+/// 호출을 감싸면, 실패는 항상 [AppException]으로 정규화되어 [ResultFailure]로 돌아온다.
+sealed class Result<T> {
+  const Result();
+}
+
+final class ResultSuccess<T> extends Result<T> {
+  const ResultSuccess(this.value);
+
+  final T value;
+}
+
+final class ResultFailure<T> extends Result<T> {
+  const ResultFailure(this.error);
+
+  final AppException error;
+}
+
+/// [action]을 실행하고 성공/실패를 [Result]로 감싸 반환한다.
+///
+/// 실패하면 예외를 [AppException.from]으로 정규화하고 [logName] 태그로 로그를
+/// 남긴다. 호출부(viewmodel)는 try-catch 없이 [Result]를 패턴 매칭으로 처리하면 된다.
+Future<Result<T>> guardApiCall<T>(
+  Future<T> Function() action, {
+  required String logName,
+}) async {
+  try {
+    return ResultSuccess(await action());
+  } catch (error, stackTrace) {
+    final appException = AppException.from(error);
+    AppLogger.error(
+      appException.debugMessage ?? appException.message,
+      name: logName,
+      error: error,
+      stackTrace: stackTrace,
+    );
+    return ResultFailure(appException);
   }
 }

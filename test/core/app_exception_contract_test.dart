@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:washer/core/errors/app_exception.dart';
+import 'package:washer/core/network/error.dart';
 
 /// 서버 오류 응답 계약(공통 wrapper + 상태 코드별 의미)을 앱이 그대로 따르는지 검증한다.
 DioException _serverError(

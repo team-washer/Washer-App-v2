@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
@@ -7,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:washer/core/errors/app_exception.dart';
 import 'package:washer/core/utils/app_logger.dart';
+import 'package:washer/features/reservation/presentation/providers/connection_error_message.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/data/models/local/machine_model.dart';
 import 'package:washer/features/reservation/data/data_sources/remote/reservation_status_remote_data_source.dart';
@@ -62,15 +62,7 @@ String? _pollingErrorMessageFor(DioException error) {
   }
 
   if (error.type == DioExceptionType.connectionError) {
-    final rawError = error.error;
-    if (rawError is SocketException) {
-      if (rawError.message.contains('Connection refused')) {
-        return '서버 연결이 거부되었습니다. 서버 상태를 확인해주세요.';
-      }
-      return '네트워크 연결에 실패했습니다. 인터넷 또는 서버 상태를 확인해주세요.';
-    }
-
-    return '네트워크 연결에 실패했습니다.';
+    return connectionErrorMessageFor(error.error) ?? '네트워크 연결에 실패했습니다.';
   }
 
   if (error.response == null) {

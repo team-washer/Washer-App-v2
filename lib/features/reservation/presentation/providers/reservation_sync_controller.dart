@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:washer/core/network/error.dart';
 import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/features/reservation/data/data_sources/remote/reservation_status_remote_data_source.dart';
 import 'package:washer/features/reservation/presentation/providers/my_reservation_update.dart';
@@ -149,7 +150,9 @@ class ReservationSyncController {
           name: 'ReservationSyncController',
         );
         stopPolling();
-        _ref.read(pollingErrorProvider.notifier).state = '서버 상태가 지연되고 있습니다.';
+        _ref.read(pollingErrorProvider.notifier).state = AppException(
+          message: '서버 상태가 지연되고 있습니다.',
+        );
       }
     }
   }

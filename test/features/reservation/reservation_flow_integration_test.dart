@@ -71,7 +71,7 @@ class ClientApp {
       .machines
       .firstWhere((machine) => machine.machineId == id);
 
-  String? get pollingError => container.read(pollingErrorProvider);
+  String? get pollingError => container.read(pollingErrorProvider)?.message;
 
   Object? get reserveError => container.read(reservationActionProvider).error;
 
@@ -512,7 +512,7 @@ void main() {
       expect(cancelled, isFalse);
       expect(
         AppException.from(s.me.reserveError).message,
-        '이미 사용이 시작된 예약은 취소할 수 없습니다.',
+        '이미 사용이 시작된 예약은 취소할 수 없어요.',
       );
       expect(s.me.reservations.single.status, 'RUNNING');
       expect(
@@ -563,7 +563,7 @@ void main() {
       expect(result, isNull);
       expect(
         AppException.from(me.reserveError).message,
-        '서버가 일시적으로 불안정합니다. 잠시 후 다시 시도해주세요.',
+        '서비스가 잠시 불안정해요.\n잠시 후 다시 시도해주세요.',
       );
       expect(me.isPolling, isFalse);
       expect(me.reservations, isEmpty);

@@ -303,7 +303,7 @@ void main() {
 
       expect(state.error, isA<DioException>());
       expect(
-        container.read(pollingErrorProvider),
+        container.read(pollingErrorProvider)?.message,
         '서버 연결이 거부되었습니다. 서버 상태를 확인해주세요.',
       );
     });
@@ -971,7 +971,10 @@ void main() {
       await controller.syncActiveReservation();
 
       expect(controller.isPolling, isFalse);
-      expect(container.read(pollingErrorProvider), '서버 상태가 지연되고 있습니다.');
+      expect(
+        container.read(pollingErrorProvider)?.message,
+        '서버 상태가 지연되고 있습니다.',
+      );
     });
   });
 }

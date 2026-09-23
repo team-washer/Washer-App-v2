@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:washer/core/router/route_paths.dart';
-import 'package:washer/core/widgets/error_snack_bar.dart';
+import 'package:washer/shared/ui/error_toast.dart';
 import 'package:washer/features/auth/presentation/providers/login_provider.dart';
 import 'package:washer/shared/theme/washer_icon.dart';
 import 'package:washer/shared/theme/app_spacing.dart';
@@ -25,7 +25,7 @@ class DgLoginButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     ref.listen<AsyncValue<void>>(loginProvider, (previous, next) {
       if (next is AsyncError) {
-        context.showErrorSnackBar(next.error);
+        context.showErrorToast(next.error);
       }
     });
 

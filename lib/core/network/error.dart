@@ -13,6 +13,14 @@ abstract interface class UserFacingException implements Exception {
 /// 400 요청 검증 오류 · 401 인증 실패 · 403 권한 부족 · 404 사용자/예약/기기 없음 ·
 /// 409 이미 사용이 시작된 예약 취소 등 상태 충돌 · 451 이용 대상이 아닌 사용자 ·
 /// 502 SmartThings 상태/명령 실패 · 503 Redis/외부 서비스 일시 장애.
+///
+/// 화면에는 서버가 내려준 `message` 대신 [_statusMessages]의 고정 문구를 보여준다.
+/// 서버 문구는 상태 코드마다 일관되지 않거나 기술적일 수 있어, 토스트 디자인에서
+/// 정의한 문구로 통일한다. 원인 추적은 [errorCode]/[traceId]로 한다.
+///
+/// 404는 사용자/예약/기기 없음을 구분하지 않는다. 세 경우 모두 서버가
+/// `data.errorCode: "NOT_FOUND"`로 동일하게 내려주므로 앱에서 구분할 수 없다.
+/// 백엔드가 사례별 errorCode를 내려주게 되면 그때 분기한다.
 class AppException {
   AppException({
     required this.message,
@@ -36,21 +44,16 @@ class AppException {
   /// 요청 검증 오류의 필드별 상세(`data.fieldErrors`). 서버 형태 그대로 보관한다.
   final Object? fieldErrors;
 
-  /// 인프라 장애(502/503)는 서버 메시지가 기술적인 내용일 수 있어, 서버 메시지 대신
-  /// 항상 이 문구를 보여준다. 원인은 [errorCode]/[traceId]로 추적한다.
-  static const Map<int, String> _infrastructureMessages = {
-    502: '기기 서비스와 연결하지 못했습니다. 잠시 후 다시 시도해주세요.',
-    503: '서버가 일시적으로 불안정합니다. 잠시 후 다시 시도해주세요.',
-  };
-
-  /// 서버가 메시지를 주지 않았을 때 쓰는 상태 코드별 기본 문구.
-  static const Map<int, String> _statusFallbackMessages = {
-    400: '요청 정보가 올바르지 않습니다.',
-    401: '로그인이 만료되었습니다. 다시 로그인해주세요.',
-    403: '이 작업을 수행할 권한이 없습니다.',
-    404: '요청한 정보를 찾을 수 없습니다.',
-    409: '현재 상태에서는 요청을 처리할 수 없습니다.',
-    451: '서비스 이용 대상이 아닙니다.',
+  /// 상태 코드별 사용자용 고정 문구. 서버 `message`보다 항상 우선한다.
+  static const Map<int, String> _statusMessages = {
+    400: '입력한 정보를 다시 확인해주세요.',
+    401: '로그인이 필요해요. 다시 로그인해주세요.',
+    403: '이 기능을 이용할 수 없어요.',
+    404: '예약 정보를 찾을 수 없어요.\n다시 확인해주세요.',
+    409: '이미 사용이 시작된 예약은 취소할 수 없어요.',
+    451: '현재 예약 서비스를 이용할 수 없는 사용자예요.',
+    502: '기기와 연결할 수 없어요.\n잠시 후 다시 시도해주세요.',
+    503: '서비스가 잠시 불안정해요.\n잠시 후 다시 시도해주세요.',
   };
 
   static const String _genericServerMessage = '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
@@ -109,19 +112,14 @@ class AppException {
       fieldErrors: detail.fieldErrors,
     );
 
-    final infrastructureMessage = _infrastructureMessages[statusCode];
-    if (infrastructureMessage != null) {
-      return build(infrastructureMessage);
+    final fixedMessage = _statusMessages[statusCode];
+    if (fixedMessage != null) {
+      return build(fixedMessage);
     }
 
     final serverMessage = _serverMessageFrom(body);
     if (serverMessage != null) {
       return build(serverMessage);
-    }
-
-    final fallback = _statusFallbackMessages[statusCode];
-    if (fallback != null) {
-      return build(fallback);
     }
 
     return build(_genericServerMessage);

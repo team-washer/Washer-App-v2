@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:washer/core/widgets/error_snack_bar.dart';
+import 'package:washer/shared/ui/error_toast.dart';
 import 'package:washer/shared/theme/washer_color.dart';
 import 'package:washer/shared/theme/app_spacing.dart';
 import 'package:washer/shared/theme/washer_typography.dart';
@@ -38,7 +38,7 @@ class _HistoryDialogState extends ConsumerState<HistoryDialog> {
   Widget build(BuildContext context) {
     ref.listen<Object?>(historyErrorProvider, (previous, next) {
       if (next != null) {
-        context.showErrorSnackBar(next);
+        context.showErrorToast(next);
       }
     });
 

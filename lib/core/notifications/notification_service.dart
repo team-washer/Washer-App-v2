@@ -35,26 +35,56 @@ class NotificationService {
   final FlutterSecureStorage _storage;
 
   StreamSubscription<String>? _tokenRefreshSubscription;
+  Future<void>? _initializationFuture;
   bool _isInitialized = false;
 
+  Stream<String> get onTokenRefresh => _messaging.onTokenRefresh;
+
   /// 권한 요청, 토큰 저장, 토큰 갱신 구독을 한 번만 수행한다.
-  Future<void> initialize() async {
-    if (_isInitialized) return;
+  Future<void> initialize() {
+    if (_isInitialized) return Future<void>.value();
+    return _initializationFuture ??= _initialize();
+  }
 
-    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  Future<void> _initialize() async {
+    try {
+      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-    await _requestPermissions();
-    await _saveFcmTokenWhenReady();
-
-    _tokenRefreshSubscription ??= _messaging.onTokenRefresh.listen((token) {
-      unawaited(_storage.write(key: fcmTokenStorageKey, value: token));
-      AppLogger.debug(
-        'FCM token refreshed: $token',
-        name: 'NotificationService',
+      _tokenRefreshSubscription ??= _messaging.onTokenRefresh.listen(
+        (token) async {
+          try {
+            await _storage.write(key: fcmTokenStorageKey, value: token);
+            AppLogger.debug(
+              'FCM token refreshed.',
+              name: 'NotificationService',
+            );
+          } catch (error, stackTrace) {
+            AppLogger.error(
+              'Failed to store refreshed FCM token.',
+              name: 'NotificationService',
+              error: error,
+              stackTrace: stackTrace,
+            );
+          }
+        },
+        onError: (Object error, StackTrace stackTrace) {
+          AppLogger.error(
+            'FCM token refresh stream failed.',
+            name: 'NotificationService',
+            error: error,
+            stackTrace: stackTrace,
+          );
+        },
       );
-    });
 
-    _isInitialized = true;
+      await _requestPermissions();
+      await _saveFcmTokenWhenReady();
+
+      _isInitialized = true;
+    } catch (_) {
+      _initializationFuture = null;
+      rethrow;
+    }
   }
 
   Future<String?> getStoredFcmToken() {
@@ -100,7 +130,7 @@ class NotificationService {
     if (token == null || token.isEmpty) return;
 
     await _storage.write(key: fcmTokenStorageKey, value: token);
-    AppLogger.debug('FCM token: $token', name: 'NotificationService');
+    AppLogger.debug('FCM token saved.', name: 'NotificationService');
   }
 
   Future<void> _saveFcmTokenWhenReady() async {

@@ -5,7 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
-import 'package:washer/core/errors/app_exception.dart';
+import 'package:washer/core/network/error.dart';
 import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/data/models/local/machine_model.dart';
@@ -17,8 +17,8 @@ final clockProvider = StreamProvider<DateTime>((ref) {
   return Stream.periodic(const Duration(seconds: 1), (_) => DateTime.now());
 });
 
-/// polling/조회 실패 시 사용자에게 보여줄 안내 문구. 없으면 null.
-final pollingErrorProvider = StateProvider<String?>((ref) => null);
+/// polling/조회 실패 시 사용자에게 보여줄 오류. 없으면 null.
+final pollingErrorProvider = StateProvider<AppException?>((ref) => null);
 
 /// 기기 상태와 활성 예약을 함께 새로고침한다(Provider 내부에서 사용).
 Future<void> refreshReservationStatusProviders(Ref ref) {
@@ -39,7 +39,7 @@ Future<void> refreshReservationStatusWidgets(WidgetRef ref) {
 /// Dio 오류를 사용자용 문구로 변환한다. 안내할 필요가 없는 오류면 null.
 ///
 /// 상태 코드별 문구는 서버 오류 응답 계약을 따른다(자세한 계약은 [AppException] 참고).
-String? _pollingErrorMessageFor(DioException error) {
+AppException? _pollingErrorFor(DioException error) {
   // 인증 갱신에 실패해 요청 자체가 취소된 경우다. 로그아웃 흐름이 처리하므로
   // 여기서 "네트워크 오류" 같은 잘못된 안내를 띄우지 않는다.
   if (error.type == DioExceptionType.cancel) {
@@ -50,35 +50,38 @@ String? _pollingErrorMessageFor(DioException error) {
   if (statusCode != null && statusCode >= 500) {
     // 502(기기 서비스 실패)/503(일시 장애)은 원인별 문구를, 그 외 5xx는 코드를 보여준다.
     if (statusCode == 502 || statusCode == 503) {
-      return AppException.from(error).message;
+      return AppException.from(error);
     }
-    return '서버 오류가 발생했습니다. ($statusCode)';
+    return AppException(
+      message: '서버 오류가 발생했습니다. ($statusCode)',
+      statusCode: statusCode,
+    );
   }
 
   if (error.type == DioExceptionType.connectionTimeout ||
       error.type == DioExceptionType.sendTimeout ||
       error.type == DioExceptionType.receiveTimeout) {
-    return '서버 응답 시간이 초과되었습니다.';
+    return AppException(message: '서버 응답 시간이 초과되었습니다.');
   }
 
   if (error.type == DioExceptionType.connectionError) {
     final rawError = error.error;
     if (rawError is SocketException) {
       if (rawError.message.contains('Connection refused')) {
-        return '서버 연결이 거부되었습니다. 서버 상태를 확인해주세요.';
+        return AppException(message: '서버 연결이 거부되었습니다. 서버 상태를 확인해주세요.');
       }
-      return '네트워크 연결에 실패했습니다. 인터넷 또는 서버 상태를 확인해주세요.';
+      return AppException(message: '네트워크 연결에 실패했습니다. 인터넷 또는 서버 상태를 확인해주세요.');
     }
 
-    return '네트워크 연결에 실패했습니다.';
+    return AppException(message: '네트워크 연결에 실패했습니다.');
   }
 
   if (error.response == null) {
-    return '네트워크 오류가 발생했습니다.';
+    return AppException(message: '네트워크 오류가 발생했습니다.');
   }
 
-  // 4xx(400 검증, 401 인증, 403 권한, 404 없음, 409 충돌 등)는 서버 메시지를 따른다.
-  return AppException.from(error).message;
+  // 4xx(400 검증, 401 인증, 403 권한, 404 없음, 409 충돌 등)는 상태 코드별 고정 문구를 쓴다.
+  return AppException.from(error);
 }
 
 /// 전체 기기 상태 provider.
@@ -107,9 +110,9 @@ class MachineStatusNotifier extends AsyncNotifier<MachineStatusResponse> {
         error: e,
         stackTrace: st,
       );
-      final message = _pollingErrorMessageFor(e);
-      if (message != null) {
-        ref.read(pollingErrorProvider.notifier).state = message;
+      final pollingError = _pollingErrorFor(e);
+      if (pollingError != null) {
+        ref.read(pollingErrorProvider.notifier).state = pollingError;
       }
       rethrow;
     }
@@ -127,9 +130,9 @@ class MachineStatusNotifier extends AsyncNotifier<MachineStatusResponse> {
         error: e,
         stackTrace: st,
       );
-      final message = _pollingErrorMessageFor(e);
-      if (message != null) {
-        ref.read(pollingErrorProvider.notifier).state = message;
+      final pollingError = _pollingErrorFor(e);
+      if (pollingError != null) {
+        ref.read(pollingErrorProvider.notifier).state = pollingError;
       }
       state = AsyncError(e, st);
     } catch (e, st) {
@@ -206,9 +209,9 @@ class ActiveReservationNotifier
         error: e,
         stackTrace: st,
       );
-      final message = _pollingErrorMessageFor(e);
-      if (message != null) {
-        ref.read(pollingErrorProvider.notifier).state = message;
+      final pollingError = _pollingErrorFor(e);
+      if (pollingError != null) {
+        ref.read(pollingErrorProvider.notifier).state = pollingError;
       }
       rethrow;
     } finally {
@@ -246,9 +249,9 @@ class ActiveReservationNotifier
         error: e,
         stackTrace: st,
       );
-      final message = _pollingErrorMessageFor(e);
-      if (message != null) {
-        ref.read(pollingErrorProvider.notifier).state = message;
+      final pollingError = _pollingErrorFor(e);
+      if (pollingError != null) {
+        ref.read(pollingErrorProvider.notifier).state = pollingError;
       }
       _setErrorIfLatest(requestId, e, st);
     } catch (e, st) {

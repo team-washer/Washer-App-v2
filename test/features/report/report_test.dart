@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:washer/core/errors/app_exception.dart';
+import 'package:washer/core/network/error.dart';
 import 'package:washer/features/report/data/data_sources/remote/report_remote_data_source.dart';
 import 'package:washer/features/report/presentation/providers/report_provider.dart';
 

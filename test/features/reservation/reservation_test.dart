@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:washer/core/errors/app_exception.dart';
+import 'package:washer/core/network/error.dart';
 import 'package:washer/core/enums/machine_state.dart';
 import 'package:washer/features/reservation/data/data_sources/remote/reservation_status_remote_data_source.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
@@ -303,7 +303,7 @@ void main() {
 
       expect(state.error, isA<DioException>());
       expect(
-        container.read(pollingErrorProvider),
+        container.read(pollingErrorProvider)?.message,
         '서버 연결이 거부되었습니다. 서버 상태를 확인해주세요.',
       );
     });
@@ -971,7 +971,10 @@ void main() {
       await controller.syncActiveReservation();
 
       expect(controller.isPolling, isFalse);
-      expect(container.read(pollingErrorProvider), '서버 상태가 지연되고 있습니다.');
+      expect(
+        container.read(pollingErrorProvider)?.message,
+        '서버 상태가 지연되고 있습니다.',
+      );
     });
   });
 }

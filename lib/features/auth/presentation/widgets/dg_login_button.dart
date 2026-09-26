@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:washer/core/router/route_paths.dart';
+import 'package:washer/shared/ui/error_toast.dart';
 import 'package:washer/features/auth/presentation/providers/login_provider.dart';
 import 'package:washer/shared/theme/washer_icon.dart';
 import 'package:washer/shared/theme/app_spacing.dart';
@@ -12,24 +13,22 @@ class DgLoginButton extends ConsumerWidget {
   const DgLoginButton({super.key});
 
   Future<void> _onPressed(BuildContext context, WidgetRef ref) async {
-    final result = await ref.read(loginProvider.notifier).login();
+    final isSuccess = await ref.read(loginProvider.notifier).login();
     if (!context.mounted) return;
 
-    if (result.isSuccess) {
+    if (isSuccess) {
       context.go(RoutePaths.splash);
-      return;
-    }
-
-    final message = result.message;
-    if (message != null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
     }
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.listen<AsyncValue<void>>(loginProvider, (previous, next) {
+      if (next is AsyncError) {
+        context.showErrorToast(next.error);
+      }
+    });
+
     final isLoading = ref.watch(loginProvider).isLoading;
 
     return SizedBox(

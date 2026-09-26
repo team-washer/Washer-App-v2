@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:washer/core/errors/app_exception.dart';
+import 'package:washer/core/network/error.dart';
 
 /// 서버 오류 응답 계약(공통 wrapper + 상태 코드별 의미)을 앱이 그대로 따르는지 검증한다.
 DioException _serverError(
@@ -42,7 +42,7 @@ void main() {
         ),
       );
 
-      expect(exception.message, '요청 값이 올바르지 않습니다.');
+      expect(exception.message, '입력한 정보를 다시 확인해주세요.');
       expect(exception.statusCode, 400);
       expect(exception.errorCode, 'VALIDATION_FAILED');
       expect(exception.traceId, 'trace-123');
@@ -67,7 +67,7 @@ void main() {
         _serverError(404, message: '예약을 찾을 수 없습니다.'),
       );
 
-      expect(exception.message, '예약을 찾을 수 없습니다.');
+      expect(exception.message, '예약 정보를 찾을 수 없어요.\n다시 확인해주세요.');
       expect(exception.errorCode, isNull);
       expect(exception.traceId, isNull);
       expect(exception.fieldErrors, isNull);
@@ -86,39 +86,56 @@ void main() {
         ),
       );
 
-      expect(exception.message, '잘못된 요청');
+      expect(exception.message, '입력한 정보를 다시 확인해주세요.');
       expect(exception.traceId, isNull);
     });
   });
 
   group('상태 코드별 문구', () {
-    test('서버가 message를 주면 그 문구를 우선한다 (400/401/403/404/409/451)', () {
-      for (final code in [400, 401, 403, 404, 409, 451]) {
-        final exception = AppException.from(
-          _serverError(code, message: '서버 문구 $code'),
-        );
-
-        expect(exception.message, '서버 문구 $code', reason: 'status $code');
-      }
-    });
-
-    test('서버 message가 없으면 상태 코드별 기본 문구를 쓴다', () {
+    test('정의된 상태 코드는 서버 message와 무관하게 항상 고정 문구를 보여준다', () {
       final expected = <int, String>{
-        400: '요청 정보가 올바르지 않습니다.',
-        401: '로그인이 만료되었습니다. 다시 로그인해주세요.',
-        403: '이 작업을 수행할 권한이 없습니다.',
-        404: '요청한 정보를 찾을 수 없습니다.',
-        409: '현재 상태에서는 요청을 처리할 수 없습니다.',
-        451: '서비스 이용 대상이 아닙니다.',
+        400: '입력한 정보를 다시 확인해주세요.',
+        401: '로그인이 필요해요. 다시 로그인해주세요.',
+        403: '이 기능을 이용할 수 없어요.',
+        404: '예약 정보를 찾을 수 없어요.\n다시 확인해주세요.',
+        409: '이미 사용이 시작된 예약은 취소할 수 없어요.',
+        451: '현재 예약 서비스를 이용할 수 없는 사용자예요.',
+        502: '기기와 연결할 수 없어요.\n잠시 후 다시 시도해주세요.',
+        503: '서비스가 잠시 불안정해요.\n잠시 후 다시 시도해주세요.',
       };
 
       expected.forEach((code, message) {
         expect(
-          AppException.from(_serverError(code)).message,
+          AppException.from(_serverError(code, message: '서버 문구 $code')).message,
           message,
           reason: 'status $code',
         );
+        expect(
+          AppException.from(_serverError(code)).message,
+          message,
+          reason: 'status $code (message 없음)',
+        );
       });
+    });
+
+    test('404는 사용자/예약/기기 없음을 구분하지 않는다 (서버가 모두 NOT_FOUND로 내려줌)', () {
+      final userNotFound = AppException.from(
+        _serverError(
+          404,
+          message: '사용자를 찾을 수 없습니다.',
+          data: {'errorCode': 'NOT_FOUND'},
+        ),
+      );
+      final deviceNotFound = AppException.from(
+        _serverError(
+          404,
+          message: '기기를 찾을 수 없습니다.',
+          data: {'errorCode': 'NOT_FOUND'},
+        ),
+      );
+
+      expect(userNotFound.message, deviceNotFound.message);
+      expect(userNotFound.message, '예약 정보를 찾을 수 없어요.\n다시 확인해주세요.');
     });
 
     test('502/503은 서버 메시지가 기술적이어도 사용자용 고정 문구를 보여준다', () {
@@ -133,8 +150,8 @@ void main() {
         ),
       );
 
-      expect(badGateway.message, '기기 서비스와 연결하지 못했습니다. 잠시 후 다시 시도해주세요.');
-      expect(unavailable.message, '서버가 일시적으로 불안정합니다. 잠시 후 다시 시도해주세요.');
+      expect(badGateway.message, '기기와 연결할 수 없어요.\n잠시 후 다시 시도해주세요.');
+      expect(unavailable.message, '서비스가 잠시 불안정해요.\n잠시 후 다시 시도해주세요.');
       // 기술적인 원인은 화면에 노출하지 않고 추적 정보로만 남긴다.
       expect(unavailable.message, isNot(contains('Redis')));
       expect(unavailable.traceId, 't-1');

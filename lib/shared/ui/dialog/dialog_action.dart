@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:washer/core/widgets/error_snack_bar.dart';
+import 'package:washer/shared/ui/error_toast.dart';
 import 'package:washer/shared/ui/loading_overlay.dart';
 import 'package:washer/core/utils/app_logger.dart';
 
@@ -53,17 +53,15 @@ Future<void> runDialogAction<R>(
   final messenger = ScaffoldMessenger.of(context);
   final navigator = Navigator.of(context);
   final container = ProviderScope.containerOf(context);
-  final overlay = action.showLoading
-      ? Overlay.of(context, rootOverlay: true)
-      : null;
+  final rootOverlay = Overlay.of(context, rootOverlay: true);
 
   if (popFirst) {
     navigator.pop();
   }
 
   try {
-    final result = overlay != null
-        ? await runWithLoadingOverlay(overlay, () => action.run(container))
+    final result = action.showLoading
+        ? await runWithLoadingOverlay(rootOverlay, () => action.run(container))
         : await action.run(container);
 
     if (action.isSuccess(result)) {
@@ -72,11 +70,11 @@ Future<void> runDialogAction<R>(
       if (messenger.mounted) {
         messenger.showSnackBar(SnackBar(content: Text(action.successMessage)));
       }
-    } else if (messenger.mounted) {
+    } else if (rootOverlay.mounted) {
       final failureError = action.failureError?.call(container);
       if (failureError != null) {
-        messenger.showErrorSnackBar(failureError);
-      } else {
+        rootOverlay.showErrorToast(failureError);
+      } else if (messenger.mounted) {
         messenger.showSnackBar(
           SnackBar(content: Text(action.fallbackMessage)),
         );
@@ -89,8 +87,8 @@ Future<void> runDialogAction<R>(
       error: error,
       stackTrace: stackTrace,
     );
-    if (messenger.mounted) {
-      messenger.showErrorSnackBar(error);
+    if (rootOverlay.mounted) {
+      rootOverlay.showErrorToast(error);
     }
   }
 }

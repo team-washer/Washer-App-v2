@@ -35,10 +35,11 @@ extension ErrorToastOverlayExtension on OverlayState {
       builder: (_) => _ErrorToastOverlay(
         error: appException,
         onDismiss: () {
-          if (identical(_currentErrorToastEntry, entry)) {
-            _currentErrorToastEntry = null;
-          }
-          if (mounted) entry.remove();
+          // 현재 토스트가 아니면 이미 교체·닫힘으로 제거된 entry다.
+          // 늦게 도착한 타이머/닫기 콜백이 remove()를 두 번 부르지 않도록 무시한다.
+          if (!identical(_currentErrorToastEntry, entry)) return;
+          _currentErrorToastEntry = null;
+          entry.remove();
         },
       ),
     );

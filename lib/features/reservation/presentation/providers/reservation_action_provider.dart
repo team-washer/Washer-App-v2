@@ -1,40 +1,33 @@
 import 'dart:async';
 
 import 'package:collection/collection.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:washer/core/constants/durations.dart';
+import 'package:washer/core/constants/reservation_durations.dart';
 import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/core/utils/date_time_formatter.dart';
 import 'package:washer/features/reservation/data/data_sources/remote/reservation_remote_data_source.dart';
 import 'package:washer/features/reservation/data/data_sources/remote/reservation_status_remote_data_source.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
-import 'package:washer/features/reservation/data/models/local/laundry_machine_model.dart';
-import 'package:washer/features/reservation/presentation/providers/reservation_penalty_provider.dart';
+import 'package:washer/features/reservation/data/models/local/machine_model.dart';
+import 'package:washer/features/reservation/data/models/remote/reservation_availability_response.dart';
+import 'package:washer/features/reservation/presentation/providers/reservation_exceptions.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_sync_controller.dart';
 
-/// 예약 요청 직전 GET으로 확인한 결과, 이미 예약/사용 중이라 예약할 수 없는 경우.
-class AlreadyReservedException implements Exception {
-  const AlreadyReservedException();
-}
-
-/// 취소 패널티 기간이라 서버 요청 없이 클라이언트에서 예약을 막은 경우.
-class ReservationPenaltyException implements Exception {
-  const ReservationPenaltyException(this.expiresAt);
-
-  final DateTime expiresAt;
-}
-
+/// 예약 생성/취소 요청을 실행하고 진행 상태(로딩/성공/실패)를 노출한다.
+///
+/// 상태 값은 마지막으로 생성된 예약이며, 실패는 [AsyncError]로 전달된다.
 class ReservationActionNotifier extends AsyncNotifier<ActiveReservationModel?> {
   /// 진행 중인 요청을 대상(기기/예약) 단위로 보관한다.
   /// 키 없이 단일 슬롯에 담으면 다른 대상의 요청에 합류해 그 결과가
   /// 이 호출의 반환값이 된다(#261).
   final Map<String, Future<Object?>> _inflight = {};
+  bool _didWaitForBuild = false;
 
   @override
   Future<ActiveReservationModel?> build() async => null;
 
+  /// 기기 예약을 요청한다. 실패하면 상태를 에러로 두고 null을 반환한다.
   Future<ActiveReservationModel?> reserve({required int machineId}) {
     return _runSingleFlight(
       'reserve:$machineId',
@@ -45,21 +38,14 @@ class ReservationActionNotifier extends AsyncNotifier<ActiveReservationModel?> {
   Future<ActiveReservationModel?> _reserveInternal({
     required int machineId,
   }) async {
-    // build()이 끝난 뒤 상태를 바꿔야, 동기 경로에서 던진 예외 상태가
-    // 뒤늦게 끝난 build 결과(null)로 덮이지 않는다.
-    await future;
-    state = const AsyncLoading();
-
     try {
-      // 취소 패널티 기간이면 서버로 요청을 보내지 않고 클라이언트에서 곧바로 막는다.
-      final penaltyExpiry = ref.read(reservationPenaltyProvider);
-      if (penaltyExpiry != null) {
-        if (DateTime.now().isBefore(penaltyExpiry)) {
-          throw ReservationPenaltyException(penaltyExpiry);
-        }
-        // 이미 만료된 패널티면 정리만 하고 정상 진행한다.
-        ref.read(reservationPenaltyProvider.notifier).clear();
-      }
+      // build()이 끝난 뒤 상태를 바꿔야, 동기 경로에서 던진 예외 상태가
+      // 뒤늦게 끝난 build 결과(null)로 덮이지 않는다.
+      await _waitForInitialBuild();
+      state = const AsyncLoading();
+
+      // 취소 패널티 기간이면 예약 요청을 보내지 않고 곧바로 안내한다.
+      await _ensureNotPenalized();
 
       // 예약 요청 전, 최신 기기 상태를 GET으로 불러와 예약 가능 여부를 비교합니다.
       // 취소 직후 곧바로 재예약하는 경우 서버의 취소 반영이 상태조회에 아직
@@ -85,7 +71,12 @@ class ReservationActionNotifier extends AsyncNotifier<ActiveReservationModel?> {
       await refreshReservationStatusProviders(ref);
 
       state = AsyncData(createdReservation);
-      ref.read(reservationSyncControllerProvider).startPolling();
+      ref
+          .read(reservationSyncControllerProvider)
+          .startPolling(
+            reservationId: createdReservation.id,
+            userId: createdReservation.userId,
+          );
       return createdReservation;
     } catch (error, stackTrace) {
       AppLogger.error(
@@ -99,15 +90,60 @@ class ReservationActionNotifier extends AsyncNotifier<ActiveReservationModel?> {
     }
   }
 
+  /// build() 완료를 최초 한 번만 기다린다.
+  Future<void> _waitForInitialBuild() async {
+    if (_didWaitForBuild) {
+      return;
+    }
+
+    await future;
+    _didWaitForBuild = true;
+  }
+
+  /// 서버의 예약 가능 상태를 조회해 패널티 중이면 [ReservationPenaltyException]을 던진다.
+  ///
+  /// 패널티는 앱이 기록하지 않고 서버 상태(`reservations/availability`)를 따른다.
+  /// 예약 불가(`canReserve=false`)이면서 만료 시각이 아직 남았을 때만 막는다.
+  /// 그 외 예약 불가 사유(호실 금지, 시간 제한 등)는 서버가 예약 요청에서
+  /// 메시지로 응답하므로 여기서 막지 않는다. 조회 자체가 실패해도 서버가 예약
+  /// 요청에서 최종 검증하므로 예약은 그대로 진행한다.
+  Future<void> _ensureNotPenalized() async {
+    final ReservationAvailabilityResponse availability;
+    try {
+      availability = await ref
+          .read(reservationStatusRemoteDataSourceProvider)
+          .getReservationAvailability();
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        '예약 가능 상태 조회에 실패해 서버 검증에 맡기고 진행합니다.',
+        name: 'ReservationActionNotifier',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      return;
+    }
+
+    final expiresAt = DateTimeFormatter.parseServerDateTime(
+      availability.penaltyExpiresAt,
+    );
+    if (!availability.canReserve &&
+        expiresAt != null &&
+        DateTime.now().isBefore(expiresAt)) {
+      throw ReservationPenaltyException(expiresAt);
+    }
+  }
+
+  /// 서버에서 최신 기기 상태를 조회해 대상 기기를 찾는다.
   Future<MachineModel?> _findMachine(int machineId) async {
     final latestStatus = await ref
-        .read(homeRemoteDataSourceProvider)
+        .read(reservationStatusRemoteDataSourceProvider)
         .getMachineStatus();
     return latestStatus.machines.firstWhereOrNull(
       (machine) => machine.machineId == machineId,
     );
   }
 
+  /// 예약을 취소한다. 성공 여부를 반환한다. 패널티는 서버가 관리하므로 앱은 기록하지 않는다.
   Future<bool> cancel({required int reservationId}) {
     return _runSingleFlight(
       'cancel:$reservationId',
@@ -118,22 +154,16 @@ class ReservationActionNotifier extends AsyncNotifier<ActiveReservationModel?> {
   Future<bool> _cancelInternal({required int reservationId}) async {
     state = const AsyncLoading();
 
-    try {
-      ref.read(reservationSyncControllerProvider).stopPolling();
+    final sync = ref.read(reservationSyncControllerProvider);
+    final wasPolling = sync.isPolling;
 
-      final result = await ref
+    try {
+      // 취소하는 동안 polling 응답이 취소된 예약을 되살리지 않도록 잠시 멈춘다.
+      sync.stopPolling();
+
+      await ref
           .read(reservationRemoteDataSourceProvider)
           .cancelReservation(id: reservationId);
-
-      // 패널티가 부과됐으면 만료시각을 로컬에 저장해, 이후 예약 시도를 클라에서 막는다.
-      if (result.penaltyApplied) {
-        final expiry = DateTimeFormatter.parseServerDateTime(
-          result.penaltyExpiresAt,
-        );
-        if (expiry != null) {
-          ref.read(reservationPenaltyProvider.notifier).record(expiry);
-        }
-      }
 
       await refreshReservationStatusProviders(ref);
 
@@ -147,10 +177,16 @@ class ReservationActionNotifier extends AsyncNotifier<ActiveReservationModel?> {
         stackTrace: stackTrace,
       );
       state = AsyncError(error, stackTrace);
+      // 취소가 실패했으면 예약은 그대로 유지된다(예: 이미 사용이 시작돼 409).
+      // 멈췄던 polling을 다시 켜야 완료·종료가 화면에 계속 반영된다.
+      if (wasPolling) {
+        sync.startPolling();
+      }
       return false;
     }
   }
 
+  /// 상태를 초기화하고 활성 예약 polling을 멈춘다.
   void reset() {
     state = const AsyncData(null);
     ref.read(reservationSyncControllerProvider).stopPolling();
@@ -169,47 +205,19 @@ class ReservationActionNotifier extends AsyncNotifier<ActiveReservationModel?> {
 
     final request = action();
     _inflight[key] = request;
-    request.whenComplete(() => _inflight.remove(key));
+    unawaited(
+      request.then<void>(
+        (_) => _inflight.remove(key),
+        onError: (Object _, StackTrace __) {
+          _inflight.remove(key);
+        },
+      ),
+    );
     return request;
   }
 }
 
-String reservationActionErrorMessage(
-  Object? error, {
-  required String fallback,
-}) {
-  if (error is! DioException || error.response?.data == null) {
-    return fallback;
-  }
-
-  final response = error.response!.data;
-  if (response is Map<String, dynamic> &&
-      response['message'] is String &&
-      (response['message'] as String).isNotEmpty) {
-    return response['message'] as String;
-  }
-
-  return fallback;
-}
-
-/// 예약 시도 실패를 사용자에게 보여줄 문구로 변환합니다.
-///
-/// 사전 조회 단계에서 이미 예약/사용 중으로 확인된 경우는 별도 안내로,
-/// 그 외에는 서버 메시지(없으면 기본 문구)를 사용합니다.
-String reserveFailureMessage(Object? error) {
-  if (error is ReservationPenaltyException) {
-    final remaining = error.expiresAt.difference(DateTime.now());
-    final minutes = remaining.inMinutes;
-    return minutes >= 1
-        ? '예약이 제한된 상태입니다. 약 $minutes분 후 다시 시도해주세요.'
-        : '예약이 제한된 상태입니다. 잠시 후 다시 시도해주세요.';
-  }
-  if (error is AlreadyReservedException) {
-    return '이미 예약된 기기입니다.';
-  }
-  return '예약 실패: ${reservationActionErrorMessage(error, fallback: '예약에 실패했습니다. 다시 시도해주세요.')}';
-}
-
+/// 예약 생성/취소 액션 provider.
 final reservationActionProvider =
     AsyncNotifierProvider<ReservationActionNotifier, ActiveReservationModel?>(
       ReservationActionNotifier.new,

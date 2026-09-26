@@ -1,0 +1,164 @@
+name: Auto Release Notes
+
+# main 으로 가는 PR 이 열리거나 업데이트될 때,
+# 1) pubspec.yaml 버전을 자동으로 올리고
+# 2) 이모지 커밋 규칙을 기반으로 릴리스 노트를 자동 생성하여
+#    PR 브랜치에 한 번에 커밋한다.
+#
+# 버전 범프 규칙:
+#   ✨ 커밋 포함 → minor 범프  (1.1.6 → 1.2.0)
+#   그 외 (🐛 🔧 등) → patch 범프  (1.1.6 → 1.1.7)
+#   build number (+N) → 항상 +1
+#
+# 릴리스 노트 이모지 분류:
+#   ✨ → 새로운 기능   (포함)
+#   🐛 → 버그 수정     (포함)
+#   🔧 → 개선 사항     (포함)
+#   ♻️ 🔥 ✅ 👷 → 내부 작업 (제외)
+#
+# ⚠️ 브랜치 보호 규칙이 설정된 경우 GITHUB_TOKEN 으로 직접 푸시가 막힐 수 있다.
+#    이 경우 RELEASE_NOTES_PAT (repo 쓰기 권한이 있는 Personal Access Token) 을
+#    GitHub Secrets 에 등록하고 아래 token 값을 ${{ secrets.RELEASE_NOTES_PAT }} 로 변경한다.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  auto_prepare_release:
+    name: 버전 범프 & 릴리스 노트 자동 생성
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    # skip-release-check 라벨이 달린 PR(문서 수정 등)은 건너뜀
+    if: "!contains(github.event.pull_request.labels.*.name, 'skip-release-check')"
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fetch main branch
+        run: git fetch --no-tags origin main
+
+      - name: Bump version & generate release notes
+        env:
+          LC_ALL: C.UTF-8
+        run: |
+          python3 << 'PYEOF'
+          import subprocess
+          import re
+          import sys
+
+          # ── 1. main 현재 버전 읽기 ──────────────────────────────────────
+          pubspec_main = subprocess.run(
+              ['git', 'show', 'origin/main:pubspec.yaml'],
+              capture_output=True, text=True
+          ).stdout
+
+          m = re.search(r'^version:\s+(\d+)\.(\d+)\.(\d+)\+(\d+)', pubspec_main, re.MULTILINE)
+          if not m:
+              print('::error file=pubspec.yaml::main 브랜치의 pubspec.yaml 에서 version 을 읽지 못했습니다.')
+              sys.exit(1)
+
+          major, minor, patch, build = [int(x) for x in m.groups()]
+          print(f'main 버전: {major}.{minor}.{patch}+{build}')
+
+          # ── 2. main 대비 새 커밋 수집 (머지 커밋 제외) ──────────────────
+          commits_raw = subprocess.run(
+              ['git', 'log', 'origin/main..HEAD', '--no-merges', '--pretty=format:%s'],
+              capture_output=True, text=True
+          ).stdout
+          commits = [c for c in commits_raw.strip().split('\n') if c.strip()]
+
+          # ── 3. 버전 범프 ─────────────────────────────────────────────────
+          has_feature = any(c.startswith('✨') for c in commits)
+          if has_feature:
+              new_major, new_minor, new_patch = major, minor + 1, 0
+              bump_type = 'minor (✨ 새 기능 포함)'
+          else:
+              new_major, new_minor, new_patch = major, minor, patch + 1
+              bump_type = 'patch (버그 수정 / 개선)'
+
+          new_build   = build + 1
+          new_version = f'{new_major}.{new_minor}.{new_patch}+{new_build}'
+          print(f'버전 범프: {major}.{minor}.{patch}+{build} → {new_version}  [{bump_type}]')
+
+          # pubspec.yaml 업데이트
+          with open('pubspec.yaml', 'r', encoding='utf-8') as f:
+              content = f.read()
+
+          content = re.sub(
+              r'^(version:\s+)\d+\.\d+\.\d+\+\d+',
+              rf'\g<1>{new_version}',
+              content,
+              flags=re.MULTILINE
+          )
+
+          with open('pubspec.yaml', 'w', encoding='utf-8') as f:
+              f.write(content)
+
+          # ── 4. 릴리스 노트 생성 ──────────────────────────────────────────
+          features     = []
+          fixes        = []
+          improvements = []
+
+          for commit in commits:
+              if commit.startswith('✨'):
+                  desc = re.sub(r'^✨\s*::\s*', '', commit).strip()
+                  features.append(f'• {desc}')
+              elif commit.startswith('🐛'):
+                  desc = re.sub(r'^🐛\s*::\s*', '', commit).strip()
+                  fixes.append(f'• {desc}')
+              elif commit.startswith('🔧'):
+                  desc = re.sub(r'^🔧\s*::\s*', '', commit).strip()
+                  improvements.append(f'• {desc}')
+              # ♻️ 리팩터링 · ✅ 테스트 · 👷 CI · 🔥 제거 → 제외
+
+          sections = []
+          if features:
+              sections.append('[새로운 기능]\n' + '\n'.join(features))
+          if fixes:
+              sections.append('[버그 수정]\n' + '\n'.join(fixes))
+          if improvements:
+              sections.append('[개선 사항]\n' + '\n'.join(improvements))
+
+          if sections:
+              notes = '이번 업데이트 내용입니다.\n\n' + '\n\n'.join(sections)
+          else:
+              notes = '이번 업데이트에서 앱 안정성 및 성능이 개선되었습니다.'
+
+          # Play Store 로케일당 500자 제한 — 줄 단위로 안전하게 자르기
+          if len(notes) > 490:
+              truncated    = notes[:490]
+              last_newline = truncated.rfind('\n')
+              notes        = truncated[:last_newline] if last_newline > 0 else truncated
+
+          with open('fastlane/metadata/ko/release_notes.txt', 'w', encoding='utf-8') as f:
+              f.write(notes + '\n')
+
+          print('\n=== 생성된 릴리스 노트 ===')
+          print(notes)
+          print(f'\n글자 수: {len(notes)}자 / 500자')
+          PYEOF
+
+      - name: Commit & push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add pubspec.yaml fastlane/metadata/ko/release_notes.txt
+
+          if git diff --staged --quiet; then
+            echo "변경 사항 없음 — 커밋 스킵"
+          else
+            git commit -m "🔖 :: 버전 범프 & 릴리스 노트 자동 생성"
+            git push
+          fi

@@ -16,9 +16,11 @@ name: Auto Release Notes
 #   🔧 → 개선 사항     (포함)
 #   ♻️ 🔥 ✅ 👷 → 내부 작업 (제외)
 #
-# ⚠️ 브랜치 보호 규칙이 설정된 경우 GITHUB_TOKEN 으로 직접 푸시가 막힐 수 있다.
-#    이 경우 RELEASE_NOTES_PAT (repo 쓰기 권한이 있는 Personal Access Token) 을
-#    GitHub Secrets 에 등록하고 아래 token 값을 ${{ secrets.RELEASE_NOTES_PAT }} 로 변경한다.
+# ⚠️ GITHUB_TOKEN 으로 push 하면 synchronize 이벤트가 발생하지 않아
+#    release-gate.yml 이 새 커밋에서 재실행되지 않는다.
+#    RELEASE_NOTES_PAT (repo Contents: Read & Write 권한의 Fine-grained PAT) 을
+#    GitHub Secrets 에 등록하면 push 가 synchronize 를 발생시켜 release-gate 가 정상 재실행된다.
+#    PAT 발급: Settings → Developer settings → Personal access tokens → Fine-grained tokens
 
 on:
   pull_request:
@@ -44,7 +46,10 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.head_ref }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # RELEASE_NOTES_PAT: Fine-grained PAT (Contents R/W)
+          # PAT 로 push 해야 synchronize 이벤트가 발생해 release-gate 가 재실행된다.
+          # 미설정 시 GITHUB_TOKEN 으로 fallback — release-gate 재실행 안 됨 (수동 re-run 필요)
+          token: ${{ secrets.RELEASE_NOTES_PAT || secrets.GITHUB_TOKEN }}
 
       - name: Fetch main branch
         run: git fetch --no-tags origin main

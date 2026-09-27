@@ -3,12 +3,12 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:washer/core/network/dio_client.dart';
-import 'package:washer/features/alarm/data/repositories/alarm_repository_provider.dart';
 import 'package:washer/features/alarm/data/repositories/alarm_repository.dart';
 import 'package:washer/features/auth/data/data_sources/remote/auth_remote_data_source.dart';
 import 'package:washer/features/auth/data/models/request/login_request.dart';
 import 'package:washer/features/auth/data/models/request/refresh_request.dart';
 
+/// 로그인/로그아웃/토큰 갱신과 토큰 저장소를 담당하는 인증 저장소
 class AuthRepository {
   final AuthRemoteDataSource _dataSource;
   final FlutterSecureStorage _storage;
@@ -48,6 +48,7 @@ class AuthRepository {
     ]);
   }
 
+  /// 저장된 refresh 토큰으로 access/refresh 토큰을 재발급해 저장한다.
   Future<void> refresh() async {
     final refreshToken = await _storage.read(key: 'refresh_token');
     if (refreshToken == null) return;

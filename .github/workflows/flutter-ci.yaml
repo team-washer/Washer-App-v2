@@ -63,30 +63,24 @@ jobs:
       - name: Install dependencies
         run: fvm flutter pub get
 
+      # .env.* 는 시크릿이라 저장소에 없지만 pubspec 의 assets 에 선언돼 있다.
+      # 파일이 없으면 analyze 는 asset_does_not_exist 경고로, test 는 asset
+      # bundle 빌드 실패로 죽는다. 테스트는 값을 읽지 않으므로(AppEnvironment 는
+      # main() 에서만 로드) 자리채움이면 충분하다. 실제 시크릿은 release-* 워크플로에서만
+      # 주입한다 — PR CI 에 넣어봐야 얻는 건 없고 노출면만 늘어난다.
+      - name: Prepare env files
+        run: |
+          for f in .env.development .env.production; do
+            echo 'API_BASE_URL=https://example.invalid/' > "$f"
+          done
+
       # 코드 분석
       - name: Analyze project source
         run: fvm flutter analyze --no-fatal-infos
-        continue-on-error: true
 
       # 테스트 실행
       - name: Run tests
         run: fvm flutter test
-        continue-on-error: true
-
-      # Android APK 빌드 (main 브랜치에 push 시에만)
-      - name: Build Android APK
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: fvm flutter build apk --release
-        continue-on-error: true
-
-      # APK 업로드 (main 브랜치에 push 시에만)
-      - name: Upload APK
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
-          if-no-files-found: warn
 
       # Discord 알림
       - name: Discord notification

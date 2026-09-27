@@ -7,8 +7,10 @@ import 'package:washer/core/env/app_environment.dart';
 import 'package:washer/core/network/token_utils.dart';
 import 'package:washer/core/utils/app_logger.dart';
 
-import 'insecure_http_client_adapter.dart';
+import 'http_client_adapter_config.dart';
 
+/// 요청에 액세스 토큰을 붙이고, 만료/401 시 토큰을 갱신해 재시도하는 인터셉터.
+/// 갱신에 실패하면 토큰을 지우고 [onLogout]을 호출한다.
 class AuthInterceptor extends Interceptor {
   AuthInterceptor(
     this._dio,
@@ -69,7 +71,8 @@ class AuthInterceptor extends Interceptor {
       }
     }
 
-    final hasValidToken = _cachedAccessToken != null &&
+    final hasValidToken =
+        _cachedAccessToken != null &&
         !TokenUtils.isExpired(_cachedAccessToken!);
 
     if (!hasValidToken) {

@@ -4,12 +4,14 @@ import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/features/history/data/data_sources/history_remote_data_source.dart';
 import 'package:washer/features/history/presentation/states/history_state.dart';
 
+/// 사용 기록 조회 오류를 UI(스낵바)로 전달하기 위한 일회성 오류 상태
 final historyErrorProvider = StateProvider<Object?>((ref) => null);
 
 class HistoryNotifier extends Notifier<HistoryState> {
   @override
   HistoryState build() => const HistoryState();
 
+  /// 기기의 오늘(00:00~23:59) 사용 기록을 조회한다.
   Future<void> fetchTodayHistory(int machineId) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     ref.read(historyErrorProvider.notifier).state = null;

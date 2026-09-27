@@ -4,11 +4,12 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:washer/core/env/app_environment.dart';
 import 'package:washer/core/notifications/notification_bootstrapper.dart';
-import 'package:washer/shared/theme/theme.dart';
+import 'package:washer/shared/theme/washer_theme.dart';
 import 'package:washer/firebase_options.dart';
 
 import 'core/router/app_router.dart';
@@ -18,20 +19,28 @@ void main() async {
   // 서로 독립적인 초기화는 병렬로 처리한다.
   await Future.wait([
     AppEnvironment.initialize(),
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp, // 세로 방향으로 고정
+    ]),
     Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform),
   ]);
-  if (kDebugMode) {
-    await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(false);
+  // firebase_crashlytics는 Flutter Web을 지원하지 않는다.
+  if (!kIsWeb) {
+    if (kDebugMode) {
+      await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(
+        false,
+      );
+    }
+    FlutterError.onError = (errorDetails) {
+      FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
+      FlutterError.presentError(errorDetails);
+    };
+    // Pass all uncaught asynchronous errors that aren't handled by the Flutter framework to Crashlytics
+    PlatformDispatcher.instance.onError = (error, stack) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      return !kDebugMode;
+    };
   }
-  FlutterError.onError = (errorDetails) {
-    FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
-    FlutterError.presentError(errorDetails);
-  };
-  // Pass all uncaught asynchronous errors that aren't handled by the Flutter framework to Crashlytics
-  PlatformDispatcher.instance.onError = (error, stack) {
-    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-    return !kDebugMode;
-  };
 
   runApp(
     const ProviderScope(

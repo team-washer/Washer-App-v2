@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:washer/shared/theme/color.dart';
-import 'package:washer/shared/theme/spacing.dart';
-import 'package:washer/shared/theme/typography.dart';
-import 'package:washer/shared/ui/buttons/custom_big_button.dart';
+import 'package:washer/shared/theme/washer_color.dart';
+import 'package:washer/shared/theme/app_spacing.dart';
+import 'package:washer/shared/theme/washer_typography.dart';
+import 'package:washer/shared/ui/buttons/washer_big_button.dart';
 
+/// 앱 공통 확인 다이얼로그(제목 + 본문 + 뒤로가기/확인 버튼).
+/// 버튼 문구·색·콜백을 생략하면 기본값(닫기)으로 동작하며,
+/// [confirmText]가 빈 문자열이면 뒤로가기 버튼 하나만 표시한다.
 class WasherDialog extends StatelessWidget {
   final String title;
   final Widget content;
@@ -96,7 +99,7 @@ class _WasherDialogActions extends StatelessWidget {
       return Row(
         children: [
           Expanded(
-            child: CustomBigButton(
+            child: WasherBigButton(
               text: backText,
               onPressed: onBackPressed,
               color: backColor,
@@ -109,7 +112,7 @@ class _WasherDialogActions extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: CustomBigButton(
+          child: WasherBigButton(
             text: backText,
             onPressed: onBackPressed,
             color: backColor,
@@ -117,7 +120,7 @@ class _WasherDialogActions extends StatelessWidget {
         ),
         AppGap.h4,
         Expanded(
-          child: CustomBigButton(
+          child: WasherBigButton(
             text: confirmText,
             onPressed: onConfirmPressed,
             color: confirmColor,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:washer/shared/theme/color.dart';
+import 'package:washer/shared/theme/washer_color.dart';
 
+/// 사용 기록 상태 (서버 문자열 상태값과 대응)
 enum HistoryStatus {
   reserved,
   confirmed,

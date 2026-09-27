@@ -1,24 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:washer/core/widgets/error_snack_bar.dart';
+import 'package:washer/shared/ui/error_toast.dart';
 import 'package:washer/shared/ui/loading_overlay.dart';
 import 'package:washer/core/utils/app_logger.dart';
 
 /// 다이얼로그/위젯에서 실행하는 비동기 액션 한 건의 정의.
 ///
 /// "무엇을 실행하고, 성공/실패를 어떻게 판단하며, 어떤 메시지를 띄울지"라는
-/// 액션 고유 정보만 담는다. 액션 종류별 정의는 `DialogActions` 팩토리 한 곳에
+/// 액션 고유 정보만 담는다. 액션 종류별 정의는 `LaundryDialogActions` 팩토리 한 곳에
 /// 모아 두고, 호출부는 그것을 [runDialogAction]에 넘기기만 한다.
 ///
-/// [run]·[failureMessage]는 위젯의 `ref`가 아니라 lifecycle과 무관한
-/// [ProviderContainer]를 받는다. 따라서 pop(=widget dispose) 이후 실행돼도
-/// "bad state" 오류가 나지 않으며, 호출부가 notifier를 미리 캡처할 필요도 없다.
+/// [run]은 위젯의 `ref`가 아니라 lifecycle과 무관한 [ProviderContainer]를
+/// 받는다. 따라서 pop(=widget dispose) 이후 실행돼도 "bad state" 오류가 나지
+/// 않으며, 호출부가 notifier를 미리 캡처할 필요도 없다.
 class DialogAction<R> {
   const DialogAction({
     required this.run,
     required this.isSuccess,
     required this.successMessage,
-    required this.failureMessage,
+    required this.fallbackMessage,
     required this.logName,
     this.failureError,
     this.showLoading = false,
@@ -27,7 +27,7 @@ class DialogAction<R> {
   final Future<R> Function(ProviderContainer container) run;
   final bool Function(R result) isSuccess;
   final String successMessage;
-  final String Function(ProviderContainer container) failureMessage;
+  final String fallbackMessage;
   final String logName;
   final Object? Function(ProviderContainer container)? failureError;
 
@@ -53,17 +53,15 @@ Future<void> runDialogAction<R>(
   final messenger = ScaffoldMessenger.of(context);
   final navigator = Navigator.of(context);
   final container = ProviderScope.containerOf(context);
-  final overlay = action.showLoading
-      ? Overlay.of(context, rootOverlay: true)
-      : null;
+  final rootOverlay = Overlay.of(context, rootOverlay: true);
 
   if (popFirst) {
     navigator.pop();
   }
 
   try {
-    final result = overlay != null
-        ? await runWithLoadingOverlay(overlay, () => action.run(container))
+    final result = action.showLoading
+        ? await runWithLoadingOverlay(rootOverlay, () => action.run(container))
         : await action.run(container);
 
     if (action.isSuccess(result)) {
@@ -72,13 +70,13 @@ Future<void> runDialogAction<R>(
       if (messenger.mounted) {
         messenger.showSnackBar(SnackBar(content: Text(action.successMessage)));
       }
-    } else if (messenger.mounted) {
+    } else if (rootOverlay.mounted) {
       final failureError = action.failureError?.call(container);
       if (failureError != null) {
-        messenger.showErrorSnackBar(failureError);
-      } else {
+        rootOverlay.showErrorToast(failureError);
+      } else if (messenger.mounted) {
         messenger.showSnackBar(
-          SnackBar(content: Text(action.failureMessage(container))),
+          SnackBar(content: Text(action.fallbackMessage)),
         );
       }
     }
@@ -89,8 +87,8 @@ Future<void> runDialogAction<R>(
       error: error,
       stackTrace: stackTrace,
     );
-    if (messenger.mounted) {
-      messenger.showErrorSnackBar(error);
+    if (rootOverlay.mounted) {
+      rootOverlay.showErrorToast(error);
     }
   }
 }

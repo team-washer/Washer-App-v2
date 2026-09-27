@@ -1,16 +1,19 @@
 import 'dart:ui';
 
-import 'package:washer/shared/theme/color.dart';
+import 'package:washer/shared/theme/washer_color.dart';
 
+/// 기기 카드에 표시되는 예약 관점의 기기 상태.
 enum ReservationState {
   inUse, // 사용중
   available, // 예약가능
   reservedByMe, // 예약완료 (본인)
   reservedByOther, // 예약완료 (타인)
   unavailable, // 사용불가
+  cleaning, // 통세척중 (매주 금요일 오전 10시 자동 통세척)
 }
 
 extension ReservationStateText on ReservationState {
+  /// 화면에 표시할 상태 문구.
   String get label {
     switch (this) {
       case ReservationState.inUse:
@@ -23,12 +26,16 @@ extension ReservationStateText on ReservationState {
         return '예약완료';
       case ReservationState.unavailable:
         return '사용불가';
+      case ReservationState.cleaning:
+        return '통세척중';
     }
   }
 
+  /// 상태별 강조 색상.
   Color get color {
     switch (this) {
       case ReservationState.available:
+      case ReservationState.cleaning:
         return WasherColor.baseGray300;
       case ReservationState.inUse:
       case ReservationState.reservedByMe:

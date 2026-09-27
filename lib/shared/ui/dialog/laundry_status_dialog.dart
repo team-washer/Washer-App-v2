@@ -1,20 +1,22 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:washer/core/constants/durations.dart';
+import 'package:washer/core/constants/reservation_durations.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
 import 'package:washer/core/enums/laundry_status.dart';
 import 'package:washer/core/enums/machine_state.dart';
-import 'package:washer/shared/theme/spacing.dart';
-import 'package:washer/shared/theme/typography.dart';
+import 'package:washer/shared/theme/app_spacing.dart';
 import 'package:washer/shared/ui/dialog/dialog_action.dart';
-import 'package:washer/shared/ui/dialog/dialog_actions.dart';
+import 'package:washer/shared/ui/dialog/dialog_info_row.dart';
+import 'package:washer/shared/ui/dialog/laundry_dialog_actions.dart';
 import 'package:washer/shared/ui/dialog/washer_dialog.dart';
 import 'package:washer/core/utils/date_time_formatter.dart';
 import 'package:washer/core/utils/room_formatter.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
 
+/// 기기 현황 다이얼로그. 기기명·상태·사용호실·특이사항을 보여주고,
+/// 사용 가능한 기기라면 "예약하기" 액션을 제공한다.
 class LaundryStatusDialog extends ConsumerWidget {
   const LaundryStatusDialog({
     super.key,
@@ -23,6 +25,7 @@ class LaundryStatusDialog extends ConsumerWidget {
     required this.machineId,
     required this.isUsed,
     this.isUnavailable = false,
+    this.isCleaning = false,
     this.machineState,
     this.roomNumber,
     this.expectedTime,
@@ -33,6 +36,7 @@ class LaundryStatusDialog extends ConsumerWidget {
   final int machineId;
   final bool isUsed;
   final bool isUnavailable;
+  final bool isCleaning;
   final MachineState? machineState;
   final String? roomNumber;
   final String? expectedTime;
@@ -60,6 +64,7 @@ class LaundryStatusDialog extends ConsumerWidget {
       isUsed,
       machineState,
       isReserved: isReserved,
+      isCleaning: isCleaning,
     );
     final roomText = RoomFormatter.formatRoomNumber(
       syncedReservation?.userRoomNumber ?? roomNumber,
@@ -67,6 +72,7 @@ class LaundryStatusDialog extends ConsumerWidget {
     final notesText = _buildNotesText(
       machineType: machineType,
       isUnavailable: isUnavailable,
+      isCleaning: isCleaning,
       machineState: machineState,
       expectedTime: syncedReservation?.expectedCompletionTime ?? expectedTime,
       reservedAt: syncedReservation?.reservedAt,
@@ -82,7 +88,7 @@ class LaundryStatusDialog extends ConsumerWidget {
         onConfirmPressed: isAvailable
             ? () => runDialogAction(
                 context,
-                DialogActions.reserve(
+                LaundryDialogActions.reserve(
                   machineName: machineName,
                   machineId: machineId,
                 ),
@@ -93,13 +99,13 @@ class LaundryStatusDialog extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             AppGap.v10,
-            _InfoRow(label: '기기명', value: machineName),
+            DialogInfoRow(label: '기기명', value: machineName),
             AppGap.v8,
-            _InfoRow(label: '상태', value: statusText),
+            DialogInfoRow(label: '상태', value: statusText),
             AppGap.v10,
-            _InfoRow(label: '사용호실', value: roomText),
+            DialogInfoRow(label: '사용호실', value: roomText),
             AppGap.v10,
-            _InfoRow(label: '특이사항', value: notesText),
+            DialogInfoRow(label: '특이사항', value: notesText),
             AppGap.v10,
           ],
         ),
@@ -112,8 +118,10 @@ class LaundryStatusDialog extends ConsumerWidget {
     bool isUsed,
     MachineState? machineState, {
     required bool isReserved,
+    required bool isCleaning,
   }) {
     if (isUnavailable) return '사용 불가(기기고장)';
+    if (isCleaning) return '통세척중';
     if (isReserved) return '예약중';
     if (!isUsed) return '사용 가능';
     if (machineState != null) return '사용중 (${machineState.text})';
@@ -123,12 +131,17 @@ class LaundryStatusDialog extends ConsumerWidget {
   static String _buildNotesText({
     required LaundryMachineType machineType,
     required bool isUnavailable,
+    required bool isCleaning,
     required MachineState? machineState,
     required String? expectedTime,
     required String? reservedAt,
     required bool isReserved,
     required DateTime now,
   }) {
+    if (isCleaning) {
+      return '자동 통세척 중이라 잠시 사용할 수 없습니다.';
+    }
+
     if (isUnavailable) {
       final machineTypeText = machineType == LaundryMachineType.washer
           ? '세탁기'
@@ -179,33 +192,6 @@ class LaundryStatusDialog extends ConsumerWidget {
   ) {
     return reservations?.firstWhereOrNull(
       (reservation) => reservation.machineId == machineId,
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: WasherTypography.subTitle4(),
-        ),
-        AppGap.h8,
-        Expanded(
-          child: Text(
-            value,
-            style: WasherTypography.body1(),
-          ),
-        ),
-      ],
     );
   }
 }

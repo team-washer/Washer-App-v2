@@ -7,13 +7,14 @@ import 'package:washer/core/network/dio_client.dart';
 import 'package:washer/core/network/token_utils.dart';
 import 'package:washer/core/router/route_paths.dart';
 import 'package:washer/core/services/version_check_service.dart';
-import 'package:washer/shared/theme/icon.dart';
-import 'package:washer/shared/ui/base_scaffold.dart';
+import 'package:washer/shared/theme/washer_icon.dart';
+import 'package:washer/shared/ui/layout/base_scaffold.dart';
 import 'package:washer/shared/ui/dialog/force_update_dialog.dart';
 import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/features/user/data/data_sources/remote/user_remote_data_source.dart';
 import 'package:washer/features/user/presentation/providers/my_user_provider.dart';
 
+/// 앱 시작 화면 — 버전/토큰을 확인하고 홈 또는 로그인으로 분기한다.
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
@@ -30,6 +31,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     });
   }
 
+  /// 버전 체크, 토큰 검증, 사용자 조회를 수행하고 진입 경로를 결정한다.
   Future<void> _bootstrap() async {
     final storage = ref.read(secureStorageProvider);
 
@@ -123,6 +125,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     }
   }
 
+  /// 저장된 토큰과 사용자 상태를 지우고 로그인 화면으로 이동한다.
   Future<void> _goToLogin(FlutterSecureStorage storage) async {
     await storage.delete(key: 'access_token');
     await storage.delete(key: 'refresh_token');

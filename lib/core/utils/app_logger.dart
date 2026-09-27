@@ -2,6 +2,7 @@ import 'dart:developer' as developer;
 
 import 'package:flutter/foundation.dart';
 
+/// `dart:developer` 기반 로거. debug는 디버그 모드에서만 출력한다.
 class AppLogger {
   const AppLogger._();
 

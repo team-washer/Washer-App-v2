@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:washer/core/notifications/notification_service.dart';
 import 'package:washer/features/alarm/data/data_sources/alarm_data_source.dart';
@@ -9,11 +10,19 @@ import 'package:washer/features/alarm/data/repositories/alarm_repository.dart';
 class _FakeAlarmDataSource implements AlarmDataSource {
   final registeredTokens = <String>[];
   Completer<void>? registrationCompleter;
+  int registrationFailuresRemaining = 0;
   var deleteCount = 0;
 
   @override
   Future<void> registerFcmToken(String token) async {
     registeredTokens.add(token);
+    if (registrationFailuresRemaining > 0) {
+      registrationFailuresRemaining--;
+      throw DioException(
+        requestOptions: RequestOptions(path: 'notifications/fcm-token'),
+        type: DioExceptionType.connectionError,
+      );
+    }
     final completer = registrationCompleter;
     if (completer != null) {
       await completer.future;
@@ -35,9 +44,14 @@ class _FakeAlarmDataSource implements AlarmDataSource {
 }
 
 class _FakeNotificationService implements NotificationService {
-  _FakeNotificationService({this.token});
+  _FakeNotificationService({
+    this.token,
+    List<FutureOr<String?> Function()> tokenResponses = const [],
+  }) : _tokenResponses = List.of(tokenResponses);
 
   String? token;
+  final List<FutureOr<String?> Function()> _tokenResponses;
+  var ensureCount = 0;
   var deleteCount = 0;
 
   @override
@@ -47,7 +61,13 @@ class _FakeNotificationService implements NotificationService {
   Future<void> initialize() async {}
 
   @override
-  Future<String?> ensureFcmToken() async => token;
+  Future<String?> ensureFcmToken() async {
+    ensureCount++;
+    if (_tokenResponses.isNotEmpty) {
+      return Future<String?>.sync(_tokenResponses.removeAt(0));
+    }
+    return token;
+  }
 
   @override
   Future<String?> getStoredFcmToken() async => token;
@@ -62,8 +82,161 @@ class _FakeNotificationService implements NotificationService {
   void dispose() {}
 }
 
+Future<void> _flushEventQueue() async {
+  for (var i = 0; i < 10; i++) {
+    await Future<void>.delayed(Duration.zero);
+  }
+}
+
 void main() {
   group('AlarmRepository FCM token registration', () {
+    test('registers immediately when the current token is ready', () async {
+      final dataSource = _FakeAlarmDataSource();
+      final notificationService = _FakeNotificationService(
+        token: 'ready-token',
+      );
+      final repository = AlarmRepository(dataSource, notificationService)
+        ..enableFcmRegistration();
+
+      await repository.registerCurrentFcmToken();
+
+      expect(notificationService.ensureCount, 1);
+      expect(dataSource.registeredTokens, ['ready-token']);
+    });
+
+    test('shares token preparation between startup and login calls', () async {
+      final tokenCompleter = Completer<String?>();
+      final dataSource = _FakeAlarmDataSource();
+      final notificationService = _FakeNotificationService(
+        tokenResponses: [() => tokenCompleter.future],
+      );
+      final repository = AlarmRepository(dataSource, notificationService)
+        ..enableFcmRegistration();
+
+      final startupRegistration = repository.registerCurrentFcmToken();
+      final loginRegistration = repository.registerCurrentFcmToken();
+      tokenCompleter.complete('shared-token');
+
+      await Future.wait([startupRegistration, loginRegistration]);
+
+      expect(notificationService.ensureCount, 1);
+      expect(dataSource.registeredTokens, ['shared-token']);
+    });
+
+    test('retries token preparation when APNS/FCM is not ready yet', () async {
+      final dataSource = _FakeAlarmDataSource();
+      final notificationService = _FakeNotificationService(
+        tokenResponses: [() => null, () => 'late-token'],
+      );
+      final repository = AlarmRepository(
+        dataSource,
+        notificationService,
+        tokenPreparationRetryDelay: Duration.zero,
+      )..enableFcmRegistration();
+
+      await repository.registerCurrentFcmToken();
+      await _flushEventQueue();
+
+      expect(notificationService.ensureCount, 2);
+      expect(dataSource.registeredTokens, ['late-token']);
+    });
+
+    test('retries after the initial token preparation throws', () async {
+      final dataSource = _FakeAlarmDataSource();
+      final notificationService = _FakeNotificationService(
+        tokenResponses: [
+          () => throw StateError('FCM token unavailable'),
+          () => 'retry-token',
+        ],
+      );
+      final repository = AlarmRepository(
+        dataSource,
+        notificationService,
+        tokenPreparationRetryDelay: Duration.zero,
+      )..enableFcmRegistration();
+
+      await repository.registerCurrentFcmToken();
+      await _flushEventQueue();
+
+      expect(notificationService.ensureCount, 2);
+      expect(dataSource.registeredTokens, ['retry-token']);
+    });
+
+    test('stops token preparation after the configured retry limit', () async {
+      final dataSource = _FakeAlarmDataSource();
+      final notificationService = _FakeNotificationService(
+        tokenResponses: [() => null, () => null, () => null, () => null],
+      );
+      final repository = AlarmRepository(
+        dataSource,
+        notificationService,
+        tokenPreparationRetryDelay: Duration.zero,
+        maxTokenPreparationRetries: 2,
+      )..enableFcmRegistration();
+
+      await repository.registerCurrentFcmToken();
+      await _flushEventQueue();
+
+      expect(notificationService.ensureCount, 3);
+      expect(dataSource.registeredTokens, isEmpty);
+    });
+
+    test('retries a transient server registration failure', () async {
+      final dataSource = _FakeAlarmDataSource()
+        ..registrationFailuresRemaining = 1;
+      final repository = AlarmRepository(
+        dataSource,
+        _FakeNotificationService(),
+        registrationRetryDelay: Duration.zero,
+      )..enableFcmRegistration();
+
+      await repository.registerFcmToken('server-retry-token');
+      await _flushEventQueue();
+
+      expect(dataSource.registeredTokens, [
+        'server-retry-token',
+        'server-retry-token',
+      ]);
+    });
+
+    test('does not register a prepared token after logout starts', () async {
+      final tokenCompleter = Completer<String?>();
+      final dataSource = _FakeAlarmDataSource();
+      final notificationService = _FakeNotificationService(
+        tokenResponses: [() => tokenCompleter.future],
+      );
+      final repository = AlarmRepository(dataSource, notificationService)
+        ..enableFcmRegistration();
+
+      final registration = repository.registerCurrentFcmToken();
+      await Future<void>.delayed(Duration.zero);
+      final logout = repository.deleteFcmToken();
+      tokenCompleter.complete('token-after-logout');
+
+      await Future.wait([registration, logout]);
+
+      expect(dataSource.registeredTokens, isEmpty);
+      expect(dataSource.deleteCount, 1);
+      expect(notificationService.deleteCount, 1);
+    });
+
+    test('registers a refreshed token once and skips its duplicate', () async {
+      final dataSource = _FakeAlarmDataSource();
+      final repository = AlarmRepository(
+        dataSource,
+        _FakeNotificationService(),
+      )..enableFcmRegistration();
+
+      await repository.registerFcmToken('initial-token');
+      await repository.registerFcmToken('refreshed-token');
+      await repository.registerFcmToken('refreshed-token');
+
+      expect(dataSource.registeredTokens, [
+        'initial-token',
+        'refreshed-token',
+      ]);
+    });
+
     test('동일한 토큰의 동시 등록 요청은 서버에 한 번만 전송한다', () async {
       final dataSource = _FakeAlarmDataSource()
         ..registrationCompleter = Completer<void>();

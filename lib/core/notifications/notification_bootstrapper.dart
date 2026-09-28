@@ -24,7 +24,8 @@ class NotificationBootstrapper extends ConsumerStatefulWidget {
 }
 
 class _NotificationBootstrapperState
-    extends ConsumerState<NotificationBootstrapper> {
+    extends ConsumerState<NotificationBootstrapper>
+    with WidgetsBindingObserver {
   StreamSubscription<String>? _tokenRefreshSubscription;
 
   @override
@@ -32,6 +33,7 @@ class _NotificationBootstrapperState
     super.initState();
 
     final notificationService = ref.read(notificationServiceProvider);
+    WidgetsBinding.instance.addObserver(this);
     authNotifier.addListener(_handleLogout);
     _tokenRefreshSubscription = notificationService.onTokenRefresh.listen(
       (token) => unawaited(_registerRefreshedToken(token)),
@@ -53,14 +55,7 @@ class _NotificationBootstrapperState
   Future<void> _initializeNotifications() async {
     try {
       await ref.read(notificationInitializationProvider.future);
-      final alarmRepository = ref.read(alarmRepositoryProvider);
-      if (!await _hasActiveSession()) {
-        alarmRepository.disableFcmRegistration();
-        return;
-      }
-
-      alarmRepository.enableFcmRegistrationForExistingSession();
-      await alarmRepository.registerCurrentFcmToken();
+      await _syncCurrentFcmToken();
     } catch (error, stackTrace) {
       AppLogger.error(
         'Failed to initialize notifications.',
@@ -71,13 +66,29 @@ class _NotificationBootstrapperState
     }
   }
 
+  Future<void> _syncCurrentFcmToken() async {
+    final alarmRepository = ref.read(alarmRepositoryProvider);
+    if (!await _hasActiveSession()) {
+      return;
+    }
+
+    alarmRepository.enableFcmRegistrationForExistingSession();
+    await alarmRepository.registerCurrentFcmToken();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_syncCurrentFcmToken());
+    }
+  }
+
   Future<void> _registerRefreshedToken(String token) async {
     if (token.isEmpty) return;
 
     try {
       final alarmRepository = ref.read(alarmRepositoryProvider);
       if (!await _hasActiveSession()) {
-        alarmRepository.disableFcmRegistration();
         return;
       }
 
@@ -114,6 +125,7 @@ class _NotificationBootstrapperState
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     authNotifier.removeListener(_handleLogout);
     _tokenRefreshSubscription?.cancel();
     super.dispose();

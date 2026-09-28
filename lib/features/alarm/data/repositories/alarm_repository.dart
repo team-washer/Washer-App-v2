@@ -11,18 +11,32 @@ import 'package:washer/features/alarm/data/models/local/alarm_model.dart';
 ///
 /// 삭제·토큰 관련 실패는 로그만 남기고 예외를 밖으로 던지지 않는다.
 class AlarmRepository {
-  AlarmRepository(this._dataSource, this._notificationService);
-
-  static const _maxRegistrationRetries = 2;
-  static const _registrationRetryDelay = Duration(seconds: 1);
+  AlarmRepository(
+    this._dataSource,
+    this._notificationService, {
+    Duration tokenPreparationRetryDelay = const Duration(seconds: 2),
+    Duration registrationRetryDelay = const Duration(seconds: 1),
+    int maxTokenPreparationRetries = 3,
+    int maxRegistrationRetries = 2,
+  }) : _tokenPreparationRetryDelay = tokenPreparationRetryDelay,
+       _registrationRetryDelay = registrationRetryDelay,
+       _maxTokenPreparationRetries = maxTokenPreparationRetries,
+       _maxRegistrationRetries = maxRegistrationRetries;
 
   final AlarmDataSource _dataSource;
   final NotificationService _notificationService;
+  final Duration _tokenPreparationRetryDelay;
+  final Duration _registrationRetryDelay;
+  final int _maxTokenPreparationRetries;
+  final int _maxRegistrationRetries;
 
   bool _isFcmRegistrationEnabled = false;
   bool _isFcmRegistrationBlocked = false;
   String? _currentFcmToken;
   String? _lastRegisteredFcmToken;
+  Future<void>? _tokenPreparationInFlight;
+  Timer? _tokenPreparationRetryTimer;
+  int _tokenPreparationRetryCount = 0;
   Future<void>? _registrationInFlight;
   Timer? _registrationRetryTimer;
   String? _retryToken;
@@ -45,6 +59,7 @@ class AlarmRepository {
     _isFcmRegistrationEnabled = false;
     _currentFcmToken = null;
     _lastRegisteredFcmToken = null;
+    _clearTokenPreparationRetry();
     _clearRegistrationRetry();
   }
 
@@ -81,6 +96,25 @@ class AlarmRepository {
   Future<void> registerCurrentFcmToken() async {
     if (!_isFcmRegistrationEnabled) return;
 
+    final inFlight = _tokenPreparationInFlight;
+    if (inFlight != null) {
+      await inFlight;
+      return;
+    }
+
+    final request = _prepareAndRegisterCurrentFcmToken();
+    _tokenPreparationInFlight = request;
+
+    try {
+      await request;
+    } finally {
+      if (identical(_tokenPreparationInFlight, request)) {
+        _tokenPreparationInFlight = null;
+      }
+    }
+  }
+
+  Future<void> _prepareAndRegisterCurrentFcmToken() async {
     String? fcmToken;
     try {
       fcmToken = await _notificationService.ensureFcmToken();
@@ -91,24 +125,52 @@ class AlarmRepository {
         error: error,
         stackTrace: stackTrace,
       );
+      _scheduleTokenPreparationRetry();
       return;
     }
 
+    if (!_isFcmRegistrationEnabled) return;
     if (fcmToken == null || fcmToken.isEmpty) {
+      _scheduleTokenPreparationRetry();
       return;
     }
 
+    _clearTokenPreparationRetry();
     await registerFcmToken(fcmToken);
   }
 
   Future<void> registerFcmToken(String fcmToken) async {
     if (!_isFcmRegistrationEnabled || fcmToken.isEmpty) return;
+    _clearTokenPreparationRetry();
     if (_currentFcmToken != fcmToken) {
       _clearRegistrationRetry();
       _currentFcmToken = fcmToken;
     }
 
     await _registerCurrentFcmToken(fcmToken);
+  }
+
+  void _scheduleTokenPreparationRetry() {
+    if (!_isFcmRegistrationEnabled ||
+        _tokenPreparationRetryTimer != null ||
+        _tokenPreparationRetryCount >= _maxTokenPreparationRetries) {
+      return;
+    }
+
+    _tokenPreparationRetryCount++;
+    _tokenPreparationRetryTimer = Timer(
+      _tokenPreparationRetryDelay * _tokenPreparationRetryCount,
+      () {
+        _tokenPreparationRetryTimer = null;
+        unawaited(registerCurrentFcmToken());
+      },
+    );
+  }
+
+  void _clearTokenPreparationRetry() {
+    _tokenPreparationRetryTimer?.cancel();
+    _tokenPreparationRetryTimer = null;
+    _tokenPreparationRetryCount = 0;
   }
 
   Future<void> _registerCurrentFcmToken(String fcmToken) async {
@@ -202,6 +264,11 @@ class AlarmRepository {
   /// 서버에서 FCM 토큰을 삭제하고, 로컬에 저장된 토큰도 함께 지운다.
   Future<void> deleteFcmToken() async {
     disableFcmRegistration(blockUntilLogin: true);
+
+    final tokenPreparation = _tokenPreparationInFlight;
+    if (tokenPreparation != null) {
+      await tokenPreparation;
+    }
 
     final inFlight = _registrationInFlight;
     if (inFlight != null) {

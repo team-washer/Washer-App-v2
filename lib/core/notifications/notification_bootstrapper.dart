@@ -76,10 +76,23 @@ class _NotificationBootstrapperState
     await alarmRepository.registerCurrentFcmToken();
   }
 
+  Future<void> _syncCurrentFcmTokenAfterResume() async {
+    try {
+      await _syncCurrentFcmToken();
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'Failed to sync FCM token after app resumed.',
+        name: 'NotificationBootstrapper',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      unawaited(_syncCurrentFcmToken());
+      unawaited(_syncCurrentFcmTokenAfterResume());
     }
   }
 

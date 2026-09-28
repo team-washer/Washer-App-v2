@@ -30,7 +30,7 @@ class _HistoryDialogState extends ConsumerState<HistoryDialog> {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(historyProvider.notifier).fetchTodayHistory(widget.machineId);
+      ref.read(historyProvider.notifier).fetchRecentHistory(widget.machineId);
     });
   }
 

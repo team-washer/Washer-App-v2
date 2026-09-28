@@ -11,16 +11,20 @@ class HistoryNotifier extends Notifier<HistoryState> {
   @override
   HistoryState build() => const HistoryState();
 
-  /// 기기의 오늘(00:00~23:59) 사용 기록을 조회한다.
-  Future<void> fetchTodayHistory(int machineId) async {
+  /// 기기의 최근 2일(전날 00:00 ~ 오늘 23:59) 사용 기록을 조회한다.
+  ///
+  /// 앱 주 사용 시간대가 PM 9:20 ~ 새벽이므로, 자정이 지난 후에도
+  /// 전날 사용 기록을 확인할 수 있도록 조회 범위를 전날부터 시작한다.
+  Future<void> fetchRecentHistory(int machineId) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     ref.read(historyErrorProvider.notifier).state = null;
 
     final now = DateTime.now();
+    final yesterday = now.subtract(const Duration(days: 1));
     final startDate = DateTime(
-      now.year,
-      now.month,
-      now.day,
+      yesterday.year,
+      yesterday.month,
+      yesterday.day,
       0,
       0,
       0,

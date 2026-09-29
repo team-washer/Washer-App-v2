@@ -92,14 +92,95 @@ String _expiredJwt() {
   return '${encode({'alg': 'none'})}.${encode({'exp': 1})}.sig';
 }
 
+/// 쓰기를 테스트가 [finishWrites]를 부를 때 반영하는 저장소.
+/// 플랫폼 저장소에서 쓰기가 늦게 끝나 로그아웃 삭제보다 뒤에 반영되는 상황을 흉내 낸다.
+class _SlowWriteStorage extends Fake implements FlutterSecureStorage {
+  _SlowWriteStorage(Map<String, String> initial) : values = {...initial};
+
+  final Map<String, String> values;
+  final List<Completer<void>> _writes = [];
+  final Completer<void> _firstWriteStarted = Completer<void>();
+
+  Future<void> get firstWriteStarted => _firstWriteStarted.future;
+
+  bool _released = false;
+
+  /// 대기 중인 쓰기를 반영하고, 이후 쓰기는 바로 반영한다.
+  void finishWrites() {
+    _released = true;
+    for (final write in _writes) {
+      if (!write.isCompleted) write.complete();
+    }
+  }
+
+  @override
+  Future<String?> read({
+    required String key,
+    AppleOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    AppleOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async => values[key];
+
+  @override
+  Future<void> write({
+    required String key,
+    required String? value,
+    AppleOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    AppleOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    if (!_released) {
+      final done = Completer<void>();
+      _writes.add(done);
+      if (!_firstWriteStarted.isCompleted) _firstWriteStarted.complete();
+      await done.future;
+    }
+    if (value == null) {
+      values.remove(key);
+    } else {
+      values[key] = value;
+    }
+  }
+
+  @override
+  Future<void> delete({
+    required String key,
+    AppleOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    AppleOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    values.remove(key);
+  }
+
+  @override
+  Future<Map<String, String>> readAll({
+    AppleOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    AppleOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async => {...values};
+}
+
 class _Harness {
-  _Harness() {
+  _Harness({FlutterSecureStorage? storage})
+    : storage = storage ?? const FlutterSecureStorage() {
     final environment = AppEnvironment.test();
     dio = Dio(BaseOptions(baseUrl: environment.apiBaseUrl))
       ..httpClientAdapter = api;
     interceptor = AuthInterceptor(
       dio,
-      storage,
+      this.storage,
       environment,
       onLogout: () => logoutCalls++,
       refreshDio: Dio(BaseOptions(baseUrl: environment.apiBaseUrl))
@@ -108,7 +189,7 @@ class _Harness {
     dio.interceptors.add(interceptor);
   }
 
-  final storage = const FlutterSecureStorage();
+  final FlutterSecureStorage storage;
   final api = _ApiAdapter();
   final refresh = _RefreshAdapter();
   late final Dio dio;
@@ -204,6 +285,31 @@ void main() {
         'access_token': _newAccess,
         'refresh_token': _newRefresh,
       });
+    });
+  });
+
+  group('토큰 저장과 로그아웃 삭제의 직렬화', () {
+    test('세대 확인을 통과한 저장이 끝나기 전에 로그아웃해도 저장이 삭제보다 늦게 반영되지 않는다', () async {
+      final storage = _SlowWriteStorage({
+        'access_token': 'old-access',
+        'refresh_token': 'old-refresh',
+      });
+      final h = _Harness(storage: storage);
+
+      final pending = h.request();
+      await h.refresh.started(0);
+      h.refresh.respond(0);
+      // 갱신 응답이 세대 확인을 통과하고 저장을 시작했다.
+      await storage.firstWriteStarted;
+
+      final logout = h.interceptor.clearCache();
+      await _flush();
+      storage.finishWrites();
+      await logout;
+      await pending;
+
+      expect(storage.values, isEmpty, reason: '늦게 끝난 저장이 로그아웃한 세션을 되살리면 안 된다');
+      expect(h.logoutCalls, 0);
     });
   });
 

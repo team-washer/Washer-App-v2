@@ -62,6 +62,9 @@ class AuthInterceptor extends Interceptor {
   /// 갱신 결과를 폐기하는 기준이 된다.
   int _sessionGeneration = 0;
 
+  /// [_serializeStorage]의 마지막 작업. 토큰 저장소 작업을 직렬화한다.
+  Future<void> _storageQueue = Future<void>.value();
+
   static const String _retryKey = 'is_retry_request';
 
   @override
@@ -246,23 +249,39 @@ class AuthInterceptor extends Interceptor {
       ['refresh_token', 'refreshToken'],
     );
 
-    if (newAccessToken != null) {
-      // 저장은 비동기라 쓰기마다 세대를 다시 확인한다. 로그아웃의 삭제보다
-      // 늦게 저장되면 로그아웃한 세션이 되살아난다.
-      if (isStale()) return null;
-      _cachedAccessToken = newAccessToken;
-      await _storage.write(key: 'access_token', value: newAccessToken);
-
-      if (newRefreshToken != null && newRefreshToken.isNotEmpty) {
-        if (isStale()) return null;
-        await _storage.write(key: 'refresh_token', value: newRefreshToken);
-      }
-
-      if (isStale()) return null;
-      return newAccessToken;
+    if (newAccessToken == null) {
+      return null;
     }
 
-    return null;
+    // 세대 확인과 저장을 로그아웃 삭제와 같은 직렬화 구간에서 처리한다.
+    // 확인 직후 로그아웃 삭제가 먼저 끝나고 저장이 늦게 끝나면 세션이 되살아나므로,
+    // 확인·저장을 한 단위로 묶고 로그아웃 삭제는 그 뒤에 실행되게 한다.
+    final committed = await _serializeStorage(() async {
+      if (isStale()) return false;
+      await _storage.write(key: 'access_token', value: newAccessToken);
+      if (newRefreshToken != null && newRefreshToken.isNotEmpty) {
+        await _storage.write(key: 'refresh_token', value: newRefreshToken);
+      }
+      return true;
+    });
+
+    // 저장 중 로그아웃되었으면 뒤이은 로그아웃 삭제가 토큰을 지운다.
+    // 메모리 캐시에도 올리지 않는다.
+    if (!committed || isStale()) {
+      return null;
+    }
+    _cachedAccessToken = newAccessToken;
+    return newAccessToken;
+  }
+
+  /// 토큰 저장소 쓰기·삭제를 순서대로 하나씩 실행한다.
+  ///
+  /// secure storage 호출은 플랫폼에서 호출 순서대로 끝난다는 보장이 없다.
+  /// 갱신 결과 저장과 로그아웃 삭제가 서로 끼어들지 않도록 이 큐를 거친다.
+  Future<T> _serializeStorage<T>(Future<T> Function() action) {
+    final result = _storageQueue.then((_) => action());
+    _storageQueue = result.then<void>((_) {}, onError: (Object _) {});
+    return result;
   }
 
   String? _readString(Map<String, dynamic> payload, List<String> keys) {
@@ -337,7 +356,11 @@ class AuthInterceptor extends Interceptor {
     _cachedAccessToken = null;
     _refreshFuture = null;
     _isLoggedOut = false;
-    await _storage.delete(key: 'access_token');
-    await _storage.delete(key: 'refresh_token');
+    // 세대를 먼저 올렸으므로, 큐에서 이보다 앞선 갱신 저장은 끝난 뒤 여기서 지워지고
+    // 뒤늦게 실행되는 이전 세대의 저장은 세대 확인에서 버려진다.
+    await _serializeStorage(() async {
+      await _storage.delete(key: 'access_token');
+      await _storage.delete(key: 'refresh_token');
+    });
   }
 }

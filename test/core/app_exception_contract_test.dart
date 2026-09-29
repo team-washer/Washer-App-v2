@@ -165,6 +165,15 @@ void main() {
       );
     });
 
+    test('그 밖의 5xx는 서버 메시지가 있어도 노출하지 않는다', () {
+      final exception = AppException.from(
+        _serverError(500, message: 'NullPointerException at Service.java:42'),
+      );
+
+      expect(exception.message, '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+      expect(exception.statusCode, 500);
+    });
+
     test('응답이 없는 네트워크 오류는 연결 확인 문구다', () {
       final exception = AppException.from(
         DioException(

@@ -117,7 +117,9 @@ class AppException {
       return build(fixedMessage);
     }
 
-    final serverMessage = _serverMessageFrom(body);
+    // 5xx의 서버 메시지는 스택/예외명 같은 기술적 내용일 수 있어 노출하지 않는다.
+    final isServerFault = statusCode != null && statusCode >= 500;
+    final serverMessage = isServerFault ? null : _serverMessageFrom(body);
     if (serverMessage != null) {
       return build(serverMessage);
     }

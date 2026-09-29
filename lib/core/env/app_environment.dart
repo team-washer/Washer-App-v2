@@ -16,6 +16,16 @@ class AppEnvironment {
     required this.allowBadCertificates,
   });
 
+  /// 테스트에서 환경 파일 없이 값을 지정해 만든다.
+  @visibleForTesting
+  AppEnvironment.test({
+    this.apiBaseUrl = 'https://example.test/api/v2/',
+    this.refreshTokenEndpoint = 'auth/refresh',
+  }) : flavor = AppFlavor.development,
+       oauthBaseUrl = '',
+       oauthClientId = '',
+       allowBadCertificates = false;
+
   static late final AppEnvironment instance;
 
   final AppFlavor flavor;

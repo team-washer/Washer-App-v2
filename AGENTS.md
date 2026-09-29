@@ -97,7 +97,9 @@ feature: `alarm`, `auth`, `history`, `home`, `report`, `reservation`, `user`
 ### PR
 - 제목: `🔀 :: (#이슈번호) - <한글 제목>`, base는 `develop`
 - 본문은 `.github/PULL_REQUEST_TEMPLATE.md`를 그대로 채우고 `Close #이슈번호`를 넣습니다.
+- 본문 끝에 "Generated with Claude Code" 같은 도구 표기를 넣지 않습니다.
 - `gh pr create --body-file`로 UTF-8 파일을 넘깁니다 (PowerShell 인코딩 깨짐 방지).
+- 리뷰 지적을 반영하면 해당 리뷰 코멘트에 `반영 했습니다 <커밋 해시 7자리>` 한 줄로만 답글을 답니다.
 - 릴리스가 아닌 main 대상 PR에는 `skip-release-check` 라벨을 붙입니다.
 
 ## 작업 원칙
@@ -112,6 +114,7 @@ feature: `alarm`, `auth`, `history`, `home`, `report`, `reservation`, `user`
 - `.claude/settings.json`: 팀 공용 권한·훅. 개인 설정은 `.claude/settings.local.json`에 둡니다.
   - 검증·조회 명령(`fvm flutter analyze/test`, `git status/diff/log`, `gh issue/pr view` 등)은 확인 없이 허용
   - `.env`, `.env.development`, `.env.production`, `android/key.properties`는 읽기·수정 차단, 키스토어·Firebase 설정 파일은 읽기 차단
+  - `git diff --no-index`는 차단 (Claude Code는 읽기 전용 git 명령을 기본 허용하므로, 이 명령으로 git 밖 파일을 읽는 경로를 막음)
 - 훅 (Write/Edit 후 자동 실행)
   - `.claude/hooks/format_dart.dart`: Dart 파일에 `dart format` 적용 (생성 파일 제외, FVM 우선)
   - `.claude/hooks/check_dart_conventions.dart`: `lib/` 파일의 파일명·위치·레이어 import·위젯 규칙과 중복 선언(같은 파일명, 같은 public 타입·provider)을 검사. 수정 전에 없던 위반만 알립니다. 전체 점검은 `dart .claude/hooks/check_dart_conventions.dart --all`

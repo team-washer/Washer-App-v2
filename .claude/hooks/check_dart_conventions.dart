@@ -113,7 +113,10 @@ List<String> _check(String rel, String content, _LibIndex index) {
   }
 
   // 레이어 import
-  final imports = _import.allMatches(content).map((m) => m.group(1)!).toList();
+  final imports = _import
+      .allMatches(content)
+      .map((m) => _resolveImport(rel, m.group(1)!))
+      .toList();
   final isUi = rel.contains('/presentation/screens/') ||
       rel.contains('/presentation/widgets/') ||
       rel.startsWith('lib/shared/ui/');
@@ -208,6 +211,23 @@ Future<String?> _headContent(String root, String rel) async {
   } on ProcessException {
     return null;
   }
+}
+
+/// 상대 경로 import를 `package:washer/...` 형태로 바꿔 규칙 검사가 같은 기준으로 동작하게 한다.
+String _resolveImport(String rel, String imp) {
+  if (imp.contains(':')) return imp; // package:, dart: 등
+  final parts = rel.split('/')..removeLast();
+  for (final segment in imp.split('/')) {
+    if (segment == '..') {
+      if (parts.isNotEmpty) parts.removeLast();
+    } else if (segment != '.' && segment.isNotEmpty) {
+      parts.add(segment);
+    }
+  }
+  final resolved = parts.join('/');
+  return resolved.startsWith('lib/')
+      ? 'package:washer/${resolved.substring(4)}'
+      : resolved;
 }
 
 String _normalize(String path) {

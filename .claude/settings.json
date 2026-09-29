@@ -1,5 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "attribution": {
+    "pr": ""
+  },
   "permissions": {
     "allow": [
       "Bash(fvm flutter pub get)",
@@ -14,7 +17,10 @@
       "Bash(dart run build_runner *)",
       "Bash(bash scripts/ensure_env_files.sh)",
       "Bash(git status *)",
-      "Bash(git diff *)",
+      "Bash(git diff)",
+      "Bash(git diff --stat)",
+      "Bash(git diff --cached)",
+      "Bash(git diff --cached --stat)",
       "Bash(git log *)",
       "Bash(git show *)",
       "Bash(git branch *)",
@@ -31,12 +37,17 @@
       "PowerShell(fvm dart format *)",
       "PowerShell(fvm dart run build_runner *)",
       "PowerShell(git status *)",
-      "PowerShell(git diff *)",
+      "PowerShell(git diff)",
+      "PowerShell(git diff --stat)",
+      "PowerShell(git diff --cached)",
+      "PowerShell(git diff --cached --stat)",
       "PowerShell(git log *)",
       "PowerShell(gh issue view *)",
       "PowerShell(gh pr view *)"
     ],
     "deny": [
+      "Bash(git *diff*--no-index*)",
+      "PowerShell(git *diff*--no-index*)",
       "Read(./.env)",
       "Read(./.env.development)",
       "Read(./.env.production)",
@@ -58,7 +69,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "dart \"$CLAUDE_PROJECT_DIR/.claude/hooks/format_dart.dart\" 2>/dev/null || true",
+            "command": "dart \"$CLAUDE_PROJECT_DIR/.claude/hooks/format_dart.dart\"",
             "timeout": 60,
             "statusMessage": "dart format"
           },

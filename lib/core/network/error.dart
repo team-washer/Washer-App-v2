@@ -29,6 +29,7 @@ class AppException {
     this.errorCode,
     this.traceId,
     this.fieldErrors,
+    this.isCancelled = false,
   });
 
   final String message;
@@ -43,6 +44,10 @@ class AppException {
 
   /// 요청 검증 오류의 필드별 상세(`data.fieldErrors`). 서버 형태 그대로 보관한다.
   final Object? fieldErrors;
+
+  /// 앱이 요청을 스스로 취소한 경우(예: 토큰 갱신 실패로 로그아웃되며 중단).
+  /// 사용자가 조치할 오류가 아니므로 화면에 안내하지 않는다.
+  final bool isCancelled;
 
   /// 상태 코드별 사용자용 고정 문구. 서버 `message`보다 항상 우선한다.
   static const Map<int, String> _statusMessages = {
@@ -86,6 +91,15 @@ class AppException {
   factory AppException._fromDioException(DioException exception) {
     final statusCode = exception.response?.statusCode;
     final type = exception.type;
+
+    // 로그아웃 흐름이 화면 전환을 처리하므로 "네트워크 오류"로 오안내하지 않는다.
+    if (type == DioExceptionType.cancel) {
+      return AppException(
+        message: '요청이 취소되었어요.',
+        debugMessage: exception.error?.toString() ?? exception.message,
+        isCancelled: true,
+      );
+    }
 
     if (type == DioExceptionType.connectionError ||
         type == DioExceptionType.receiveTimeout ||

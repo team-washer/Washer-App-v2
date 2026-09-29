@@ -38,13 +38,16 @@ Future<void> refreshReservationStatusWidgets(WidgetRef ref) {
 /// 조회 실패를 [pollingErrorProvider]로 사용자에게 알린다.
 ///
 /// 문구는 앱 공통 규칙([AppException.from])을 그대로 따른다. 서버 통신 오류(Dio)만
-/// 알리며, 인증 갱신 실패로 요청이 취소된 경우는 로그아웃 흐름이 처리하므로
-/// "네트워크 오류" 같은 잘못된 안내를 띄우지 않는다.
+/// 알리며, 앱이 스스로 취소한 요청([AppException.isCancelled])은 알리지 않는다.
 void _reportPollingError(Ref ref, Object error) {
-  if (error is! DioException || error.type == DioExceptionType.cancel) {
+  if (error is! DioException) {
     return;
   }
-  ref.read(pollingErrorProvider.notifier).state = AppException.from(error);
+  final appException = AppException.from(error);
+  if (appException.isCancelled) {
+    return;
+  }
+  ref.read(pollingErrorProvider.notifier).state = appException;
 }
 
 /// 전체 기기 상태 provider.

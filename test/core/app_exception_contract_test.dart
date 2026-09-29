@@ -174,6 +174,19 @@ void main() {
       expect(exception.statusCode, 500);
     });
 
+    test('앱이 취소한 요청은 네트워크 오류가 아니라 취소로 구분한다', () {
+      final exception = AppException.from(
+        DioException(
+          requestOptions: RequestOptions(path: '/reservations'),
+          type: DioExceptionType.cancel,
+          error: '인증 토큰 갱신에 실패했습니다.',
+        ),
+      );
+
+      expect(exception.isCancelled, isTrue);
+      expect(exception.message, isNot('네트워크 연결을 확인해주세요.'));
+    });
+
     test('응답이 없는 네트워크 오류는 연결 확인 문구다', () {
       final exception = AppException.from(
         DioException(

@@ -30,6 +30,10 @@ class _ApiAdapter implements HttpClientAdapter {
   /// true면 새 토큰으로 재요청할 때 네트워크 오류로 실패한다.
   bool failRetryWithNetworkError = false;
 
+  /// 기존 토큰으로 보낸 요청의 응답. 기본은 인증 실패(401)다.
+  int rejectStatus = 401;
+  Map<String, Object?> rejectBody = {'message': 'Unauthorized'};
+
   @override
   Future<ResponseBody> fetch(
     RequestOptions options,
@@ -44,7 +48,7 @@ class _ApiAdapter implements HttpClientAdapter {
       }
       return _json(retryStatus, {'ok': retryStatus == 200});
     }
-    return _json(401, {'message': 'Unauthorized'});
+    return _json(rejectStatus, rejectBody);
   }
 
   @override
@@ -399,6 +403,47 @@ void main() {
         'access_token': _newAccess,
         'refresh_token': _newRefresh,
       });
+    });
+
+    test('원인별 코드가 있는 403은 권한·정책 거부라 토큰을 갱신하지 않는다', () async {
+      for (final code in [
+        'FORBIDDEN',
+        'ROOM_WASHING_BANNED',
+        'RESERVATION_ACCESS_DENIED',
+      ]) {
+        final h = _Harness();
+        h.api
+          ..rejectStatus = 403
+          ..rejectBody = {
+            'message': '접근 권한이 없습니다.',
+            'data': {'errorCode': code},
+          };
+
+        final result = await h.request();
+
+        expect(result, isA<DioException>(), reason: code);
+        expect((result as DioException).response?.statusCode, 403);
+        expect(h.refresh.calls, 0, reason: '$code: 갱신하지 않는다');
+        expect(h.logoutCalls, 0, reason: code);
+        expect(await h.tokens(), {
+          'access_token': 'old-access',
+          'refresh_token': 'old-refresh',
+        }, reason: code);
+      }
+    });
+
+    test('원인별 코드가 없는 403은 구버전 인증 실패로 보고 갱신한다', () async {
+      final h = _Harness();
+      h.api
+        ..rejectStatus = 403
+        ..rejectBody = {'message': 'Forbidden'};
+
+      final pending = h.request();
+      await h.refresh.started(0);
+      h.refresh.respond(0);
+
+      expect(await pending, isA<Response<dynamic>>());
+      expect(h.refresh.calls, 1);
     });
 
     test('갱신 자체가 네트워크 오류로 실패하면 재요청 없이 로그아웃한다', () async {

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:washer/core/network/error.dart';
 import 'package:washer/features/history/data/data_sources/history_remote_data_source.dart';
+import 'package:washer/features/history/data/models/machine_history_response.dart';
 import 'package:washer/features/history/presentation/states/history_state.dart';
 
 /// 사용 기록 조회 오류를 UI(스낵바)로 전달하기 위한 일회성 오류 상태
@@ -11,16 +12,21 @@ class HistoryNotifier extends Notifier<HistoryState> {
   @override
   HistoryState build() => const HistoryState();
 
-  /// 기기의 오늘(00:00~23:59) 사용 기록을 조회한다.
-  Future<void> fetchTodayHistory(int machineId) async {
+  /// 기기의 최근 2일(전날 00:00 ~ 오늘 23:59) 사용 기록을 조회한다.
+  ///
+  /// 앱 주 사용 시간대가 PM 9:20 ~ 새벽이므로, 자정이 지난 후에도
+  /// 전날 사용 기록을 확인할 수 있도록 조회 범위를 전날부터 시작한다.
+  /// 페이지가 여러 개인 경우 모든 페이지를 순회해 전체 기록을 합쳐 반환한다.
+  Future<void> fetchRecentHistory(int machineId) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     ref.read(historyErrorProvider.notifier).state = null;
 
     final now = DateTime.now();
+    final yesterday = now.subtract(const Duration(days: 1));
     final startDate = DateTime(
-      now.year,
-      now.month,
-      now.day,
+      yesterday.year,
+      yesterday.month,
+      yesterday.day,
       0,
       0,
       0,
@@ -34,31 +40,42 @@ class HistoryNotifier extends Notifier<HistoryState> {
       59,
     ).toIso8601String();
 
-    final result = await guardApiCall(
-      () => ref
-          .read(historyRemoteDataSourceProvider)
-          .getMachineHistory(
-            machineId: machineId,
-            startDate: startDate,
-            endDate: endDate,
-            page: 0,
-            size: 50,
-          ),
-      logName: 'HistoryNotifier',
-    );
+    int page = 0;
+    final allHistory = <HistoryContent>[];
 
-    switch (result) {
-      case ResultSuccess(:final value):
-        state = state.copyWith(
-          historyList: value.content,
-          isLoading: false,
-        );
-      case ResultFailure(:final error):
-        ref.read(historyErrorProvider.notifier).state = error;
-        state = state.copyWith(
-          errorMessage: '사용 기록을 불러오는데 실패했습니다.',
-          isLoading: false,
-        );
+    while (true) {
+      final result = await guardApiCall(
+        () => ref
+            .read(historyRemoteDataSourceProvider)
+            .getMachineHistory(
+              machineId: machineId,
+              startDate: startDate,
+              endDate: endDate,
+              page: page,
+              size: 50,
+            ),
+        logName: 'HistoryNotifier',
+      );
+
+      switch (result) {
+        case ResultSuccess(:final value):
+          allHistory.addAll(value.content);
+          if (value.last) {
+            state = state.copyWith(
+              historyList: allHistory,
+              isLoading: false,
+            );
+            return;
+          }
+          page++;
+        case ResultFailure(:final error):
+          ref.read(historyErrorProvider.notifier).state = error;
+          state = state.copyWith(
+            errorMessage: '사용 기록을 불러오는데 실패했습니다.',
+            isLoading: false,
+          );
+          return;
+      }
     }
   }
 }

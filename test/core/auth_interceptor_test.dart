@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
@@ -19,9 +20,15 @@ ResponseBody _json(int status, Object body) => ResponseBody.fromString(
   },
 );
 
-/// 일반 API. 새 access token이 붙은 요청만 성공시키고 나머지는 401을 준다.
+/// 일반 API. 새 access token이 붙은 요청만 [retryStatus]로 응답하고 나머지는 401을 준다.
 class _ApiAdapter implements HttpClientAdapter {
   final List<String?> authorizations = [];
+
+  /// 새 토큰으로 재요청했을 때의 응답 코드. 200이 아니면 재요청 실패를 흉내 낸다.
+  int retryStatus = 200;
+
+  /// true면 새 토큰으로 재요청할 때 네트워크 오류로 실패한다.
+  bool failRetryWithNetworkError = false;
 
   @override
   Future<ResponseBody> fetch(
@@ -32,7 +39,10 @@ class _ApiAdapter implements HttpClientAdapter {
     final authorization = options.headers['Authorization'] as String?;
     authorizations.add(authorization);
     if (authorization == 'Bearer $_newAccess') {
-      return _json(200, {'ok': true});
+      if (failRetryWithNetworkError) {
+        throw const SocketException('Connection reset by peer');
+      }
+      return _json(retryStatus, {'ok': retryStatus == 200});
     }
     return _json(401, {'message': 'Unauthorized'});
   }
@@ -80,6 +90,10 @@ class _RefreshAdapter implements HttpClientAdapter {
 
   void fail(int index) =>
       _pending[index].complete(_json(401, {'message': 'expired'}));
+
+  void networkError(int index) => _pending[index].completeError(
+    const SocketException('Failed host lookup'),
+  );
 
   @override
   void close({bool force = false}) {}
@@ -346,6 +360,60 @@ void main() {
       }
       expect(await h.tokens(), isEmpty);
       expect(h.logoutCalls, 1);
+    });
+  });
+
+  group('갱신 성공 여부를 먼저 확정한 뒤 재요청', () {
+    for (final status in [500, 409]) {
+      test('갱신 후 재요청이 $status로 실패해도 로그아웃하지 않고 그 오류를 전달한다', () async {
+        final h = _Harness();
+        h.api.retryStatus = status;
+
+        final pending = h.request();
+        await h.refresh.started(0);
+        h.refresh.respond(0);
+        final result = await pending;
+
+        expect(result, isA<DioException>());
+        expect((result as DioException).response?.statusCode, status);
+        expect(h.logoutCalls, 0, reason: '재요청 실패는 인증 실패가 아니다');
+        expect(await h.tokens(), {
+          'access_token': _newAccess,
+          'refresh_token': _newRefresh,
+        }, reason: '갱신한 토큰을 지우면 안 된다');
+      });
+    }
+
+    test('갱신 후 재요청이 네트워크 오류로 실패해도 로그아웃하지 않는다', () async {
+      final h = _Harness();
+      h.api.failRetryWithNetworkError = true;
+
+      final pending = h.request();
+      await h.refresh.started(0);
+      h.refresh.respond(0);
+      final result = await pending;
+
+      expect(result, isA<DioException>());
+      expect(h.logoutCalls, 0);
+      expect(await h.tokens(), {
+        'access_token': _newAccess,
+        'refresh_token': _newRefresh,
+      });
+    });
+
+    test('갱신 자체가 네트워크 오류로 실패하면 재요청 없이 로그아웃한다', () async {
+      final h = _Harness();
+
+      final pending = h.request();
+      await h.refresh.started(0);
+      h.refresh.networkError(0);
+      final result = await pending;
+
+      expect(result, isA<DioException>());
+      expect((result as DioException).response?.statusCode, 401);
+      expect(h.api.authorizations, ['Bearer old-access'], reason: '재요청하지 않는다');
+      expect(h.logoutCalls, 1);
+      expect(await h.tokens(), isEmpty);
     });
   });
 }

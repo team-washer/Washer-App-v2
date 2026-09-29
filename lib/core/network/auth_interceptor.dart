@@ -93,7 +93,7 @@ class AuthInterceptor extends Interceptor {
 
     if (!hasValidToken) {
       final generation = _sessionGeneration;
-      final refreshedToken = await _tryRefreshBeforeRequest();
+      final refreshedToken = await _tryRefreshToken();
 
       // 갱신을 기다리는 동안 로그아웃되었으면 요청을 보내지 않는다.
       // 이미 로그아웃 처리가 끝났으므로 onLogout을 다시 호출하지도 않는다.
@@ -130,34 +130,30 @@ class AuthInterceptor extends Interceptor {
 
     if ((statusCode == 401 || statusCode == 403) && !isRetry) {
       final generation = _sessionGeneration;
-      try {
-        final newAccessToken = await _refreshToken();
 
-        // 갱신을 기다리는 동안 로그아웃되었으면 원래 요청을 재시도하지 않는다.
-        if (generation != _sessionGeneration) {
-          return handler.next(err);
-        }
+      // 1) 갱신 성공 여부를 먼저 확정한다. 네트워크 오류 등으로 갱신 자체가
+      //    실패하면 세션을 유지할 수 없으므로 로그아웃한다.
+      final newAccessToken = await _tryRefreshToken();
 
-        if (newAccessToken != null) {
-          final response = await _retryRequest(
-            err.requestOptions,
-            newAccessToken,
-          );
-          return handler.resolve(response);
-        }
+      // 갱신을 기다리는 동안 로그아웃되었으면 원래 요청을 재시도하지 않는다.
+      if (generation != _sessionGeneration) {
+        return handler.next(err);
+      }
 
+      if (newAccessToken == null) {
         await _handleRefreshFailure();
         return handler.next(err);
-      } on DioException catch (e) {
-        AppLogger.error(
-          '토큰 갱신 후 요청 재시도 중 Dio 오류가 발생했습니다.',
-          name: 'AuthInterceptor',
-          error: e,
-          stackTrace: e.stackTrace,
+      }
+
+      // 2) 갱신이 확인된 뒤에만 재요청한다. 재요청 실패(409, 500, 네트워크 등)는
+      //    인증 문제가 아니므로 로그아웃하지 않고 그 오류를 호출부에 그대로 전달한다.
+      try {
+        final response = await _retryRequest(
+          err.requestOptions,
+          newAccessToken,
         );
-        if (generation == _sessionGeneration) {
-          await _handleRefreshFailure();
-        }
+        return handler.resolve(response);
+      } on DioException catch (e) {
         return handler.next(e);
       } catch (error, stackTrace) {
         AppLogger.error(
@@ -166,9 +162,6 @@ class AuthInterceptor extends Interceptor {
           error: error,
           stackTrace: stackTrace,
         );
-        if (generation == _sessionGeneration) {
-          await _handleRefreshFailure();
-        }
         return handler.next(err);
       }
     }
@@ -176,12 +169,12 @@ class AuthInterceptor extends Interceptor {
     return handler.next(err);
   }
 
-  Future<String?> _tryRefreshBeforeRequest() async {
+  Future<String?> _tryRefreshToken() async {
     try {
       return await _refreshToken();
     } catch (error, stackTrace) {
       AppLogger.error(
-        '요청 전 토큰 갱신 중 오류가 발생했습니다.',
+        '토큰 갱신 중 오류가 발생했습니다.',
         name: 'AuthInterceptor',
         error: error,
         stackTrace: stackTrace,

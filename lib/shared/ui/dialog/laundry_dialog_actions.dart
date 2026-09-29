@@ -1,7 +1,9 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/constants/reservation_durations.dart';
 import 'package:washer/shared/ui/dialog/dialog_action.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_action_provider.dart';
+import 'package:washer/features/reservation/presentation/providers/reservation_error_mapper.dart';
 
 /// 세탁기/건조기 관련(예약·예약 취소) 비동기 액션 정의 모음.
 ///
@@ -27,7 +29,7 @@ abstract final class LaundryDialogActions {
           '$reservationExpiryMinutes분 동안 기기 연결을 확인합니다',
       fallbackMessage: '예약에 실패했습니다. 다시 시도해주세요.',
       failureError: (container) =>
-          container.read(reservationActionProvider).error,
+          _failureError(container, ReservationAction.reserve),
       logName: 'ReserveAction',
       showLoading: true,
     );
@@ -45,8 +47,20 @@ abstract final class LaundryDialogActions {
       successMessage: '예약이 취소되었습니다.',
       fallbackMessage: '예약 취소에 실패했습니다.',
       failureError: (container) =>
-          container.read(reservationActionProvider).error,
+          _failureError(container, ReservationAction.cancel),
       logName: 'CancelReservationAction',
     );
+  }
+
+  /// 예약 액션의 실패를 원인별 문구로 바꾼다. 실패 정보가 없으면 null(기본 스낵바).
+  static Object? _failureError(
+    ProviderContainer container,
+    ReservationAction action,
+  ) {
+    final error = container.read(reservationActionProvider).error;
+    if (error == null) {
+      return null;
+    }
+    return reservationErrorToAppException(error, action: action);
   }
 }

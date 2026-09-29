@@ -4,7 +4,6 @@ import 'package:retrofit/retrofit.dart';
 import 'package:washer/core/network/api_response_parser.dart';
 import 'package:washer/core/network/dio_client.dart';
 import 'package:washer/features/auth/data/models/request/login_request.dart';
-import 'package:washer/features/auth/data/models/request/refresh_request.dart';
 import 'package:washer/features/auth/data/models/response/login_response.dart';
 
 part 'auth_remote_data_source.g.dart';
@@ -12,7 +11,6 @@ part 'auth_remote_data_source.g.dart';
 /// 인증 서버 API 호출 계약
 abstract class AuthRemoteDataSource {
   Future<LoginResponse> login(LoginRequest request);
-  Future<LoginResponse> refresh(RefreshRequest request);
 }
 
 @RestApi()
@@ -22,9 +20,6 @@ abstract class AuthApiService {
 
   @POST('auth/login')
   Future<HttpResponse<dynamic>> login(@Body() Map<String, dynamic> payload);
-
-  @POST('auth/refresh')
-  Future<HttpResponse<dynamic>> refresh(@Body() Map<String, dynamic> payload);
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -36,15 +31,6 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<LoginResponse> login(LoginRequest request) async {
     final payload = request.toJson();
     final response = await _api.login(payload);
-    final data = extractDataMap(castJsonMap(response.data));
-
-    return LoginResponse.fromJson(data);
-  }
-
-  @override
-  Future<LoginResponse> refresh(RefreshRequest request) async {
-    final payload = request.toJson();
-    final response = await _api.refresh(payload);
     final data = extractDataMap(castJsonMap(response.data));
 
     return LoginResponse.fromJson(data);

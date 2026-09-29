@@ -58,8 +58,6 @@ class DioClient {
   /// 인증/로깅 인터셉터가 적용된 [Dio].
   Dio get dio => _dio;
 
-  void clearInMemoryCache() => _authInterceptor.clearInMemoryCache();
-
   Future<void> clearAuthCache() => _authInterceptor.clearCache();
 }
 

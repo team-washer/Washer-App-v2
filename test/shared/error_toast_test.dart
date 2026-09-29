@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:washer/core/network/error.dart';
 import 'package:washer/shared/theme/washer_icon.dart';
 import 'package:washer/shared/ui/error_toast.dart';
 
@@ -37,6 +38,29 @@ void main() {
 
     await tester.pump(const Duration(seconds: 4));
     expect(find.byType(WasherIconButton), findsNothing);
+  });
+
+  testWidgets('원인 문구와 함께 입력 오류 항목과 문의용 오류 ID를 보여준다', (tester) async {
+    final overlay = await _pumpHost(tester);
+
+    overlay.showErrorToast(
+      AppException(
+        message: '입력한 정보를 다시 확인해주세요.',
+        statusCode: 400,
+        errorCode: 'VALIDATION_FAILED',
+        traceId: 'trace-abc',
+        fieldErrors: const [
+          {'field': 'machineId', 'message': '기기 ID는 필수입니다'},
+        ],
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('입력한 정보를 다시 확인해주세요.'), findsOneWidget);
+    expect(find.text('· 기기 ID는 필수입니다'), findsOneWidget);
+    expect(find.text('오류 ID: trace-abc'), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 6));
   });
 
   testWidgets('같은 프레임에 닫기가 두 번 호출돼도 한 번만 제거된다', (tester) async {

@@ -144,6 +144,8 @@ class _ErrorToastCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final statusCode = error.statusCode;
+    final fieldErrorMessages = error.fieldErrorMessages;
+    final traceId = error.traceId;
 
     return Container(
       width: double.infinity,
@@ -190,11 +192,25 @@ class _ErrorToastCard extends StatelessWidget {
             error.message,
             style: WasherTypography.body1(WasherColor.errorColor),
           ),
+          // 입력 검증 오류면 어떤 값을 고쳐야 하는지 함께 보여준다.
+          for (final fieldError in fieldErrorMessages) ...[
+            AppGap.v4,
+            Text(
+              '· $fieldError',
+              style: WasherTypography.body3(WasherColor.errorColor),
+            ),
+          ],
           AppGap.v4,
           Text(
             contactMessage,
             style: WasherTypography.body4(WasherColor.baseGray500),
           ),
+          // 문의 시 서버 로그와 대조할 수 있도록 추적 ID만 보여준다(개인정보 없음).
+          if (traceId != null)
+            Text(
+              '오류 ID: $traceId',
+              style: WasherTypography.caption(WasherColor.baseGray500),
+            ),
           AppGap.v10,
           _ErrorToastProgressBar(progress: progress),
         ],

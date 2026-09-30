@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/network/error.dart';
+import 'package:washer/core/network/session_generation_provider.dart';
 import 'package:washer/features/alarm/data/repositories/alarm_repository.dart';
 import 'package:washer/features/alarm/presentation/states/alarm_state.dart';
 
@@ -10,6 +11,11 @@ class AlarmNotifier extends Notifier<AlarmState> {
 
   @override
   AlarmState build() {
+    // 세션이 바뀌면 이전 사용자의 알림과 로드 플래그를 비워 새로 조회하게 한다.
+    ref.listen(sessionGenerationProvider, (_, _) {
+      _hasLoaded = false;
+      state = const AlarmState();
+    });
     return const AlarmState();
   }
 
@@ -24,10 +30,16 @@ class AlarmNotifier extends Notifier<AlarmState> {
       errorMessage: null,
     );
 
+    final session = ref.read(sessionGenerationProvider);
     final result = await guardApiCall(
       () => ref.read(alarmRepositoryProvider).fetchAlarms(),
       logName: 'AlarmNotifier',
     );
+
+    // 조회 중에 세션이 바뀌었으면 이전 사용자의 응답을 반영하지 않는다.
+    if (ref.read(sessionGenerationProvider) != session) {
+      return;
+    }
 
     switch (result) {
       case ResultSuccess(:final value):

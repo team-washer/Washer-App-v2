@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:washer/core/network/error.dart';
+import 'package:washer/core/network/session_generation_provider.dart';
 import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/data/models/local/machine_model.dart';
@@ -16,8 +17,11 @@ final clockProvider = StreamProvider<DateTime>((ref) {
   return Stream.periodic(const Duration(seconds: 1), (_) => DateTime.now());
 });
 
-/// polling/조회 실패 시 사용자에게 보여줄 오류. 없으면 null.
-final pollingErrorProvider = StateProvider<AppException?>((ref) => null);
+/// polling/조회 실패 시 사용자에게 보여줄 오류. 없으면 null. 세션이 바뀌면 비운다.
+final pollingErrorProvider = StateProvider<AppException?>((ref) {
+  ref.watch(sessionGenerationProvider);
+  return null;
+});
 
 /// 기기 상태와 활성 예약을 함께 새로고침한다(Provider 내부에서 사용).
 Future<void> refreshReservationStatusProviders(Ref ref) {
@@ -117,6 +121,7 @@ final activeReservationProvider =
 /// - 호실 스냅샷: 이미 반영된 것보다 먼저 시작한 요청의 응답은 버린다.
 /// - 내 예약(polling): 이미 반영된 것보다 먼저 시작한 응답은 버린다. 호실 목록 응답을
 ///   기다리는 중이면 결과만 기록해 두고, 스냅샷이 도착할 때 그 위에 겹쳐 쓴다.
+/// - 세션이 바뀌면 목록과 로드 플래그를 비우고, 그 전에 시작한 요청의 응답·오류는 모두 버린다.
 class ActiveReservationNotifier
     extends AsyncNotifier<List<ActiveReservationModel>> {
   bool _hasFetched = false;
@@ -139,12 +144,16 @@ class ActiveReservationNotifier
   /// 마지막으로 반영한 호실 목록.
   List<ActiveReservationModel> _latestList = const [];
 
+  /// 마지막 세션 경계에서 발급한 요청 id. 이 값 이하의 요청은 이전 세션의 요청이다.
+  int _sessionBoundaryRequestId = 0;
+
   /// 요청을 시작할 때 부른다. 시작 순서를 나타내는 요청 id를 돌려준다.
   int beginRequest() => ++_requestSeq;
 
   @override
   Future<List<ActiveReservationModel>> build() async {
     ref.keepAlive();
+    ref.listen(sessionGenerationProvider, (_, _) => _resetForNewSession());
     final requestId = beginRequest();
     _roomRequestsInFlight += 1;
     try {
@@ -155,6 +164,9 @@ class ActiveReservationNotifier
       // 더 늦게 시작한 새로고침이 먼저 반영됐다면 그 목록을 유지한다.
       return _resolveRoomSnapshot(requestId, snapshot) ?? _latestList;
     } catch (e, st) {
+      if (_isFromPreviousSession(requestId)) {
+        return _latestList;
+      }
       AppLogger.error(
         '활성 예약을 불러오는 중 오류가 발생했습니다.',
         name: 'ActiveReservationNotifier',
@@ -192,6 +204,9 @@ class ActiveReservationNotifier
         state = AsyncData(resolved);
       }
     } catch (e, st) {
+      if (_isFromPreviousSession(requestId)) {
+        return;
+      }
       AppLogger.error(
         '활성 예약을 새로고침하는 중 오류가 발생했습니다.',
         name: 'ActiveReservationNotifier',
@@ -263,6 +278,25 @@ class ActiveReservationNotifier
     }
     return MyReservationApplyResult(isStale: false, hasChanged: hasChanged);
   }
+
+  /// 이전 사용자의 목록과 로드 플래그를 비운다.
+  ///
+  /// 새 요청 id를 경계로 삼아 반영된 것으로 표시하므로, 경계 이전에 시작한 요청의
+  /// 응답은 기존 순번 비교에 의해 모두 버려진다. 로딩 상태로 두면 [ensureLoaded]가
+  /// 다시 조회하지 않으므로 빈 목록으로 둔다.
+  void _resetForNewSession() {
+    final boundary = beginRequest();
+    _sessionBoundaryRequestId = boundary;
+    _appliedRoomRequestId = boundary;
+    _appliedMineRequestId = boundary;
+    _latestMyUpdate = null;
+    _latestList = const [];
+    _hasFetched = false;
+    state = const AsyncData([]);
+  }
+
+  bool _isFromPreviousSession(int requestId) =>
+      requestId <= _sessionBoundaryRequestId;
 
   /// 호실 스냅샷을 반영할 목록으로 정리한다. 더 늦게 시작한 스냅샷이 이미 반영됐다면 null.
   ///

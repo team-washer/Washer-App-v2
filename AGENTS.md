@@ -65,6 +65,9 @@ feature: `alarm`, `auth`, `history`, `home`, `report`, `reservation`, `user`
 - API 호출은 `guardApiCall(() => ..., logName: '...')`로 감싸고 `Result<T>`(`ResultSuccess` / `ResultFailure`)를 패턴 매칭합니다. provider에서 직접 try-catch + 로깅을 반복하지 않습니다.
 - 모든 오류는 `AppException.from`으로 정규화합니다. 화면별로 상태 코드 → 문구 매핑을 따로 만들지 않습니다.
 - 사용자에게 서버의 원시 메시지·스택·예외명을 노출하지 않습니다.
+- 사용자에게 보여주는 메시지(오류, 입력 검증, 성공·정보 안내)는 모두 에러 토스트로 띄웁니다. `SnackBar`/`showSnackBar`는 쓰지 않습니다.
+  - `context.showErrorToast(error)`, context가 사라질 수 있는 비동기 이후에는 미리 캡처한 `Overlay.of(context, rootOverlay: true).showErrorToast(error)` (`lib/shared/ui/error_toast.dart`)
+  - 문자열을 그대로 넘기면 "알 수 없는 오류"로 바뀌므로 `AppException(message: '...')`으로 감싸서 넘깁니다.
 - 로그는 `AppLogger`를 사용합니다 (`print` 금지).
 
 ## 코드 생성
@@ -117,5 +120,5 @@ feature: `alarm`, `auth`, `history`, `home`, `report`, `reservation`, `user`
   - `git diff --no-index`는 차단 (Claude Code는 읽기 전용 git 명령을 기본 허용하므로, 이 명령으로 git 밖 파일을 읽는 경로를 막음)
 - 훅 (Write/Edit 후 자동 실행)
   - `.claude/hooks/format_dart.dart`: Dart 파일에 `dart format` 적용 (생성 파일 제외, FVM 우선)
-  - `.claude/hooks/check_dart_conventions.dart`: `lib/` 파일의 파일명·위치·레이어 import·위젯 규칙과 중복 선언(같은 파일명, 같은 public 타입·provider)을 검사. 수정 전에 없던 위반만 알립니다. 전체 점검은 `dart .claude/hooks/check_dart_conventions.dart --all`
+  - `.claude/hooks/check_dart_conventions.dart`: `lib/` 파일의 파일명·위치·레이어 import·위젯 규칙, SnackBar 사용, 중복 선언(같은 파일명, 같은 public 타입·provider)을 검사. 수정 전에 없던 위반만 알립니다. 전체 점검은 `dart .claude/hooks/check_dart_conventions.dart --all`
 - 스킬 `.claude/skills/add-code`: 기능·파일·코드를 추가하기 전에 중복 코드를 찾고 위치·이름을 정하는 체크리스트

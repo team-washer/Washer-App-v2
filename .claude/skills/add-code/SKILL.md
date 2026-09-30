@@ -18,7 +18,8 @@ description: lib/에 기능·파일·클래스·위젯·provider·API 호출을 
 | API 오류 처리 | `lib/core/network/error.dart` (`AppException`, `guardApiCall`, `Result`) |
 | Dio·인증·토큰 | `lib/core/network/` (`dioProvider`, 인터셉터) |
 | 상태 enum (세탁기·예약 상태 등) | `lib/core/enums/` |
-| 공용 버튼·다이얼로그·앱바·로딩·토스트 | `lib/shared/ui/` |
+| 사용자 메시지 (오류·검증·성공·안내 전부) | `lib/shared/ui/error_toast.dart` (`showErrorToast`, 문자열은 `AppException(message: ...)`로 감싸기). SnackBar 금지 |
+| 공용 버튼·다이얼로그·앱바·로딩 | `lib/shared/ui/` |
 | 색·타이포그래피·간격·아이콘 | `lib/shared/theme/` (`washer_color`, `washer_typography`, `app_spacing`, `washer_icon`) |
 | 같은 기능의 모델·data source·provider | `lib/features/<feature>/` |
 

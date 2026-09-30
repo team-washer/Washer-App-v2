@@ -25,6 +25,7 @@
       "Bash(git show *)",
       "Bash(git branch *)",
       "Bash(git fetch *)",
+      "Bash(git push origin --delete *)",
       "Bash(gh issue list *)",
       "Bash(gh issue view *)",
       "Bash(gh pr list *)",
@@ -42,6 +43,8 @@
       "PowerShell(git diff --cached)",
       "PowerShell(git diff --cached --stat)",
       "PowerShell(git log *)",
+      "PowerShell(git branch *)",
+      "PowerShell(git push origin --delete *)",
       "PowerShell(gh issue view *)",
       "PowerShell(gh pr view *)"
     ],

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:washer/core/network/dio_client.dart';
 import 'package:washer/core/notifications/notification_service.dart';
 import 'package:washer/features/alarm/data/data_sources/alarm_data_source.dart';
 import 'package:washer/features/alarm/data/models/response/alarm_list_response.dart';
@@ -104,6 +105,47 @@ void main() {
       expect(dataSource.registeredTokens, ['ready-token']);
     });
 
+    test(
+      'login starts a new cycle after token retries are exhausted',
+      () async {
+        final dataSource = _FakeAlarmDataSource();
+        final notificationService = _FakeNotificationService(
+          tokenResponses: [() => null, () => null, () => 'login-token'],
+        );
+        final repository = AlarmRepository(
+          dataSource,
+          notificationService,
+          tokenPreparationRetryDelay: Duration.zero,
+          maxTokenPreparationRetries: 1,
+        );
+
+        repository.enableFcmRegistrationForExistingSession();
+        await repository.registerCurrentFcmToken();
+        await _flushEventQueue();
+        expect(notificationService.ensureCount, 2);
+
+        repository.enableFcmRegistration();
+        await repository.registerCurrentFcmToken();
+
+        expect(notificationService.ensureCount, 3);
+        expect(dataSource.registeredTokens, ['login-token']);
+      },
+    );
+
+    test('app start registers for an existing active session', () async {
+      final dataSource = _FakeAlarmDataSource();
+      final notificationService = _FakeNotificationService(
+        token: 'startup-token',
+      );
+      final repository = AlarmRepository(dataSource, notificationService);
+
+      repository.enableFcmRegistrationForExistingSession();
+      await repository.registerCurrentFcmToken();
+
+      expect(notificationService.ensureCount, 1);
+      expect(dataSource.registeredTokens, ['startup-token']);
+    });
+
     test('shares token preparation between startup and login calls', () async {
       final tokenCompleter = Completer<String?>();
       final dataSource = _FakeAlarmDataSource();
@@ -181,6 +223,38 @@ void main() {
       expect(dataSource.registeredTokens, isEmpty);
     });
 
+    test(
+      'resume starts a new cycle after token retries are exhausted',
+      () async {
+        final dataSource = _FakeAlarmDataSource();
+        final notificationService = _FakeNotificationService(
+          tokenResponses: [
+            () => null,
+            () => null,
+            () => null,
+            () => null,
+            () => 'resume-token',
+          ],
+        );
+        final repository = AlarmRepository(
+          dataSource,
+          notificationService,
+          tokenPreparationRetryDelay: Duration.zero,
+          maxTokenPreparationRetries: 2,
+        )..enableFcmRegistrationForExistingSession();
+
+        await repository.registerCurrentFcmToken();
+        await _flushEventQueue();
+        expect(notificationService.ensureCount, 3);
+
+        await repository.registerCurrentFcmToken();
+        await _flushEventQueue();
+
+        expect(notificationService.ensureCount, 5);
+        expect(dataSource.registeredTokens, ['resume-token']);
+      },
+    );
+
     test('retries a transient server registration failure', () async {
       final dataSource = _FakeAlarmDataSource()
         ..registrationFailuresRemaining = 1;
@@ -198,6 +272,34 @@ void main() {
         'server-retry-token',
       ]);
     });
+
+    test(
+      'explicit sync restarts exhausted server registration retries',
+      () async {
+        final dataSource = _FakeAlarmDataSource()
+          ..registrationFailuresRemaining = 3;
+        final repository = AlarmRepository(
+          dataSource,
+          _FakeNotificationService(token: 'retry-cycle-token'),
+          registrationRetryDelay: Duration.zero,
+          maxRegistrationRetries: 1,
+        )..enableFcmRegistration();
+
+        await repository.registerCurrentFcmToken();
+        await _flushEventQueue();
+        expect(dataSource.registeredTokens, hasLength(2));
+
+        await repository.registerCurrentFcmToken();
+        await _flushEventQueue();
+
+        expect(dataSource.registeredTokens, [
+          'retry-cycle-token',
+          'retry-cycle-token',
+          'retry-cycle-token',
+          'retry-cycle-token',
+        ]);
+      },
+    );
 
     test('does not register a prepared token after logout starts', () async {
       final tokenCompleter = Completer<String?>();
@@ -235,6 +337,18 @@ void main() {
         'initial-token',
         'refreshed-token',
       ]);
+    });
+
+    test('onTokenRefresh registers the latest token with the server', () async {
+      final dataSource = _FakeAlarmDataSource();
+      final repository = AlarmRepository(
+        dataSource,
+        _FakeNotificationService(),
+      )..enableFcmRegistrationForExistingSession();
+
+      await repository.registerFcmToken('token-from-refresh-stream');
+
+      expect(dataSource.registeredTokens, ['token-from-refresh-stream']);
     });
 
     test('동일한 토큰의 동시 등록 요청은 서버에 한 번만 전송한다', () async {
@@ -296,6 +410,31 @@ void main() {
       await repository.registerFcmToken('new-login-token');
 
       expect(dataSource.registeredTokens, ['new-login-token']);
+    });
+  });
+
+  group('FCM token log sanitization', () {
+    test('redacts FCM and auth tokens', () {
+      const fcmToken = 'fcm-secret-token-value';
+      const accessToken = 'access-secret-token-value';
+      const message =
+          '''
+Authorization: Bearer $accessToken
+{token: $fcmToken, machineId: 1}
+''';
+
+      final sanitized = sanitizeDioLog(message);
+
+      expect(sanitized, isNot(contains(fcmToken)));
+      expect(sanitized, isNot(contains(accessToken)));
+      expect(sanitized, contains('Authorization: Bearer [REDACTED]'));
+      expect(sanitized, contains('token: [REDACTED]'));
+    });
+
+    test('keeps non-sensitive request fields', () {
+      const message = '{machineId: 12, status: RUNNING}';
+
+      expect(sanitizeDioLog(message), message);
     });
   });
 }

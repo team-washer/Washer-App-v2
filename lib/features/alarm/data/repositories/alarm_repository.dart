@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:washer/core/errors/app_exception.dart';
 import 'package:washer/core/notifications/notification_service.dart';
 import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/features/alarm/data/data_sources/alarm_data_source.dart';
@@ -45,6 +46,8 @@ class AlarmRepository {
   void enableFcmRegistration() {
     _isFcmRegistrationBlocked = false;
     _isFcmRegistrationEnabled = true;
+    _clearTokenPreparationRetry();
+    _clearRegistrationRetry();
   }
 
   void enableFcmRegistrationForExistingSession() {
@@ -94,8 +97,31 @@ class AlarmRepository {
 
   /// 현재 기기의 FCM 토큰을 확보해 서버에 등록한다.
   Future<void> registerCurrentFcmToken() async {
-    if (!_isFcmRegistrationEnabled) return;
+    AppLogger.info(
+      'registerCurrentFcmToken called. enabled=$_isFcmRegistrationEnabled',
+      name: 'AlarmRepository',
+    );
+    if (!_isFcmRegistrationEnabled) {
+      AppLogger.info(
+        'registerCurrentFcmToken skipped because registration is disabled.',
+        name: 'AlarmRepository',
+      );
+      return;
+    }
 
+    if (_tokenPreparationRetryTimer == null &&
+        _tokenPreparationRetryCount >= _maxTokenPreparationRetries) {
+      _tokenPreparationRetryCount = 0;
+      AppLogger.info(
+        'FCM token preparation retry budget restarted by an external sync.',
+        name: 'AlarmRepository',
+      );
+    }
+
+    await _startCurrentFcmTokenRegistration();
+  }
+
+  Future<void> _startCurrentFcmTokenRegistration() async {
     final inFlight = _tokenPreparationInFlight;
     if (inFlight != null) {
       await inFlight;
@@ -140,11 +166,22 @@ class AlarmRepository {
   }
 
   Future<void> registerFcmToken(String fcmToken) async {
+    AppLogger.info(
+      'registerFcmToken called. enabled=$_isFcmRegistrationEnabled, token=[REDACTED], length=${fcmToken.length}',
+      name: 'AlarmRepository',
+    );
     if (!_isFcmRegistrationEnabled || fcmToken.isEmpty) return;
     _clearTokenPreparationRetry();
     if (_currentFcmToken != fcmToken) {
       _clearRegistrationRetry();
       _currentFcmToken = fcmToken;
+    } else if (_registrationRetryTimer == null &&
+        _registrationRetryCount >= _maxRegistrationRetries) {
+      _clearRegistrationRetry();
+      AppLogger.info(
+        'FCM server registration retry budget restarted by an external sync.',
+        name: 'AlarmRepository',
+      );
     }
 
     await _registerCurrentFcmToken(fcmToken);
@@ -158,11 +195,15 @@ class AlarmRepository {
     }
 
     _tokenPreparationRetryCount++;
+    AppLogger.info(
+      'FCM token preparation retry scheduled. attempt=$_tokenPreparationRetryCount/$_maxTokenPreparationRetries',
+      name: 'AlarmRepository',
+    );
     _tokenPreparationRetryTimer = Timer(
       _tokenPreparationRetryDelay * _tokenPreparationRetryCount,
       () {
         _tokenPreparationRetryTimer = null;
-        unawaited(registerCurrentFcmToken());
+        unawaited(_startCurrentFcmTokenRegistration());
       },
     );
   }
@@ -205,32 +246,40 @@ class AlarmRepository {
       if (_isFcmRegistrationEnabled && _currentFcmToken == fcmToken) {
         _lastRegisteredFcmToken = fcmToken;
         _clearRegistrationRetry();
+        AppLogger.info(
+          'FCM token registration completed. token=[REDACTED], length=${fcmToken.length}',
+          name: 'AlarmRepository',
+        );
       }
     } catch (error, stackTrace) {
+      final exception = AppException.from(error);
+      final retryScheduled = _scheduleRegistrationRetry(fcmToken, error);
       AppLogger.error(
-        'Failed to register FCM token.',
+        'Failed to register FCM token. statusCode=${exception.statusCode}, errorCode=${exception.errorCode}, retry=$retryScheduled',
         name: 'AlarmRepository',
-        error: error,
         stackTrace: stackTrace,
       );
-      _scheduleRegistrationRetry(fcmToken, error);
     }
   }
 
-  void _scheduleRegistrationRetry(String fcmToken, Object error) {
+  bool _scheduleRegistrationRetry(String fcmToken, Object error) {
     if (!_isFcmRegistrationEnabled ||
         _currentFcmToken != fcmToken ||
         !_isRetryableRegistrationError(error)) {
-      return;
+      return false;
     }
 
     if (_retryToken != fcmToken) {
       _clearRegistrationRetry();
       _retryToken = fcmToken;
     }
-    if (_registrationRetryCount >= _maxRegistrationRetries) return;
+    if (_registrationRetryCount >= _maxRegistrationRetries) return false;
 
     _registrationRetryCount++;
+    AppLogger.info(
+      'FCM server registration retry scheduled. attempt=$_registrationRetryCount/$_maxRegistrationRetries',
+      name: 'AlarmRepository',
+    );
     _registrationRetryTimer?.cancel();
     _registrationRetryTimer = Timer(
       _registrationRetryDelay * _registrationRetryCount,
@@ -239,6 +288,7 @@ class AlarmRepository {
         unawaited(_registerCurrentFcmToken(fcmToken));
       },
     );
+    return true;
   }
 
   bool _isRetryableRegistrationError(Object error) {

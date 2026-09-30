@@ -55,7 +55,7 @@ class _NotificationBootstrapperState
   Future<void> _initializeNotifications() async {
     try {
       await ref.read(notificationInitializationProvider.future);
-      await _syncCurrentFcmToken();
+      await _syncCurrentFcmToken(trigger: 'app_start');
     } catch (error, stackTrace) {
       AppLogger.error(
         'Failed to initialize notifications.',
@@ -66,9 +66,17 @@ class _NotificationBootstrapperState
     }
   }
 
-  Future<void> _syncCurrentFcmToken() async {
+  Future<void> _syncCurrentFcmToken({required String trigger}) async {
+    AppLogger.info(
+      'FCM sync started. trigger=$trigger',
+      name: 'NotificationBootstrapper',
+    );
     final alarmRepository = ref.read(alarmRepositoryProvider);
     if (!await _hasActiveSession()) {
+      AppLogger.info(
+        'FCM sync skipped because there is no active session. trigger=$trigger',
+        name: 'NotificationBootstrapper',
+      );
       return;
     }
 
@@ -77,8 +85,12 @@ class _NotificationBootstrapperState
   }
 
   Future<void> _syncCurrentFcmTokenAfterResume() async {
+    AppLogger.info(
+      'Resume FCM sync requested.',
+      name: 'NotificationBootstrapper',
+    );
     try {
-      await _syncCurrentFcmToken();
+      await _syncCurrentFcmToken(trigger: 'resume');
     } catch (error, stackTrace) {
       AppLogger.error(
         'Failed to sync FCM token after app resumed.',
@@ -100,6 +112,10 @@ class _NotificationBootstrapperState
     if (token.isEmpty) return;
 
     try {
+      AppLogger.info(
+        'FCM sync started. trigger=token_refresh, token=[REDACTED], length=${token.length}',
+        name: 'NotificationBootstrapper',
+      );
       final alarmRepository = ref.read(alarmRepositoryProvider);
       if (!await _hasActiveSession()) {
         return;

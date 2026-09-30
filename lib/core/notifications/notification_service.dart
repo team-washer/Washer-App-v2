@@ -54,8 +54,8 @@ class NotificationService {
         (token) async {
           try {
             await _storage.write(key: fcmTokenStorageKey, value: token);
-            AppLogger.debug(
-              'FCM token refreshed.',
+            AppLogger.info(
+              'FCM token refreshed and stored. token=[REDACTED], length=${token.length}',
               name: 'NotificationService',
             );
           } catch (error, stackTrace) {
@@ -78,7 +78,6 @@ class NotificationService {
       );
 
       await _requestPermissions();
-      await _saveFcmTokenWhenReady();
 
       _isInitialized = true;
     } catch (_) {
@@ -91,17 +90,23 @@ class NotificationService {
     return _storage.read(key: fcmTokenStorageKey);
   }
 
-  /// 저장된 토큰이 없으면 발급을 시도한 뒤 토큰을 반환한다.
+  /// Firebase의 현재 토큰을 확인해 저장한 뒤 반환한다.
+  ///
+  /// iOS Keychain에는 앱 재설치 뒤에도 값이 남을 수 있으므로 저장된 값만으로
+  /// 현재 앱 인스턴스의 토큰을 판단하지 않는다.
   Future<String?> ensureFcmToken() async {
     await initialize();
-
     final storedToken = await getStoredFcmToken();
-    if (storedToken != null && storedToken.isNotEmpty) {
-      return storedToken;
+    final currentToken = await _fetchAndStoreFcmTokenWhenReady();
+    if (currentToken != null) {
+      AppLogger.info(
+        storedToken == currentToken
+            ? 'Firebase confirmed the stored FCM token is current.'
+            : 'Stored FCM token was replaced with the current Firebase token.',
+        name: 'NotificationService',
+      );
     }
-
-    await _saveFcmTokenWhenReady();
-    return getStoredFcmToken();
+    return currentToken;
   }
 
   Future<void> deleteStoredFcmToken() {
@@ -125,41 +130,62 @@ class NotificationService {
     );
   }
 
-  Future<void> _saveFcmToken() async {
+  Future<String?> _fetchAndStoreFcmToken() async {
+    AppLogger.info(
+      'FCM token acquisition started.',
+      name: 'NotificationService',
+    );
     final token = await _messaging.getToken();
-    if (token == null || token.isEmpty) return;
+    if (token == null || token.isEmpty) {
+      AppLogger.error(
+        'FCM token acquisition failed: Firebase returned an empty token.',
+        name: 'NotificationService',
+      );
+      return null;
+    }
 
     await _storage.write(key: fcmTokenStorageKey, value: token);
-    AppLogger.debug('FCM token saved.', name: 'NotificationService');
+    AppLogger.info(
+      'FCM token acquired and stored. token=[REDACTED], length=${token.length}',
+      name: 'NotificationService',
+    );
+    return token;
   }
 
-  Future<void> _saveFcmTokenWhenReady() async {
+  Future<String?> _fetchAndStoreFcmTokenWhenReady() async {
     if (Platform.isIOS) {
       final apnsTokenReady = await _waitForApnsToken();
       if (!apnsTokenReady) {
-        AppLogger.debug(
-          'APNS token is not ready yet. Skipping initial FCM token save.',
+        AppLogger.error(
+          'APNs token acquisition failed after $_apnsTokenMaxRetries attempts.',
           name: 'NotificationService',
         );
-        return;
+        return null;
       }
     }
 
     try {
-      await _saveFcmToken();
+      return await _fetchAndStoreFcmToken();
     } on FirebaseException catch (e) {
       if (_isApnsTokenNotSetError(e)) {
-        AppLogger.debug(
-          'FCM token skipped until APNS token is available.',
+        AppLogger.error(
+          'FCM token acquisition failed because the APNs token is not ready.',
           name: 'NotificationService',
         );
-        return;
+        return null;
       }
       AppLogger.error(
-        'FCM 토큰 저장 중 Firebase 오류가 발생했습니다.',
+        'FCM token acquisition failed with a Firebase error. code=${e.code}',
         name: 'NotificationService',
-        error: e,
         stackTrace: e.stackTrace,
+      );
+      rethrow;
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'FCM token acquisition failed.',
+        name: 'NotificationService',
+        error: error,
+        stackTrace: stackTrace,
       );
       rethrow;
     }
@@ -171,8 +197,8 @@ class NotificationService {
       try {
         final token = await _messaging.getAPNSToken();
         if (token != null && token.isNotEmpty) {
-          AppLogger.debug(
-            'APNS token received.',
+          AppLogger.info(
+            'APNs token acquired. token=[REDACTED], length=${token.length}, attempt=${attempt + 1}',
             name: 'NotificationService',
           );
           return true;
@@ -180,9 +206,8 @@ class NotificationService {
       } on FirebaseException catch (e) {
         if (!_isApnsTokenNotSetError(e)) {
           AppLogger.error(
-            'APNS 토큰 확인 중 Firebase 오류가 발생했습니다.',
+            'APNs token acquisition failed with a Firebase error. code=${e.code}',
             name: 'NotificationService',
-            error: e,
             stackTrace: e.stackTrace,
           );
           rethrow;

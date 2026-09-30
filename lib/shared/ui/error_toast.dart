@@ -19,6 +19,7 @@ extension ErrorToastContextExtension on BuildContext {
 }
 
 /// 에러를 [AppException]으로 변환해 사용자용 토스트로 보여주는 확장.
+/// 앱이 스스로 취소한 요청([AppException.isCancelled])은 띄우지 않는다.
 ///
 /// 루트 [Overlay] 위에 그리므로, 다이얼로그를 닫은 직후처럼 호출부 context가
 /// 사라지는 상황에서도 안전하게 동작한다.
@@ -26,10 +27,12 @@ extension ErrorToastOverlayExtension on OverlayState {
   void showErrorToast(Object? error) {
     if (!mounted) return;
 
+    final appException = AppException.from(error);
+    if (appException.isCancelled) return;
+
     _currentErrorToastEntry?.remove();
     _currentErrorToastEntry = null;
 
-    final appException = AppException.from(error);
     late final OverlayEntry entry;
     entry = OverlayEntry(
       builder: (_) => _ErrorToastOverlay(

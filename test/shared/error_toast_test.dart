@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -50,6 +51,21 @@ void main() {
     await tester.pump();
 
     expect(tester.takeException(), isNull);
+    expect(find.byType(WasherIconButton), findsNothing);
+  });
+
+  testWidgets('앱이 스스로 취소한 요청은 토스트를 띄우지 않는다', (tester) async {
+    final overlay = await _pumpHost(tester);
+
+    overlay.showErrorToast(
+      DioException(
+        requestOptions: RequestOptions(path: '/reservations'),
+        type: DioExceptionType.cancel,
+        error: '인증 토큰 갱신에 실패했습니다.',
+      ),
+    );
+    await tester.pump();
+
     expect(find.byType(WasherIconButton), findsNothing);
   });
 }

@@ -304,7 +304,7 @@ void main() {
       expect(state.error, isA<DioException>());
       expect(
         container.read(pollingErrorProvider)?.message,
-        '서버 연결이 거부되었습니다. 서버 상태를 확인해주세요.',
+        '네트워크 연결을 확인해주세요.',
       );
     });
 

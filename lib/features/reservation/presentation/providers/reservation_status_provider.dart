@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
@@ -36,52 +35,19 @@ Future<void> refreshReservationStatusWidgets(WidgetRef ref) {
   ]);
 }
 
-/// Dio 오류를 사용자용 문구로 변환한다. 안내할 필요가 없는 오류면 null.
+/// 조회 실패를 [pollingErrorProvider]로 사용자에게 알린다.
 ///
-/// 상태 코드별 문구는 서버 오류 응답 계약을 따른다(자세한 계약은 [AppException] 참고).
-AppException? _pollingErrorFor(DioException error) {
-  // 인증 갱신에 실패해 요청 자체가 취소된 경우다. 로그아웃 흐름이 처리하므로
-  // 여기서 "네트워크 오류" 같은 잘못된 안내를 띄우지 않는다.
-  if (error.type == DioExceptionType.cancel) {
-    return null;
+/// 문구는 앱 공통 규칙([AppException.from])을 그대로 따른다. 서버 통신 오류(Dio)만
+/// 알리며, 앱이 스스로 취소한 요청([AppException.isCancelled])은 알리지 않는다.
+void _reportPollingError(Ref ref, Object error) {
+  if (error is! DioException) {
+    return;
   }
-
-  final statusCode = error.response?.statusCode;
-  if (statusCode != null && statusCode >= 500) {
-    // 502(기기 서비스 실패)/503(일시 장애)은 원인별 문구를, 그 외 5xx는 코드를 보여준다.
-    if (statusCode == 502 || statusCode == 503) {
-      return AppException.from(error);
-    }
-    return AppException(
-      message: '서버 오류가 발생했습니다. ($statusCode)',
-      statusCode: statusCode,
-    );
+  final appException = AppException.from(error);
+  if (appException.isCancelled) {
+    return;
   }
-
-  if (error.type == DioExceptionType.connectionTimeout ||
-      error.type == DioExceptionType.sendTimeout ||
-      error.type == DioExceptionType.receiveTimeout) {
-    return AppException(message: '서버 응답 시간이 초과되었습니다.');
-  }
-
-  if (error.type == DioExceptionType.connectionError) {
-    final rawError = error.error;
-    if (rawError is SocketException) {
-      if (rawError.message.contains('Connection refused')) {
-        return AppException(message: '서버 연결이 거부되었습니다. 서버 상태를 확인해주세요.');
-      }
-      return AppException(message: '네트워크 연결에 실패했습니다. 인터넷 또는 서버 상태를 확인해주세요.');
-    }
-
-    return AppException(message: '네트워크 연결에 실패했습니다.');
-  }
-
-  if (error.response == null) {
-    return AppException(message: '네트워크 오류가 발생했습니다.');
-  }
-
-  // 4xx(400 검증, 401 인증, 403 권한, 404 없음, 409 충돌 등)는 상태 코드별 고정 문구를 쓴다.
-  return AppException.from(error);
+  ref.read(pollingErrorProvider.notifier).state = appException;
 }
 
 /// 전체 기기 상태 provider.
@@ -103,17 +69,14 @@ class MachineStatusNotifier extends AsyncNotifier<MachineStatusResponse> {
     ref.keepAlive();
     try {
       return await _load();
-    } on DioException catch (e, st) {
+    } catch (e, st) {
       AppLogger.error(
         '기기 상태를 불러오는 중 오류가 발생했습니다.',
         name: 'MachineStatusNotifier',
         error: e,
         stackTrace: st,
       );
-      final pollingError = _pollingErrorFor(e);
-      if (pollingError != null) {
-        ref.read(pollingErrorProvider.notifier).state = pollingError;
-      }
+      _reportPollingError(ref, e);
       rethrow;
     }
   }
@@ -123,18 +86,6 @@ class MachineStatusNotifier extends AsyncNotifier<MachineStatusResponse> {
     try {
       final machineStatus = await _load();
       state = AsyncData(machineStatus);
-    } on DioException catch (e, st) {
-      AppLogger.error(
-        '기기 상태를 새로고침하는 중 오류가 발생했습니다.',
-        name: 'MachineStatusNotifier',
-        error: e,
-        stackTrace: st,
-      );
-      final pollingError = _pollingErrorFor(e);
-      if (pollingError != null) {
-        ref.read(pollingErrorProvider.notifier).state = pollingError;
-      }
-      state = AsyncError(e, st);
     } catch (e, st) {
       AppLogger.error(
         '기기 상태를 새로고침하는 중 오류가 발생했습니다.',
@@ -142,6 +93,7 @@ class MachineStatusNotifier extends AsyncNotifier<MachineStatusResponse> {
         error: e,
         stackTrace: st,
       );
+      _reportPollingError(ref, e);
       state = AsyncError(e, st);
     }
   }
@@ -202,17 +154,14 @@ class ActiveReservationNotifier
           .getActiveReservations();
       // 더 늦게 시작한 새로고침이 먼저 반영됐다면 그 목록을 유지한다.
       return _resolveRoomSnapshot(requestId, snapshot) ?? _latestList;
-    } on DioException catch (e, st) {
+    } catch (e, st) {
       AppLogger.error(
         '활성 예약을 불러오는 중 오류가 발생했습니다.',
         name: 'ActiveReservationNotifier',
         error: e,
         stackTrace: st,
       );
-      final pollingError = _pollingErrorFor(e);
-      if (pollingError != null) {
-        ref.read(pollingErrorProvider.notifier).state = pollingError;
-      }
+      _reportPollingError(ref, e);
       rethrow;
     } finally {
       _roomRequestsInFlight -= 1;
@@ -242,18 +191,6 @@ class ActiveReservationNotifier
       if (resolved != null) {
         state = AsyncData(resolved);
       }
-    } on DioException catch (e, st) {
-      AppLogger.error(
-        '활성 예약을 새로고침하는 중 오류가 발생했습니다.',
-        name: 'ActiveReservationNotifier',
-        error: e,
-        stackTrace: st,
-      );
-      final pollingError = _pollingErrorFor(e);
-      if (pollingError != null) {
-        ref.read(pollingErrorProvider.notifier).state = pollingError;
-      }
-      _setErrorIfLatest(requestId, e, st);
     } catch (e, st) {
       AppLogger.error(
         '활성 예약을 새로고침하는 중 오류가 발생했습니다.',
@@ -261,6 +198,7 @@ class ActiveReservationNotifier
         error: e,
         stackTrace: st,
       );
+      _reportPollingError(ref, e);
       _setErrorIfLatest(requestId, e, st);
     } finally {
       _roomRequestsInFlight -= 1;

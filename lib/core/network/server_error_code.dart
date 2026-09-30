@@ -46,7 +46,8 @@ abstract final class ServerErrorCode {
   static const reservationStateInvalid = 'RESERVATION_STATE_INVALID';
   static const reservationAccessDenied = 'RESERVATION_ACCESS_DENIED';
 
-  /// 동시 요청(낙관적 락 등) 충돌. 다시 시도하면 해소될 수 있다.
+  /// 동시 요청(낙관적 락 등) 충돌. 원인별 코드가 없는 409의 상태 이름이기도 해서
+  /// 이 코드만으로는 원인을 단정할 수 없다.
   static const conflict = 'CONFLICT';
 
   /// 입력 검증 오류 코드. 이 코드면 `data.fieldErrors`로 잘못된 필드를 안내한다.

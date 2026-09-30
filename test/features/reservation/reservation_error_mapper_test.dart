@@ -223,15 +223,26 @@ void main() {
       expect(result.message, '이미 사용이 시작된 예약은 취소할 수 없어요.');
     });
 
-    test('원인별 코드가 없는 구버전 취소 409도 사용 시작 안내로 처리한다', () {
-      final result = _cancel(_serverError(409, errorCode: 'CONFLICT'));
+    test('구버전 서버의 상태 이름 코드(CONFLICT) 취소 409는 사용 시작 안내로 처리한다', () {
+      // 구버전 서버는 취소 중 사용 시작 충돌을 data.errorCode: CONFLICT로 내려준다.
+      final result = _cancel(
+        _serverError(
+          409,
+          message: '이미 기기 사용이 시작되어 예약을 취소할 수 없습니다.',
+          errorCode: 'CONFLICT',
+        ),
+      );
 
-      // CONFLICT는 서버에서 동시 요청 충돌 코드다.
-      expect(result.cause, ReservationErrorCause.conflict);
+      expect(result.cause, ReservationErrorCause.alreadyStarted);
+      expect(result.message, '이미 사용이 시작된 예약은 취소할 수 없어요.');
+      expect(result.errorCode, 'CONFLICT');
+    });
 
-      final legacy = _cancel(_serverError(409));
-      expect(legacy.cause, ReservationErrorCause.alreadyStarted);
-      expect(legacy.message, '이미 사용이 시작된 예약은 취소할 수 없어요.');
+    test('errorCode가 없는 구버전 취소 409도 사용 시작 안내로 처리한다', () {
+      final result = _cancel(_serverError(409));
+
+      expect(result.cause, ReservationErrorCause.alreadyStarted);
+      expect(result.message, '이미 사용이 시작된 예약은 취소할 수 없어요.');
     });
 
     test('취소할 수 없는 상태의 예약은 최신 상태 확인을 안내한다', () {

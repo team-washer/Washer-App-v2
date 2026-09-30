@@ -70,6 +70,11 @@ AppException reservationErrorToAppException(
 }
 
 /// 서버 원인별 코드 → 사용자가 취할 다음 행동 기준의 원인.
+///
+/// `CONFLICT`는 넣지 않는다. 구버전 서버는 취소 중 사용 시작 충돌을 상태 이름인
+/// `CONFLICT`로, 새 서버는 락 충돌과 원인별 코드가 없는 409를 같은 `CONFLICT`로
+/// 내려줘 코드만으로 원인을 구분할 수 없다. 상태 이름 코드로 보고 아래의
+/// 상태 코드·액션 fallback(취소 409 → 사용 시작, 생성 409 → 충돌)에 맡긴다.
 const Map<String, ReservationErrorCause> _causeByErrorCode = {
   ServerErrorCode.validationFailed: ReservationErrorCause.validation,
   ServerErrorCode.invalidRequestBody: ReservationErrorCause.validation,
@@ -89,7 +94,6 @@ const Map<String, ReservationErrorCause> _causeByErrorCode = {
   ServerErrorCode.machineUnavailable: ReservationErrorCause.machineOccupied,
   ServerErrorCode.machineShutdownInProgress: ReservationErrorCause.conflict,
   ServerErrorCode.reservationStateInvalid: ReservationErrorCause.conflict,
-  ServerErrorCode.conflict: ReservationErrorCause.conflict,
   ServerErrorCode.reservationCancellationConflict:
       ReservationErrorCause.alreadyStarted,
 };

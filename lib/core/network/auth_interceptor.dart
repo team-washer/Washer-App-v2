@@ -12,9 +12,10 @@ import 'http_client_adapter_config.dart';
 /// 요청에 액세스 토큰을 붙이고, 만료/401 시 토큰을 갱신해 재시도하는 인터셉터.
 /// 갱신에 실패하면 토큰을 지우고 [onLogout]을 호출한다.
 ///
-/// 로그아웃([clearCache])은 세션 세대([_sessionGeneration])를 올린다. 로그아웃 전에
-/// 시작한 갱신은 응답이 늦게 와도 토큰을 저장하지 않고, 그 갱신을 기다리던 요청도
-/// 재시도하지 않는다(#279).
+/// 세션 시작([startSession])과 종료([clearCache])는 세션 세대([_sessionGeneration])를
+/// 올리고 저장소와 메모리 캐시를 함께 맞춘다. 이전 세대에 시작한 갱신은 응답이 늦게
+/// 와도 토큰을 저장하지 않고, 그 갱신을 기다리던 요청도 재시도하지 않는다(#279).
+/// 이전 세대에 시작한 저장소 읽기도 메모리 캐시를 되살리지 않는다(#319).
 class AuthInterceptor extends Interceptor {
   AuthInterceptor(
     this._dio,
@@ -77,8 +78,16 @@ class AuthInterceptor extends Interceptor {
     }
 
     if (_cachedAccessToken == null) {
+      final generation = _sessionGeneration;
       final storedToken = await _storage.read(key: 'access_token');
-      if (storedToken != null) {
+
+      // 읽는 동안 세션이 바뀌었으면 읽은 값은 이전 세션의 토큰이므로 캐시에 올리지 않는다.
+      // 새 세션이 시작됐다면 그 토큰이 이미 캐시에 있고, 세션이 끝났다면 요청을 보내지 않는다.
+      if (generation != _sessionGeneration) {
+        if (_cachedAccessToken == null) {
+          return handler.reject(_sessionEndedException(options));
+        }
+      } else if (storedToken != null) {
         // 재로그인 등으로 스토리지에 새 토큰이 들어오면 로그아웃 가드를 해제한다.
         // 가드가 true로 남아 있으면 첫 요청부터 갱신 실패 시 onLogout이
         // 호출되지 않아 사용자가 갇힐 수 있다.
@@ -359,7 +368,25 @@ class AuthInterceptor extends Interceptor {
     );
   }
 
-  /// 로그아웃 시 메모리 캐시 + 스토리지 토큰 모두 삭제
+  /// 로그인으로 새 세션을 시작한다. 메모리 캐시와 스토리지를 새 토큰으로 함께 맞춘다.
+  ///
+  /// 세대를 올리므로 이전 세션에서 시작한 갱신·저장소 읽기의 결과는 버려지고,
+  /// 이후 요청은 스토리지 저장이 끝나기 전이라도 새 토큰만 사용한다.
+  Future<void> startSession({
+    required String accessToken,
+    required String refreshToken,
+  }) async {
+    _sessionGeneration++;
+    _cachedAccessToken = accessToken;
+    _refreshFuture = null;
+    _isLoggedOut = false;
+    await _serializeStorage(() async {
+      await _storage.write(key: 'access_token', value: accessToken);
+      await _storage.write(key: 'refresh_token', value: refreshToken);
+    });
+  }
+
+  /// 세션을 끝낸다. 메모리 캐시 + 스토리지 토큰 모두 삭제
   Future<void> clearCache() async {
     _sessionGeneration++;
     _cachedAccessToken = null;

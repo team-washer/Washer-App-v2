@@ -48,6 +48,19 @@ test/          # lib 구조를 미러링 (core/, features/, shared/, architectur
 
 feature: `alarm`, `auth`, `history`, `home`, `report`, `reservation`, `user`
 
+### 모듈 README
+
+각 feature와 `core`, `shared`에는 `README.md`가 있습니다. README에는 모듈의 기능, 레이어 구성, 동작 흐름, API, 의존성, 주의사항이 정리되어 있습니다.
+
+- 모듈을 수정하기 전에 해당 README를 먼저 읽습니다.
+- 다음이 바뀌면 같은 PR에서 README도 갱신합니다.
+  - 기능
+  - 파일 구성
+  - provider
+  - API 경로
+  - 동작 흐름
+  - 모듈 간 의존성
+
 ## 아키텍처 규칙
 
 - **UI → provider → (repository) → data source** 방향만 허용. 위젯에서 Dio/data source를 직접 호출하지 않습니다.

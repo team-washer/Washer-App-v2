@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/network/error.dart';
 import 'package:washer/features/report/presentation/providers/report_dialog_actions.dart';
 import 'package:washer/shared/theme/washer_color.dart';
+import 'package:washer/shared/theme/washer_error_message.dart';
 import 'package:washer/shared/theme/app_spacing.dart';
 import 'package:washer/shared/theme/washer_typography.dart';
 import 'package:washer/shared/ui/indicators/status_dot.dart';
@@ -56,7 +57,9 @@ class _ReportBrokenDialogState extends ConsumerState<ReportBrokenDialog> {
 
     if (description.isEmpty) {
       _focusNode.requestFocus();
-      context.showErrorToast(AppException(message: '고장 내용을 입력해주세요.'));
+      context.showErrorToast(
+        AppException(message: WasherErrorMessage.reportDescriptionRequired),
+      );
       return;
     }
 

@@ -125,10 +125,9 @@ class AuthInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
-    final statusCode = err.response?.statusCode;
     final isRetry = err.requestOptions.extra[_retryKey] == true;
 
-    if ((statusCode == 401 || statusCode == 403) && !isRetry) {
+    if (_needsTokenRefresh(err) && !isRetry) {
       final generation = _sessionGeneration;
 
       // 1) 갱신 성공 여부를 먼저 확정한다. 네트워크 오류 등으로 갱신 자체가
@@ -167,6 +166,23 @@ class AuthInterceptor extends Interceptor {
     }
 
     return handler.next(err);
+  }
+
+  /// 토큰을 갱신하면 해결될 수 있는 인증 오류인지 판단한다.
+  ///
+  /// 401은 항상 인증 실패다. 403은 원인별 코드(권한 부족·호실 세탁 금지·재가입 제한
+  /// 등, 백엔드 #196)가 있으면 토큰과 무관한 거부라 갱신하지 않는다. 갱신해도 같은
+  /// 거부가 반복되고, 갱신이 일시적으로 실패하면 로그아웃까지 되기 때문이다.
+  /// 코드가 없는 403은 구버전 서버의 인증 실패일 수 있어 기존처럼 갱신한다.
+  static bool _needsTokenRefresh(DioException err) {
+    final statusCode = err.response?.statusCode;
+    if (statusCode == 401) return true;
+    if (statusCode != 403) return false;
+
+    final body = err.response?.data;
+    final data = body is Map ? body['data'] : null;
+    final errorCode = data is Map ? data['errorCode'] : null;
+    return errorCode is! String || errorCode.trim().isEmpty;
   }
 
   Future<String?> _tryRefreshToken() async {

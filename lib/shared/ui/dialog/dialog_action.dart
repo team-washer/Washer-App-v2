@@ -28,6 +28,8 @@ class DialogAction<R> {
   final Future<R> Function(ProviderContainer container) run;
   final bool Function(R result) isSuccess;
   final String successMessage;
+
+  /// 실패했는데 원인 정보([failureError])가 없을 때 에러 토스트에 보여줄 문구.
   final String fallbackMessage;
   final String logName;
   final Object? Function(ProviderContainer container)? failureError;
@@ -73,9 +75,10 @@ Future<void> runDialogAction<R>(
         );
       }
     } else if (rootOverlay.mounted) {
-      final failureError = action.failureError?.call(container);
+      // 실패는 원인 정보가 없어도 에러 토스트로 통일한다.
       rootOverlay.showErrorToast(
-        failureError ?? AppException(message: action.fallbackMessage),
+        action.failureError?.call(container) ??
+            AppException(message: action.fallbackMessage),
       );
     }
   } catch (error, stackTrace) {

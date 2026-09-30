@@ -52,7 +52,7 @@ abstract final class LaundryDialogActions {
     );
   }
 
-  /// 예약 액션의 실패를 원인별 문구로 바꾼다. 실패 정보가 없으면 null(기본 스낵바).
+  /// 예약 액션의 실패를 원인별 문구로 바꾼다. 실패 정보가 없으면 null(기본 문구 토스트).
   static Object? _failureError(
     ProviderContainer container,
     ReservationAction action,

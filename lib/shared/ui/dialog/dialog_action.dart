@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:washer/core/network/error.dart';
 import 'package:washer/shared/ui/error_toast.dart';
 import 'package:washer/shared/ui/loading_overlay.dart';
 import 'package:washer/core/utils/app_logger.dart';
@@ -27,6 +28,8 @@ class DialogAction<R> {
   final Future<R> Function(ProviderContainer container) run;
   final bool Function(R result) isSuccess;
   final String successMessage;
+
+  /// 실패했는데 원인 정보([failureError])가 없을 때 에러 토스트에 보여줄 문구.
   final String fallbackMessage;
   final String logName;
   final Object? Function(ProviderContainer container)? failureError;
@@ -35,7 +38,7 @@ class DialogAction<R> {
   final bool showLoading;
 }
 
-/// [action]을 실행하고 결과 스낵바를 띄우는 공통 실행기.
+/// [action]을 실행하고 성공은 스낵바, 실패는 에러 토스트로 알리는 공통 실행기.
 ///
 /// await **이전에** messenger/navigator/container/overlay를 모두 캡처하므로
 /// pop·화면 이탈 이후에도 안전하다. 이 캡처 로직을 한곳에 모아 두는 것이 목적이며,
@@ -71,14 +74,11 @@ Future<void> runDialogAction<R>(
         messenger.showSnackBar(SnackBar(content: Text(action.successMessage)));
       }
     } else if (rootOverlay.mounted) {
-      final failureError = action.failureError?.call(container);
-      if (failureError != null) {
-        rootOverlay.showErrorToast(failureError);
-      } else if (messenger.mounted) {
-        messenger.showSnackBar(
-          SnackBar(content: Text(action.fallbackMessage)),
-        );
-      }
+      // 실패는 원인 정보가 없어도 에러 토스트로 통일한다.
+      rootOverlay.showErrorToast(
+        action.failureError?.call(container) ??
+            AppException(message: action.fallbackMessage),
+      );
     }
   } catch (error, stackTrace) {
     AppLogger.error(

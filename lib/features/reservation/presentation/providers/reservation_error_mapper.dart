@@ -1,6 +1,7 @@
 import 'package:washer/core/network/error.dart';
 import 'package:washer/core/network/server_error_code.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_exceptions.dart';
+import 'package:washer/shared/theme/washer_error_message.dart';
 
 /// 실패한 예약 액션의 종류. 원인별 코드가 없을 때 같은 상태 코드라도 액션에 따라
 /// 원인이 다르다.
@@ -25,9 +26,7 @@ AppException reservationErrorToAppException(
     case AlreadyReservedException():
       return ReservationException(
         cause: ReservationErrorCause.machineOccupied,
-        message: AppException.messageForErrorCode(
-          ServerErrorCode.machineAlreadyReserved,
-        )!,
+        message: WasherErrorMessage.machineTaken,
         debugMessage: error.toString(),
       );
     case ReservationPenaltyException():
@@ -53,9 +52,7 @@ AppException reservationErrorToAppException(
     409 when action == ReservationAction.cancel => ReservationException.from(
       base,
       cause: ReservationErrorCause.alreadyStarted,
-      message: AppException.messageForErrorCode(
-        ServerErrorCode.reservationCancellationConflict,
-      )!,
+      message: WasherErrorMessage.reservationAlreadyStarted,
     ),
     409 => ReservationException.from(
       base,
@@ -66,13 +63,11 @@ AppException reservationErrorToAppException(
     400 => ReservationException.from(
       base,
       cause: ReservationErrorCause.unknown,
-      message: base.serverMessage ?? _unknownMessage,
+      message: base.serverMessage ?? WasherErrorMessage.unprocessable,
     ),
     _ => base,
   };
 }
-
-const String _unknownMessage = '요청을 처리할 수 없어요.\n잠시 후 다시 시도해주세요.';
 
 /// 서버 원인별 코드 → 사용자가 취할 다음 행동 기준의 원인.
 const Map<String, ReservationErrorCause> _causeByErrorCode = {

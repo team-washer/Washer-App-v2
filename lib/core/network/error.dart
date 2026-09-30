@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:washer/core/network/server_error_code.dart';
 import 'package:washer/core/utils/app_logger.dart';
+import 'package:washer/shared/theme/washer_error_message.dart';
 
 /// 사용자에게 그대로 보여줄 메시지를 가진 예외.
 abstract interface class UserFacingException implements Exception {
@@ -85,44 +86,43 @@ class AppException {
   /// 서버 필드 이름의 사용자용 이름. 기능별 예외가 재정의한다.
   String? fieldLabel(String field) => null;
 
-  static const String _validationMessage = '입력한 정보를 다시 확인해주세요.';
-  static const String _conflictMessage =
-      '다른 요청과 겹쳤어요.\n최신 상태를 확인한 뒤 다시 시도해주세요.';
-  static const String _machineTakenMessage =
-      '이미 사용 중이거나 예약된 기기예요.\n기기 상태를 새로고침한 뒤 다른 기기를 선택해주세요.';
-
-  /// 원인별 코드의 사용자용 고정 문구. [_statusMessages]보다 우선한다.
+  /// 원인별 코드의 사용자용 문구. [_statusMessages]보다 우선한다.
+  /// 문구 자체는 디자인 시스템([WasherErrorMessage])에서 관리한다.
   static const Map<String, String> _errorCodeMessages = {
-    ServerErrorCode.validationFailed: _validationMessage,
-    ServerErrorCode.invalidRequestBody: _validationMessage,
-    ServerErrorCode.typeMismatch: _validationMessage,
-    ServerErrorCode.missingParameter: _validationMessage,
-    ServerErrorCode.withdrawnRejoinRestricted: '탈퇴 후 30일이 지나야 다시 가입할 수 있어요.',
-    ServerErrorCode.userNotFound: '사용자 정보를 찾을 수 없어요.\n다시 로그인해주세요.',
-    ServerErrorCode.reservationNotFound: '예약 정보를 찾을 수 없어요.\n다시 확인해주세요.',
-    ServerErrorCode.machineNotFound: '기기 정보를 찾을 수 없어요.\n기기 목록을 새로고침해주세요.',
-    ServerErrorCode.roomNotFound: '호실 정보를 찾을 수 없어요.\n관리자에게 문의해주세요.',
-    ServerErrorCode.roomWashingBanned: '우리 호실은 지금 세탁이 금지된 상태예요.\n관리자에게 문의해주세요.',
-    ServerErrorCode.userPenaltyActive: '지금은 예약이 제한된 상태예요.\n제한이 풀린 뒤 다시 시도해주세요.',
+    ServerErrorCode.validationFailed: WasherErrorMessage.validation,
+    ServerErrorCode.invalidRequestBody: WasherErrorMessage.validation,
+    ServerErrorCode.typeMismatch: WasherErrorMessage.validation,
+    ServerErrorCode.missingParameter: WasherErrorMessage.validation,
+    ServerErrorCode.withdrawnRejoinRestricted:
+        WasherErrorMessage.withdrawnRejoinRestricted,
+    ServerErrorCode.userNotFound: WasherErrorMessage.userNotFound,
+    ServerErrorCode.reservationNotFound: WasherErrorMessage.reservationNotFound,
+    ServerErrorCode.machineNotFound: WasherErrorMessage.machineNotFound,
+    ServerErrorCode.roomNotFound: WasherErrorMessage.roomNotFound,
+    ServerErrorCode.roomWashingBanned: WasherErrorMessage.roomWashingBanned,
+    ServerErrorCode.userPenaltyActive: WasherErrorMessage.userPenaltyActive,
     ServerErrorCode.reservationCooldownActive:
-        '예약을 취소한 직후라 같은 종류의 기기는 잠시 예약할 수 없어요.',
-    ServerErrorCode.roomReservationRestricted: '최근 취소 횟수가 많아 우리 호실의 예약이 제한됐어요.',
-    ServerErrorCode.reservationTimeRestricted: '지금은 예약할 수 있는 시간이 아니에요.',
+        WasherErrorMessage.reservationCooldownActive,
+    ServerErrorCode.roomReservationRestricted:
+        WasherErrorMessage.roomReservationRestricted,
+    ServerErrorCode.reservationTimeRestricted:
+        WasherErrorMessage.reservationTimeRestricted,
     ServerErrorCode.userActiveReservation:
-        '이미 진행 중인 내 예약이 있어요.\n홈에서 기존 예약을 확인해주세요.',
+        WasherErrorMessage.userActiveReservation,
     ServerErrorCode.roomMachineTypeReserved:
-        '우리 호실에 같은 종류의 기기 예약이 이미 있어요.\n'
-        '다른 종류의 기기를 고르거나 기존 예약이 끝난 뒤 다시 시도해주세요.',
-    ServerErrorCode.machineUnavailable: '지금은 이 기기를 사용할 수 없어요.\n다른 기기를 선택해주세요.',
-    ServerErrorCode.machineAlreadyReserved: _machineTakenMessage,
-    ServerErrorCode.machineInUse: _machineTakenMessage,
+        WasherErrorMessage.roomMachineTypeReserved,
+    ServerErrorCode.machineUnavailable: WasherErrorMessage.machineUnavailable,
+    ServerErrorCode.machineAlreadyReserved: WasherErrorMessage.machineTaken,
+    ServerErrorCode.machineInUse: WasherErrorMessage.machineTaken,
     ServerErrorCode.machineShutdownInProgress:
-        '기기가 종료되는 중이에요.\n잠시 후 다시 시도해주세요.',
+        WasherErrorMessage.machineShuttingDown,
     ServerErrorCode.reservationCancellationConflict:
-        '이미 사용이 시작된 예약은 취소할 수 없어요.',
-    ServerErrorCode.reservationStateInvalid: '예약 상태가 바뀌었어요.\n최신 상태를 확인해주세요.',
-    ServerErrorCode.reservationAccessDenied: '이 예약을 처리할 권한이 없어요.',
-    ServerErrorCode.conflict: _conflictMessage,
+        WasherErrorMessage.reservationAlreadyStarted,
+    ServerErrorCode.reservationStateInvalid:
+        WasherErrorMessage.reservationStateChanged,
+    ServerErrorCode.reservationAccessDenied:
+        WasherErrorMessage.reservationAccessDenied,
+    ServerErrorCode.conflict: WasherErrorMessage.conflict,
   };
 
   /// 서버 문구에만 제한 대상·해제 시각(남은 분, 예약 가능 시각)이 담긴 코드.
@@ -134,24 +134,17 @@ class AppException {
     ServerErrorCode.reservationTimeRestricted,
   };
 
-  /// 원인별 코드가 없을 때의 상태 코드별 고정 문구.
+  /// 원인별 코드가 없을 때의 상태 코드별 문구.
   static const Map<int, String> _statusMessages = {
-    400: _validationMessage,
-    401: '로그인이 필요해요. 다시 로그인해주세요.',
-    403: '이 기능을 이용할 수 없어요.',
-    404: '예약 정보를 찾을 수 없어요.\n다시 확인해주세요.',
-    409: _conflictMessage,
-    451: '현재 예약 서비스를 이용할 수 없는 사용자예요.',
-    502: '기기와 연결할 수 없어요.\n잠시 후 다시 시도해주세요.',
-    503: '서비스가 잠시 불안정해요.\n잠시 후 다시 시도해주세요.',
+    400: WasherErrorMessage.validation,
+    401: WasherErrorMessage.loginRequired,
+    403: WasherErrorMessage.forbidden,
+    404: WasherErrorMessage.reservationNotFound,
+    409: WasherErrorMessage.conflict,
+    451: WasherErrorMessage.userNotEligible,
+    502: WasherErrorMessage.deviceConnection,
+    503: WasherErrorMessage.serviceUnavailable,
   };
-
-  static const String _genericServerMessage = '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
-
-  /// 원인별 코드의 사용자용 고정 문구. 앱이 서버 응답 없이 같은 원인을 안내할 때
-  /// (사전 조회로 막은 경우, 구버전 응답 보정) 문구를 한 곳에서 관리하려고 쓴다.
-  static String? messageForErrorCode(String errorCode) =>
-      _errorCodeMessages[errorCode];
 
   /// 임의의 에러를 종류별로 분류해 [AppException]으로 변환한다.
   ///
@@ -165,15 +158,15 @@ class AppException {
     ),
     DioException e => AppException._fromDioException(e),
     FormatException e => AppException(
-      message: '데이터를 불러오는 중 오류가 발생했습니다.',
+      message: WasherErrorMessage.dataParsing,
       debugMessage: e.message,
     ),
     TypeError e => AppException(
-      message: '데이터를 불러오는 중 오류가 발생했습니다.',
+      message: WasherErrorMessage.dataParsing,
       debugMessage: e.toString(),
     ),
     _ => AppException(
-      message: '알 수 없는 오류가 발생했습니다.',
+      message: WasherErrorMessage.unknown,
       debugMessage: error?.toString(),
     ),
   };
@@ -185,7 +178,7 @@ class AppException {
     // 로그아웃 흐름이 화면 전환을 처리하므로 "네트워크 오류"로 오안내하지 않는다.
     if (type == DioExceptionType.cancel) {
       return AppException(
-        message: '요청이 취소되었어요.',
+        message: WasherErrorMessage.cancelled,
         debugMessage: exception.error?.toString() ?? exception.message,
         isCancelled: true,
       );
@@ -197,7 +190,7 @@ class AppException {
         type == DioExceptionType.connectionTimeout ||
         exception.response == null) {
       return AppException(
-        message: '네트워크 연결을 확인해주세요.',
+        message: WasherErrorMessage.network,
         statusCode: statusCode,
         debugMessage: exception.message,
       );
@@ -239,7 +232,7 @@ class AppException {
       return build(serverMessage);
     }
 
-    return build(_genericServerMessage);
+    return build(WasherErrorMessage.serverError);
   }
 
   static String? _serverMessageFrom(Object? data) {

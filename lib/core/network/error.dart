@@ -95,6 +95,7 @@ class AppException {
     ServerErrorCode.missingParameter: WasherErrorMessage.validation,
     ServerErrorCode.withdrawnRejoinRestricted:
         WasherErrorMessage.withdrawnRejoinRestricted,
+    ServerErrorCode.userFloorRestricted: WasherErrorMessage.userFloorRestricted,
     ServerErrorCode.userNotFound: WasherErrorMessage.userNotFound,
     ServerErrorCode.reservationNotFound: WasherErrorMessage.reservationNotFound,
     ServerErrorCode.machineNotFound: WasherErrorMessage.machineNotFound,

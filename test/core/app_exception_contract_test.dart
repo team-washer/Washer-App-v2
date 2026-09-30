@@ -146,9 +146,18 @@ void main() {
         ),
       );
 
+      final floorRestricted = AppException.from(
+        _serverError(
+          451,
+          message: '1~4층 기숙사생이 아니라면 서비스를 이용할 수 없습니다.',
+          data: {'errorCode': 'USER_FLOOR_RESTRICTED'},
+        ),
+      );
+
       expect(withdrawn.message, contains('30일'));
       expect(activeReservation.message, isNot('입력한 정보를 다시 확인해주세요.'));
       expect(activeReservation.message, contains('기존 예약'));
+      expect(floorRestricted.message, '5층 기숙사생은 워셔를 이용할 수 없어요.');
     });
 
     test('이용 제한 코드는 제한 대상과 해제 시각이 담긴 서버 문구를 그대로 보여준다', () {

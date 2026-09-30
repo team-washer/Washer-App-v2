@@ -89,6 +89,7 @@ const Map<String, ReservationErrorCause> _causeByErrorCode = {
   ServerErrorCode.roomReservationRestricted: ReservationErrorCause.restricted,
   ServerErrorCode.reservationTimeRestricted: ReservationErrorCause.restricted,
   ServerErrorCode.roomWashingBanned: ReservationErrorCause.restricted,
+  ServerErrorCode.userFloorRestricted: ReservationErrorCause.notEligible,
   ServerErrorCode.machineAlreadyReserved: ReservationErrorCause.machineOccupied,
   ServerErrorCode.machineInUse: ReservationErrorCause.machineOccupied,
   ServerErrorCode.machineUnavailable: ReservationErrorCause.machineOccupied,

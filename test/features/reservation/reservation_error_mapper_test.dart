@@ -172,6 +172,21 @@ void main() {
     });
   });
 
+  group('예약 생성 451', () {
+    test('이용 대상이 아닌 층의 사용자는 제한 해제 대기가 아닌 이용 불가로 분류한다', () {
+      final result = _reserve(
+        _serverError(
+          451,
+          message: '1~4층 기숙사생이 아니라면 서비스를 이용할 수 없습니다.',
+          errorCode: 'USER_FLOOR_RESTRICTED',
+        ),
+      );
+
+      expect(result.cause, ReservationErrorCause.notEligible);
+      expect(result.message, '5층 기숙사생은 워셔를 이용할 수 없어요.');
+    });
+  });
+
   group('예약 생성 409', () {
     test('기기 점유·사용 중은 새로고침 후 다른 기기 선택을 안내한다', () {
       for (final code in ['MACHINE_ALREADY_RESERVED', 'MACHINE_IN_USE']) {
@@ -301,7 +316,7 @@ void main() {
         401: 'ACCESS_TOKEN_EXPIRED',
         403: 'FORBIDDEN',
         404: 'MACHINE_NOT_FOUND',
-        451: 'USER_FLOOR_RESTRICTED',
+        451: null,
         502: null,
         503: 'RESERVATION_RESTRICTION_UNAVAILABLE',
       };

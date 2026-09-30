@@ -40,6 +40,9 @@ enum ReservationErrorCause {
   /// 취소 패널티·쿨다운·예약 가능 시간 제한. 제한이 풀린 뒤 다시 시도한다.
   restricted,
 
+  /// 서비스 이용 대상이 아니다(1~4층 기숙사생만 이용 가능). 기다려도 풀리지 않는다.
+  notEligible,
+
   /// 다른 사용자가 이미 기기를 점유했다. 최신 상태를 보고 다른 기기를 고른다.
   machineOccupied,
 

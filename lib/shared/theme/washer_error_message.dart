@@ -29,6 +29,7 @@ class WasherErrorMessage {
   static const withdrawnRejoinRestricted = '탈퇴 후 30일이 지나야 다시 가입할 수 있어요.';
   static const userNotFound = '사용자 정보를 찾을 수 없어요.\n다시 로그인해주세요.';
   static const userNotEligible = '현재 예약 서비스를 이용할 수 없는 사용자예요.';
+  static const userFloorRestricted = '5층 기숙사생은 워셔를 이용할 수 없어요.';
 
   // ============================================
   // Room - 호실

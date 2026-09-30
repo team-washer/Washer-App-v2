@@ -38,14 +38,14 @@ class DialogAction<R> {
   final bool showLoading;
 }
 
-/// [action]을 실행하고 성공은 스낵바, 실패는 에러 토스트로 알리는 공통 실행기.
+/// [action]을 실행하고 결과를 에러 토스트로 띄우는 공통 실행기.
 ///
-/// await **이전에** messenger/navigator/container/overlay를 모두 캡처하므로
+/// await **이전에** navigator/container/overlay를 모두 캡처하므로
 /// pop·화면 이탈 이후에도 안전하다. 이 캡처 로직을 한곳에 모아 두는 것이 목적이며,
 /// 각 호출부가 따로 캡처하면 한 곳을 빠뜨려 bad state 오류가 재발하기 쉽다.
 ///
 /// - [popFirst] : 호출 즉시 현재 라우트를 pop할지(다이얼로그면 true).
-/// - [onSuccess]: 성공 시 성공 스낵바 직전에 실행(예: 화면 이동). 네비게이션처럼
+/// - [onSuccess]: 성공 시 성공 토스트 직전에 실행(예: 화면 이동). 네비게이션처럼
 ///   context가 필요한 동작은 호출부에서 미리 캡처해 클로저로 넘긴다.
 Future<void> runDialogAction<R>(
   BuildContext context,
@@ -53,7 +53,6 @@ Future<void> runDialogAction<R>(
   bool popFirst = true,
   VoidCallback? onSuccess,
 }) async {
-  final messenger = ScaffoldMessenger.of(context);
   final navigator = Navigator.of(context);
   final container = ProviderScope.containerOf(context);
   final rootOverlay = Overlay.of(context, rootOverlay: true);
@@ -69,9 +68,11 @@ Future<void> runDialogAction<R>(
 
     if (action.isSuccess(result)) {
       onSuccess?.call();
-      // 비동기 작업 도중 화면이 이탈해 messenger가 해제됐을 수 있다.
-      if (messenger.mounted) {
-        messenger.showSnackBar(SnackBar(content: Text(action.successMessage)));
+      // 비동기 작업 도중 앱이 종료되는 등 오버레이가 해제됐을 수 있다.
+      if (rootOverlay.mounted) {
+        rootOverlay.showErrorToast(
+          AppException(message: action.successMessage),
+        );
       }
     } else if (rootOverlay.mounted) {
       // 실패는 원인 정보가 없어도 에러 토스트로 통일한다.

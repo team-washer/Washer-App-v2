@@ -65,9 +65,12 @@ feature: `alarm`, `auth`, `history`, `home`, `report`, `reservation`, `user`
 - API 호출은 `guardApiCall(() => ..., logName: '...')`로 감싸고 `Result<T>`(`ResultSuccess` / `ResultFailure`)를 패턴 매칭합니다. provider에서 직접 try-catch + 로깅을 반복하지 않습니다.
 - 모든 오류는 `AppException.from`으로 정규화합니다. 화면별로 상태 코드 → 문구 매핑을 따로 만들지 않습니다.
 - 사용자에게 서버의 원시 메시지·스택·예외명을 노출하지 않습니다.
-- 사용자에게 보여주는 메시지(오류, 입력 검증, 성공·정보 안내)는 모두 에러 토스트로 띄웁니다. `SnackBar`/`showSnackBar`는 쓰지 않습니다.
-  - `context.showErrorToast(error)`, context가 사라질 수 있는 비동기 이후에는 미리 캡처한 `Overlay.of(context, rootOverlay: true).showErrorToast(error)` (`lib/shared/ui/error_toast.dart`)
-  - 문자열을 그대로 넘기면 "알 수 없는 오류"로 바뀌므로 `AppException(message: '...')`으로 감싸서 넘깁니다.
+- 사용자에게 보여주는 문구는 "~요" 말투로 씁니다. 음슴체(~음, ~함, ~됨)는 쓰지 않습니다.
+- 오류 안내 문구는 `lib/shared/theme/washer_error_message.dart`(`WasherErrorMessage`)에 모읍니다. `AppException`은 errorCode·상태 코드별로 어떤 문구를 쓸지만 정합니다.
+- 사용자에게 보여주는 메시지는 모두 토스트(`WasherToast`, `lib/shared/ui/washer_toast.dart`)로 띄웁니다. `SnackBar`/`showSnackBar`는 쓰지 않습니다.
+  - 종류는 factory로 고릅니다: 오류·입력 검증은 `WasherToast.error(error)`, 성공은 `WasherToast.success('...')`, 진행 안내는 `WasherToast.info('...')`.
+  - `context.showToast(...)`, context가 사라질 수 있는 비동기 이후에는 미리 캡처한 `Overlay.of(context, rootOverlay: true).showToast(...)`.
+  - 토스트는 한 번에 하나만 보이고 나머지는 순서대로 대기합니다. 종류와 메시지가 같은 토스트는 최신 것 하나만 보여줍니다.
 - 로그는 `AppLogger`를 사용합니다 (`print` 금지).
 
 ## 코드 생성

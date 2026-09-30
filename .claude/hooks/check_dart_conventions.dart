@@ -5,7 +5,7 @@
 //   presentation/{models,providers,screens,states,widgets}
 // - 레이어: UI(screens·widgets·shared/ui)는 dio·retrofit·data source·repository를 직접 import하지 않는다.
 //   data는 presentation을, core(router 제외)는 features를 import하지 않는다.
-// - 메시지: 사용자에게 보여주는 메시지는 에러 토스트로만 띄운다 (SnackBar 금지)
+// - 메시지: 사용자에게 보여주는 메시지는 토스트(WasherToast)로만 띄운다 (SnackBar 금지)
 // - 위젯: 한 파일에 public 위젯 하나, 클래스명은 파일명의 PascalCase
 // - 중복: 같은 파일명, 같은 이름의 public 타입·provider가 lib/ 다른 곳에 이미 있으면 알린다.
 //
@@ -140,11 +140,11 @@ List<String> _check(String rel, String content, _LibIndex index) {
     }
   }
 
-  // 사용자 메시지는 에러 토스트로만 띄운다 (SnackBar 금지)
+  // 사용자 메시지는 토스트(WasherToast)로만 띄운다 (SnackBar 금지)
   for (final line in content.split('\n')) {
     if (_snackBar.hasMatch(line)) {
-      problems.add('SnackBar 대신 에러 토스트(showErrorToast, lib/shared/ui/error_toast.dart)를 사용합니다. '
-          '문자열은 AppException(message: ...)으로 감싸서 넘깁니다: ${line.trim()}');
+      problems.add('SnackBar 대신 토스트(showToast(WasherToast.error/success/info(...)), '
+          'lib/shared/ui/washer_toast.dart)를 사용합니다: ${line.trim()}');
     }
   }
 

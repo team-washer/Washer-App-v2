@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "attribution": {
+    "pr": ""
+  },
+  "permissions": {
+    "allow": [
+      "Bash(fvm flutter pub get)",
+      "Bash(fvm flutter analyze *)",
+      "Bash(fvm flutter test *)",
+      "Bash(fvm dart format *)",
+      "Bash(fvm dart run build_runner *)",
+      "Bash(flutter pub get)",
+      "Bash(flutter analyze *)",
+      "Bash(flutter test *)",
+      "Bash(dart format *)",
+      "Bash(dart run build_runner *)",
+      "Bash(bash scripts/ensure_env_files.sh)",
+      "Bash(git status *)",
+      "Bash(git diff)",
+      "Bash(git diff --stat)",
+      "Bash(git diff --cached)",
+      "Bash(git diff --cached --stat)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git branch *)",
+      "Bash(git fetch *)",
+      "Bash(git push origin --delete *)",
+      "Bash(gh issue list *)",
+      "Bash(gh issue view *)",
+      "Bash(gh pr list *)",
+      "Bash(gh pr view *)",
+      "Bash(gh pr diff *)",
+      "Bash(gh pr checks *)",
+      "PowerShell(fvm flutter pub get)",
+      "PowerShell(fvm flutter analyze *)",
+      "PowerShell(fvm flutter test *)",
+      "PowerShell(fvm dart format *)",
+      "PowerShell(fvm dart run build_runner *)",
+      "PowerShell(git status *)",
+      "PowerShell(git diff)",
+      "PowerShell(git diff --stat)",
+      "PowerShell(git diff --cached)",
+      "PowerShell(git diff --cached --stat)",
+      "PowerShell(git log *)",
+      "PowerShell(git branch *)",
+      "PowerShell(git push origin --delete *)",
+      "PowerShell(gh issue view *)",
+      "PowerShell(gh pr view *)"
+    ],
+    "ask": [
+      "Bash(gh issue create *)",
+      "Bash(gh pr create *)",
+      "Bash(git checkout -b *)",
+      "Bash(git switch -c *)",
+      "Bash(git switch --create *)",
+      "PowerShell(gh issue create *)",
+      "PowerShell(gh pr create *)",
+      "PowerShell(git checkout -b *)",
+      "PowerShell(git switch -c *)",
+      "PowerShell(git switch --create *)"
+    ],
+    "deny": [
+      "Bash(git *diff*--no-index*)",
+      "PowerShell(git *diff*--no-index*)",
+      "Read(./.env)",
+      "Read(./.env.development)",
+      "Read(./.env.production)",
+      "Edit(./.env)",
+      "Edit(./.env.development)",
+      "Edit(./.env.production)",
+      "Read(./android/key.properties)",
+      "Edit(./android/key.properties)",
+      "Read(**/*.jks)",
+      "Read(**/*.keystore)",
+      "Read(**/google-services.json)",
+      "Read(**/GoogleService-Info.plist)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "dart \"$CLAUDE_PROJECT_DIR/.claude/hooks/format_dart.dart\"",
+            "timeout": 60,
+            "statusMessage": "dart format"
+          },
+          {
+            "type": "command",
+            "command": "dart \"$CLAUDE_PROJECT_DIR/.claude/hooks/check_dart_conventions.dart\"",
+            "timeout": 60,
+            "statusMessage": "아키텍처·파일명·중복 검사"
+          }
+        ]
+      }
+    ]
+  }
+}

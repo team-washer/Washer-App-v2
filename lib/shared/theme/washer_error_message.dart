@@ -65,4 +65,10 @@ class WasherErrorMessage {
   static const machineTaken =
       '이미 사용 중이거나 예약된 기기예요.\n기기 상태를 새로고침한 뒤 다른 기기를 선택해주세요.';
   static const machineShuttingDown = '기기가 종료되는 중이에요.\n잠시 후 다시 시도해주세요.';
+
+  // ============================================
+  // Report - 고장 신고
+  // ============================================
+
+  static const reportDescriptionRequired = '고장 내용을 입력해주세요.';
 }

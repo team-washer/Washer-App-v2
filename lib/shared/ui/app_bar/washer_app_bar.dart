@@ -4,7 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:washer/core/network/auth_notifier.dart';
 import 'package:washer/core/router/route_paths.dart';
-import 'package:washer/shared/ui/error_toast.dart';
+import 'package:washer/shared/ui/washer_toast.dart';
 import 'package:washer/shared/theme/washer_color.dart';
 import 'package:washer/shared/theme/washer_icon.dart';
 import 'package:washer/shared/theme/app_spacing.dart';
@@ -89,8 +89,10 @@ class WasherAppBar extends ConsumerWidget implements PreferredSizeWidget {
                                   .withdraw();
                               if (!didWithdraw) {
                                 if (context.mounted) {
-                                  context.showErrorToast(
-                                    ref.read(withdrawProvider).error,
+                                  context.showToast(
+                                    WasherToast.error(
+                                      ref.read(withdrawProvider).error,
+                                    ),
                                   );
                                 }
                                 return;

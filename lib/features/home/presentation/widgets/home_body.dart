@@ -10,7 +10,7 @@ import 'package:washer/features/home/presentation/widgets/my_reservation_section
 import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
 import 'package:washer/features/user/presentation/providers/my_user_provider.dart';
 import 'package:washer/core/network/error.dart';
-import 'package:washer/shared/ui/error_toast.dart';
+import 'package:washer/shared/ui/washer_toast.dart';
 
 /// 홈 화면 본문 - 내 예약 + 세탁기/건조기 현황을 스크롤 목록으로 표시하고,
 /// 앱 resume 시 기기/유저/활성 예약 provider를 갱신한다.
@@ -78,7 +78,7 @@ class _HomeBodyState extends ConsumerState<HomeBody>
   Widget build(BuildContext context) {
     ref.listen<AppException?>(pollingErrorProvider, (_, error) {
       if (error == null) return;
-      context.showErrorToast(error);
+      context.showToast(WasherToast.error(error));
       ref.read(pollingErrorProvider.notifier).state = null;
     });
 

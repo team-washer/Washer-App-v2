@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/network/error.dart';
-import 'package:washer/shared/ui/error_toast.dart';
+import 'package:washer/shared/ui/washer_toast.dart';
 import 'package:washer/shared/ui/loading_overlay.dart';
 import 'package:washer/core/utils/app_logger.dart';
 
@@ -38,7 +38,7 @@ class DialogAction<R> {
   final bool showLoading;
 }
 
-/// [action]을 실행하고 결과를 에러 토스트로 띄우는 공통 실행기.
+/// [action]을 실행하고 성공·실패를 토스트로 알리는 공통 실행기.
 ///
 /// await **이전에** navigator/container/overlay를 모두 캡처하므로
 /// pop·화면 이탈 이후에도 안전하다. 이 캡처 로직을 한곳에 모아 두는 것이 목적이며,
@@ -66,21 +66,22 @@ Future<void> runDialogAction<R>(
         ? await runWithLoadingOverlay(rootOverlay, () => action.run(container))
         : await action.run(container);
 
-    if (action.isSuccess(result)) {
+    final succeeded = action.isSuccess(result);
+    if (succeeded) {
       onSuccess?.call();
-      // 비동기 작업 도중 앱이 종료되는 등 오버레이가 해제됐을 수 있다.
-      if (rootOverlay.mounted) {
-        rootOverlay.showErrorToast(
-          AppException(message: action.successMessage),
-        );
-      }
-    } else if (rootOverlay.mounted) {
-      // 실패는 원인 정보가 없어도 에러 토스트로 통일한다.
-      rootOverlay.showErrorToast(
-        action.failureError?.call(container) ??
-            AppException(message: action.fallbackMessage),
-      );
     }
+    // 비동기 작업 도중 overlay가 해제됐을 수 있다.
+    if (!rootOverlay.mounted) return;
+
+    rootOverlay.showToast(
+      succeeded
+          ? WasherToast.success(action.successMessage)
+          // 실패는 원인 정보가 없어도 에러 토스트로 통일한다.
+          : WasherToast.error(
+              action.failureError?.call(container) ??
+                  AppException(message: action.fallbackMessage),
+            ),
+    );
   } catch (error, stackTrace) {
     AppLogger.error(
       '${action.logName} 처리 중 오류가 발생했습니다.',
@@ -89,7 +90,7 @@ Future<void> runDialogAction<R>(
       stackTrace: stackTrace,
     );
     if (rootOverlay.mounted) {
-      rootOverlay.showErrorToast(error);
+      rootOverlay.showToast(WasherToast.error(error));
     }
   }
 }

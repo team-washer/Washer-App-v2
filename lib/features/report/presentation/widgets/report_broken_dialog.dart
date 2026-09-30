@@ -9,7 +9,7 @@ import 'package:washer/shared/theme/washer_typography.dart';
 import 'package:washer/shared/ui/indicators/status_dot.dart';
 import 'package:washer/shared/ui/dialog/dialog_action.dart';
 import 'package:washer/shared/ui/dialog/washer_dialog.dart';
-import 'package:washer/shared/ui/error_toast.dart';
+import 'package:washer/shared/ui/washer_toast.dart';
 
 /// 기기 고장 내용을 입력받아 신고하는 다이얼로그
 class ReportBrokenDialog extends ConsumerStatefulWidget {
@@ -57,8 +57,10 @@ class _ReportBrokenDialogState extends ConsumerState<ReportBrokenDialog> {
 
     if (description.isEmpty) {
       _focusNode.requestFocus();
-      context.showErrorToast(
-        AppException(message: WasherErrorMessage.reportDescriptionRequired),
+      context.showToast(
+        WasherToast.error(
+          AppException(message: WasherErrorMessage.reportDescriptionRequired),
+        ),
       );
       return;
     }

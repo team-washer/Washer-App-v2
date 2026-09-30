@@ -107,6 +107,7 @@ feature: `alarm`, `auth`, `history`, `home`, `report`, `reservation`, `user`
 
 ## 작업 원칙
 
+- 어떤 작업이든 이슈·브랜치·PR을 만들기 전에 사용자에게 내용(제목, 브랜치명, 대상 브랜치)을 보여주고 허가를 받습니다. `.claude/settings.json`의 `ask` 규칙으로 해당 명령은 항상 확인을 거칩니다.
 - 변경은 이슈 범위 안에서 최소로. 관련 없는 파일을 리팩터링하지 않습니다.
 - 새 코드를 쓰기 전에 같은 feature의 기존 패턴과 이름을 먼저 확인하고 중복 구현을 피합니다.
 - 버그 수정·동작 변경에는 `test/`의 해당 위치에 테스트를 추가합니다. 서버 응답이 필요하면 `test/support/mock_washer_server.dart`를 사용합니다.

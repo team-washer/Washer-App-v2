@@ -48,6 +48,18 @@
       "PowerShell(gh issue view *)",
       "PowerShell(gh pr view *)"
     ],
+    "ask": [
+      "Bash(gh issue create *)",
+      "Bash(gh pr create *)",
+      "Bash(git checkout -b *)",
+      "Bash(git switch -c *)",
+      "Bash(git switch --create *)",
+      "PowerShell(gh issue create *)",
+      "PowerShell(gh pr create *)",
+      "PowerShell(git checkout -b *)",
+      "PowerShell(git switch -c *)",
+      "PowerShell(git switch --create *)"
+    ],
     "deny": [
       "Bash(git *diff*--no-index*)",
       "PowerShell(git *diff*--no-index*)",

@@ -21,23 +21,138 @@ Future<OverlayState> _pumpHost(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('토스트를 연속으로 띄우면 이전 토스트는 교체되고 예외가 없다', (tester) async {
-    final overlay = await _pumpHost(tester);
+  group('대기(FIFO)', () {
+    testWidgets('에러 토스트가 떠 있는 동안 온 성공 토스트는 에러가 닫힌 뒤에 뜬다', (tester) async {
+      final overlay = await _pumpHost(tester);
 
-    overlay.showToast(WasherToast.error(Exception('first')));
-    await tester.pump(const Duration(seconds: 4));
-    overlay.showToast(WasherToast.error(Exception('second')));
-    await tester.pump();
+      overlay.showToast(
+        WasherToast.error(AppException(message: '폴링 실패')),
+      );
+      await tester.pump();
+      overlay.showToast(WasherToast.success('예약이 취소되었습니다.'));
+      await tester.pump(const Duration(seconds: 4));
 
-    expect(find.byType(WasherIconButton), findsOneWidget);
+      // 5초가 지나기 전에는 에러가 덮이지 않는다.
+      expect(find.text('폴링 실패'), findsOneWidget);
+      expect(find.text('예약이 취소되었습니다.'), findsNothing);
 
-    // 첫 토스트의 5초가 지나도 이미 제거된 entry를 다시 지우지 않아야 한다.
-    await tester.pump(const Duration(seconds: 2));
-    expect(tester.takeException(), isNull);
-    expect(find.byType(WasherIconButton), findsOneWidget);
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pump();
+      expect(find.text('폴링 실패'), findsNothing);
+      expect(find.text('예약이 취소되었습니다.'), findsOneWidget);
 
-    await tester.pump(const Duration(seconds: 4));
-    expect(find.byType(WasherIconButton), findsNothing);
+      await tester.pump(const Duration(seconds: 4));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('대기 중인 토스트는 들어온 순서대로 하나씩 뜬다', (tester) async {
+      final overlay = await _pumpHost(tester);
+
+      overlay.showToast(WasherToast.error(AppException(message: '첫 번째')));
+      await tester.pump();
+      overlay
+        ..showToast(WasherToast.error(AppException(message: '두 번째')))
+        ..showToast(WasherToast.info('세 번째'));
+
+      for (final (current, next) in [
+        ('첫 번째', '두 번째'),
+        ('두 번째', '세 번째'),
+      ]) {
+        expect(find.text(current), findsOneWidget);
+        expect(find.text(next), findsNothing);
+        expect(
+          find.byType(WasherIconButton),
+          findsOneWidget,
+          reason: '한 번에 하나',
+        );
+
+        await tester.tap(find.byType(WasherIconButton));
+        await tester.pump();
+      }
+
+      expect(find.text('세 번째'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 4));
+      expect(find.byType(WasherIconButton), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('대기 중인 중복 토스트는 대기 순서를 유지한 채 최신 것 하나만 뜬다', (tester) async {
+      final overlay = await _pumpHost(tester);
+
+      overlay.showToast(WasherToast.error(AppException(message: '앞 토스트')));
+      await tester.pump();
+      overlay
+        ..showToast(
+          WasherToast.error(AppException(message: '폴링 실패', traceId: 'old')),
+        )
+        ..showToast(WasherToast.success('예약이 취소되었습니다.'))
+        ..showToast(
+          WasherToast.error(AppException(message: '폴링 실패', traceId: 'new')),
+        );
+
+      await tester.tap(find.byType(WasherIconButton));
+      await tester.pump();
+      // 먼저 들어온 자리에서, 나중에 온 최신 내용으로 뜬다.
+      expect(find.text('폴링 실패'), findsOneWidget);
+      expect(find.text('오류 ID: new'), findsOneWidget);
+
+      await tester.tap(find.byType(WasherIconButton));
+      await tester.pump();
+      expect(find.text('예약이 취소되었습니다.'), findsOneWidget);
+
+      await tester.tap(find.byType(WasherIconButton));
+      await tester.pump();
+      expect(find.byType(WasherIconButton), findsNothing, reason: '중복은 한 번만');
+    });
+
+    testWidgets('떠 있는 토스트와 같은 토스트는 다시 띄우지 않는다', (tester) async {
+      final overlay = await _pumpHost(tester);
+
+      overlay.showToast(WasherToast.error(AppException(message: '폴링 실패')));
+      // 노출 시간은 토스트를 그린 다음 프레임부터 센다.
+      await tester.pump();
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 3));
+      overlay.showToast(WasherToast.error(AppException(message: '폴링 실패')));
+      await tester.pump();
+
+      // 노출 시간도 다시 시작하지 않는다(처음 뜬 시점부터 5초).
+      await tester.pump(const Duration(milliseconds: 1900));
+      expect(find.byType(WasherIconButton), findsOneWidget);
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pump();
+      expect(find.byType(WasherIconButton), findsNothing, reason: '대기열에도 없다');
+    });
+
+    testWidgets('메시지가 같아도 종류가 다르면 중복이 아니다', (tester) async {
+      final overlay = await _pumpHost(tester);
+
+      overlay.showToast(WasherToast.info('같은 문구'));
+      await tester.pump();
+      overlay.showToast(WasherToast.success('같은 문구'));
+
+      await tester.tap(find.byType(WasherIconButton));
+      await tester.pump();
+      expect(find.text('같은 문구'), findsOneWidget);
+
+      await tester.pump(const Duration(seconds: 4));
+    });
+
+    testWidgets('토스트가 떠 있던 화면이 사라져도 이후 토스트가 대기에 갇히지 않는다', (tester) async {
+      final oldOverlay = await _pumpHost(tester);
+      oldOverlay.showToast(WasherToast.error(Exception('이전 화면')));
+      await tester.pump();
+
+      // 닫기 전에 화면 트리를 통째로 교체한다.
+      await tester.pumpWidget(const SizedBox());
+      final overlay = await _pumpHost(tester);
+
+      overlay.showToast(WasherToast.info('새 화면 안내'));
+      await tester.pump();
+
+      expect(find.text('새 화면 안내'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 4));
+    });
   });
 
   testWidgets('원인 문구와 함께 입력 오류 항목과 문의용 오류 ID를 보여준다', (tester) async {

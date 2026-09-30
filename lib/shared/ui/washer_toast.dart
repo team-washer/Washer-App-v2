@@ -5,9 +5,6 @@ import 'package:washer/shared/theme/washer_color.dart';
 import 'package:washer/shared/theme/washer_icon.dart';
 import 'package:washer/shared/theme/washer_typography.dart';
 
-/// 화면 전체에 하나만 떠 있도록 관리하는 현재 토스트.
-OverlayEntry? _currentToastEntry;
-
 /// 토스트 종류.
 enum _WasherToastKind { error, success, info }
 
@@ -42,6 +39,10 @@ class WasherToast {
   /// 앱이 스스로 취소한 요청([AppException.isCancelled])은 사용자가 조치할 오류가
   /// 아니므로 띄우지 않는다.
   bool get _isSilent => _error?.isCancelled ?? false;
+
+  /// 종류와 메시지가 같으면 사용자에게는 같은 토스트로 보므로 중복으로 취급한다.
+  bool _isDuplicateOf(WasherToast other) =>
+      _kind == other._kind && _message == other._message;
 
   _WasherToastStyle get _style => switch (_kind) {
     _WasherToastKind.error => _WasherToastStyle.error,
@@ -116,29 +117,93 @@ extension WasherToastContextExtension on BuildContext {
 /// 루트 [Overlay] 위에 토스트를 그리는 확장.
 ///
 /// 다이얼로그를 닫은 직후처럼 호출부 context가 사라지는 상황에서도 안전하게
-/// 동작한다. 새 토스트를 띄우면 이전 토스트는 교체된다.
+/// 동작한다. 토스트는 한 번에 하나만 보이고, 떠 있는 동안 들어온 토스트는
+/// 들어온 순서대로(FIFO) 대기했다가 앞 토스트가 닫히면 이어서 뜬다. 종류와 메시지가
+/// 같은 토스트는 중복으로 보고 최신 것 하나만 보여준다.
+///
+/// 교체 방식에서는 5초 동안 보여야 할 에러 토스트가 직후의 성공·안내 토스트에
+/// 바로 덮여 사용자가 실패를 놓칠 수 있어, 어떤 토스트도 도중에 끊지 않는다(#362).
 extension WasherToastOverlayExtension on OverlayState {
   void showToast(WasherToast toast) {
     if (!mounted || toast._isSilent) return;
 
-    _currentToastEntry?.remove();
-    _currentToastEntry = null;
+    final current = _visibleToast;
+    if (current == null) {
+      _presentToast(toast);
+      return;
+    }
 
+    // 같은 토스트가 이미 떠 있으면 새로 띄우지 않는다. 최신 것으로 교체하며 노출
+    // 시간을 다시 시작하면, 반복되는 polling 에러가 화면을 계속 막을 수 있다.
+    if (current.toast._isDuplicateOf(toast)) return;
+
+    // 같은 토스트가 이미 대기 중이면 대기 순서는 유지한 채 최신 것으로 바꾼다.
+    // 뒤로 보내면 같은 알림이 계속 들어오는 동안 영영 밀릴 수 있다.
+    final pending = (overlay: this, toast: toast);
+    final duplicateIndex = _pendingToasts.indexWhere(
+      (waiting) => waiting.toast._isDuplicateOf(toast),
+    );
+    if (duplicateIndex >= 0) {
+      _pendingToasts[duplicateIndex] = pending;
+    } else {
+      _pendingToasts.add(pending);
+    }
+  }
+
+  void _presentToast(WasherToast toast) {
     late final OverlayEntry entry;
     entry = OverlayEntry(
       builder: (_) => _WasherToastOverlay(
         toast: toast,
         onDismiss: () {
-          // 현재 토스트가 아니면 이미 교체·닫힘으로 제거된 entry다.
+          // 현재 토스트가 아니면 이미 닫혀 제거된 entry다.
           // 늦게 도착한 타이머/닫기 콜백이 remove()를 두 번 부르지 않도록 무시한다.
-          if (!identical(_currentToastEntry, entry)) return;
-          _currentToastEntry = null;
+          if (!identical(_currentToast?.entry, entry)) return;
+          _currentToast = null;
           entry.remove();
+          _showNextPendingToast();
         },
       ),
     );
-    _currentToastEntry = entry;
+    _currentToast = (overlay: this, entry: entry, toast: toast);
     insert(entry);
+  }
+}
+
+/// 화면에 떠 있는 토스트와 그 토스트를 그린 [OverlayState]·[OverlayEntry].
+typedef _VisibleToast = ({
+  OverlayState overlay,
+  OverlayEntry entry,
+  WasherToast toast,
+});
+
+/// 지금 화면에 떠 있는 토스트.
+_VisibleToast? _currentToast;
+
+/// 앞 토스트가 닫히기를 기다리는 토스트. 들어온 순서대로 꺼낸다(FIFO).
+final List<({OverlayState overlay, WasherToast toast})> _pendingToasts = [];
+
+/// 지금 떠 있는 토스트. 없으면 null.
+///
+/// 토스트가 닫히기 전에 그 Overlay가 사라지면(화면 트리 교체 등) 닫기 콜백이
+/// 오지 않아 [_currentToast]가 영영 남는다. 그러면 뒤의 토스트가 모두 대기에
+/// 갇히므로, 사라진 Overlay의 토스트는 떠 있지 않은 것으로 보고 정리한다.
+_VisibleToast? get _visibleToast {
+  final current = _currentToast;
+  if (current == null || current.overlay.mounted) return current;
+  _currentToast = null;
+  return null;
+}
+
+/// 대기 중인 토스트 중 가장 먼저 들어온 것을 띄운다.
+/// 그 사이 Overlay가 사라진 토스트는 띄울 곳이 없으므로 건너뛴다.
+void _showNextPendingToast() {
+  while (_pendingToasts.isNotEmpty) {
+    final next = _pendingToasts.removeAt(0);
+    if (next.overlay.mounted) {
+      next.overlay._presentToast(next.toast);
+      return;
+    }
   }
 }
 

@@ -132,6 +132,78 @@ class _FcmDiagnosticDialogState extends ConsumerState<FcmDiagnosticDialog> {
                 label: 'APNs retry',
                 value: state.apnsRetryCount.toString(),
               ),
+              const Divider(height: 20),
+              _DiagnosticRow(
+                label: '네이티브 진단',
+                value: state.nativeApns.available.toString(),
+              ),
+              _DiagnosticRow(
+                label: 'Firebase swizzling',
+                value: state.nativeApns.firebaseAppDelegateProxyEnabled
+                    .toString(),
+              ),
+              _DiagnosticRow(
+                label: 'APNs 등록 호출',
+                value: state.nativeApns.registerCallCount.toString(),
+              ),
+              _DiagnosticRow(
+                label: '마지막 등록 호출',
+                value: state.nativeApns.lastRegisterCallAt ?? 'none',
+              ),
+              _DiagnosticRow(
+                label: '시스템 APNs 등록',
+                value: state.nativeApns.isRegisteredForRemoteNotifications
+                    .toString(),
+              ),
+              _DiagnosticRow(
+                label: '네이티브 callback',
+                value: state.nativeApns.callbackStatus,
+              ),
+              _DiagnosticRow(
+                label: '성공 callback',
+                value: state.nativeApns.didRegisterCallbackCount.toString(),
+              ),
+              _DiagnosticRow(
+                label: '실패 callback',
+                value: state.nativeApns.didFailCallbackCount.toString(),
+              ),
+              _DiagnosticRow(
+                label: '무응답 timeout',
+                value: state.nativeApns.callbackTimeoutCount.toString(),
+              ),
+              _DiagnosticRow(
+                label: '성공 callback 시각',
+                value: state.nativeApns.lastDidRegisterCallbackAt ?? 'none',
+              ),
+              _DiagnosticRow(
+                label: '실패 callback 시각',
+                value: state.nativeApns.lastDidFailCallbackAt ?? 'none',
+              ),
+              _DiagnosticRow(
+                label: 'timeout 시각',
+                value: state.nativeApns.lastCallbackTimeoutAt ?? 'none',
+              ),
+              _DiagnosticRow(
+                label: 'APNs token 길이',
+                value: state.nativeApns.deviceTokenLength?.toString() ?? 'none',
+              ),
+              _DiagnosticRow(
+                label: 'APNs error domain',
+                value: state.nativeApns.errorDomain ?? 'none',
+              ),
+              _DiagnosticRow(
+                label: 'APNs error code',
+                value: state.nativeApns.errorCode?.toString() ?? 'none',
+              ),
+              _DiagnosticRow(
+                label: 'APNs error 설명',
+                value: state.nativeApns.errorDescription ?? 'none',
+              ),
+              _DiagnosticRow(
+                label: '앱 상태',
+                value: state.nativeApns.applicationState,
+              ),
+              const Divider(height: 20),
               _DiagnosticRow(
                 label: 'FCM token',
                 value: state.fcmTokenStatus,

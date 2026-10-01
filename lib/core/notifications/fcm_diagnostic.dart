@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:washer/core/notifications/apns_native_diagnostics.dart';
 
 enum FcmSyncTrigger { login, appStart, resume, tokenRefresh, manual }
 
@@ -11,6 +12,7 @@ enum FcmDiagnosticEventType {
   apnsWaiting,
   apnsSuccess,
   apnsFailed,
+  nativeApnsSnapshot,
   fcmStarted,
   fcmSuccess,
   fcmEmpty,
@@ -30,6 +32,7 @@ class FcmDiagnosticEvent {
     this.errorCode,
     this.firebaseExceptionCode,
     this.failureStage,
+    this.nativeApnsSnapshot,
     this.message,
   });
 
@@ -40,6 +43,7 @@ class FcmDiagnosticEvent {
   final String? errorCode;
   final String? firebaseExceptionCode;
   final String? failureStage;
+  final ApnsNativeDiagnosticSnapshot? nativeApnsSnapshot;
   final String? message;
 }
 
@@ -73,6 +77,17 @@ class FcmDiagnosticState {
     this.registrationBlocked = false,
     this.apnsTokenStatus = 'not_started',
     this.apnsRetryCount = 0,
+    this.nativeApns = const ApnsNativeDiagnosticSnapshot(
+      available: false,
+      firebaseAppDelegateProxyEnabled: true,
+      registerCallCount: 0,
+      isRegisteredForRemoteNotifications: false,
+      callbackStatus: 'not_started',
+      didRegisterCallbackCount: 0,
+      didFailCallbackCount: 0,
+      callbackTimeoutCount: 0,
+      applicationState: 'unknown',
+    ),
     this.fcmTokenStatus = 'not_started',
     this.serverPostStatus = 'not_started',
     this.postSuccessStatusCode,
@@ -91,6 +106,7 @@ class FcmDiagnosticState {
   final bool registrationBlocked;
   final String apnsTokenStatus;
   final int apnsRetryCount;
+  final ApnsNativeDiagnosticSnapshot nativeApns;
   final String fcmTokenStatus;
   final String serverPostStatus;
   final int? postSuccessStatusCode;
@@ -111,6 +127,7 @@ class FcmDiagnosticState {
     bool? registrationBlocked,
     String? apnsTokenStatus,
     int? apnsRetryCount,
+    ApnsNativeDiagnosticSnapshot? nativeApns,
     String? fcmTokenStatus,
     String? serverPostStatus,
     Object? postSuccessStatusCode = _unset,
@@ -133,6 +150,7 @@ class FcmDiagnosticState {
       registrationBlocked: registrationBlocked ?? this.registrationBlocked,
       apnsTokenStatus: apnsTokenStatus ?? this.apnsTokenStatus,
       apnsRetryCount: apnsRetryCount ?? this.apnsRetryCount,
+      nativeApns: nativeApns ?? this.nativeApns,
       fcmTokenStatus: fcmTokenStatus ?? this.fcmTokenStatus,
       serverPostStatus: serverPostStatus ?? this.serverPostStatus,
       postSuccessStatusCode: identical(postSuccessStatusCode, _unset)
@@ -164,6 +182,23 @@ class FcmDiagnosticState {
       'registrationBlocked: $registrationBlocked',
       'apnsToken: $apnsTokenStatus',
       'apnsRetryCount: $apnsRetryCount',
+      'nativeDiagnosticsAvailable: ${nativeApns.available}',
+      'firebaseAppDelegateProxyEnabled: ${nativeApns.firebaseAppDelegateProxyEnabled}',
+      'registerForRemoteNotificationsCallCount: ${nativeApns.registerCallCount}',
+      'lastRegisterForRemoteNotificationsCallAt: ${nativeApns.lastRegisterCallAt ?? 'none'}',
+      'isRegisteredForRemoteNotifications: ${nativeApns.isRegisteredForRemoteNotifications}',
+      'apnsNativeCallbackStatus: ${nativeApns.callbackStatus}',
+      'didRegisterCallbackCount: ${nativeApns.didRegisterCallbackCount}',
+      'didFailCallbackCount: ${nativeApns.didFailCallbackCount}',
+      'callbackTimeoutCount: ${nativeApns.callbackTimeoutCount}',
+      'lastDidRegisterCallbackAt: ${nativeApns.lastDidRegisterCallbackAt ?? 'none'}',
+      'lastDidFailCallbackAt: ${nativeApns.lastDidFailCallbackAt ?? 'none'}',
+      'lastCallbackTimeoutAt: ${nativeApns.lastCallbackTimeoutAt ?? 'none'}',
+      'apnsDeviceTokenLength: ${nativeApns.deviceTokenLength ?? 'none'}',
+      'apnsErrorDomain: ${nativeApns.errorDomain ?? 'none'}',
+      'apnsErrorCode: ${nativeApns.errorCode ?? 'none'}',
+      'apnsErrorDescription: ${nativeApns.errorDescription ?? 'none'}',
+      'applicationState: ${nativeApns.applicationState}',
       'fcmToken: $fcmTokenStatus',
       'serverPost: $serverPostStatus',
       'postSuccessStatusCode: ${postSuccessStatusCode ?? 'none'}',
@@ -195,6 +230,7 @@ class FcmDiagnosticNotifier extends Notifier<FcmDiagnosticState>
       lastSyncTrigger: trigger,
       lastSyncTime: DateTime.now(),
       authorizationStatus: state.authorizationStatus,
+      nativeApns: state.nativeApns,
       registrationEnabled: registrationEnabled,
       registrationBlocked: registrationBlocked,
       message: 'FCM 동기화를 시작했습니다.',
@@ -247,6 +283,11 @@ class FcmDiagnosticNotifier extends Notifier<FcmDiagnosticState>
           apnsRetryCount: event.retryAttempt,
           failureStage: event.failureStage ?? 'apns_token',
           firebaseExceptionCode: event.firebaseExceptionCode,
+          message: event.message,
+        );
+      case FcmDiagnosticEventType.nativeApnsSnapshot:
+        state = state.copyWith(
+          nativeApns: event.nativeApnsSnapshot,
           message: event.message,
         );
       case FcmDiagnosticEventType.fcmStarted:
@@ -353,6 +394,26 @@ class FcmDiagnosticNotifier extends Notifier<FcmDiagnosticState>
         crashlytics.setCustomKey(
           'fcm_apns_ready',
           snapshot.apnsTokenStatus == 'success',
+        ),
+        crashlytics.setCustomKey(
+          'fcm_apns_register_calls',
+          snapshot.nativeApns.registerCallCount,
+        ),
+        crashlytics.setCustomKey(
+          'fcm_apns_system_registered',
+          snapshot.nativeApns.isRegisteredForRemoteNotifications,
+        ),
+        crashlytics.setCustomKey(
+          'fcm_apns_callback',
+          snapshot.nativeApns.callbackStatus,
+        ),
+        crashlytics.setCustomKey(
+          'fcm_apns_error_domain',
+          snapshot.nativeApns.errorDomain ?? 'none',
+        ),
+        crashlytics.setCustomKey(
+          'fcm_apns_error_code',
+          snapshot.nativeApns.errorCode ?? -1,
         ),
         crashlytics.setCustomKey(
           'fcm_token_ready',

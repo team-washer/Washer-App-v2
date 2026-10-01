@@ -3,10 +3,12 @@ import 'dart:io';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:washer/core/network/dio_client.dart';
+import 'package:washer/core/notifications/apns_native_diagnostics.dart';
 import 'package:washer/core/notifications/fcm_diagnostic.dart';
 import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/firebase_options.dart';
@@ -34,11 +36,14 @@ class NotificationService {
     this._messaging,
     this._storage, [
     this._diagnostics,
-  ]);
+    ApnsNativeDiagnostics? apnsNativeDiagnostics,
+  ]) : _apnsNativeDiagnostics =
+           apnsNativeDiagnostics ?? const ApnsNativeDiagnostics();
 
   final FirebaseMessaging _messaging;
   final FlutterSecureStorage _storage;
   final FcmDiagnosticReporter? _diagnostics;
+  final ApnsNativeDiagnostics _apnsNativeDiagnostics;
 
   StreamSubscription<String>? _tokenRefreshSubscription;
   Future<void>? _initializationFuture;
@@ -114,6 +119,9 @@ class NotificationService {
         message: '알림 권한 상태를 확인했습니다.',
       ),
     );
+    if (Platform.isIOS) {
+      await _requestNativeApnsRegistration(diagnosticCycleId);
+    }
     final storedToken = await getStoredFcmToken();
     final currentToken = await _fetchAndStoreFcmTokenWhenReady(
       diagnosticCycleId,
@@ -267,6 +275,7 @@ class NotificationService {
     String? lastFirebaseErrorCode;
     for (var attempt = 0; attempt < _apnsTokenMaxRetries; attempt++) {
       final retryAttempt = attempt + 1;
+      await _refreshNativeApnsDiagnostics(diagnosticCycleId);
       _record(
         diagnosticCycleId,
         FcmDiagnosticEvent(
@@ -278,6 +287,7 @@ class NotificationService {
       try {
         final token = await _messaging.getAPNSToken();
         if (token != null && token.isNotEmpty) {
+          await _refreshNativeApnsDiagnostics(diagnosticCycleId);
           AppLogger.info(
             'APNs token acquired. token=[REDACTED], length=${token.length}, attempt=$retryAttempt',
             name: 'NotificationService',
@@ -319,6 +329,7 @@ class NotificationService {
       }
     }
 
+    await _refreshNativeApnsDiagnostics(diagnosticCycleId);
     _record(
       diagnosticCycleId,
       FcmDiagnosticEvent(
@@ -330,6 +341,109 @@ class NotificationService {
       ),
     );
     return false;
+  }
+
+  Future<void> _requestNativeApnsRegistration(int? diagnosticCycleId) async {
+    try {
+      final snapshot = await _apnsNativeDiagnostics
+          .registerForRemoteNotifications();
+      _recordNativeApnsSnapshot(diagnosticCycleId, snapshot);
+      AppLogger.info(
+        'Native APNs registration requested. calls=${snapshot.registerCallCount}, registered=${snapshot.isRegisteredForRemoteNotifications}, callback=${snapshot.callbackStatus}',
+        name: 'NotificationService',
+      );
+    } on MissingPluginException catch (error) {
+      _recordNativeApnsDiagnosticsUnavailable(
+        diagnosticCycleId,
+        'APNs 네이티브 진단 채널이 연결되지 않았습니다.',
+      );
+      AppLogger.error(
+        'Native APNs diagnostic channel is unavailable.',
+        name: 'NotificationService',
+        error: error,
+      );
+    } on PlatformException catch (error, stackTrace) {
+      _recordNativeApnsDiagnosticsUnavailable(
+        diagnosticCycleId,
+        'APNs 네이티브 등록 호출을 실행하지 못했습니다.',
+      );
+      AppLogger.error(
+        'Native APNs registration request failed. code=${error.code}',
+        name: 'NotificationService',
+        stackTrace: stackTrace,
+      );
+    } catch (error, stackTrace) {
+      _recordNativeApnsDiagnosticsUnavailable(
+        diagnosticCycleId,
+        'APNs 네이티브 등록 진단 중 오류가 발생했습니다.',
+      );
+      AppLogger.error(
+        'Unexpected native APNs diagnostic error.',
+        name: 'NotificationService',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  Future<void> _refreshNativeApnsDiagnostics(int? diagnosticCycleId) async {
+    try {
+      final snapshot = await _apnsNativeDiagnostics.getSnapshot();
+      _recordNativeApnsSnapshot(diagnosticCycleId, snapshot);
+    } on MissingPluginException {
+      _recordNativeApnsDiagnosticsUnavailable(
+        diagnosticCycleId,
+        'APNs 네이티브 진단 채널이 연결되지 않았습니다.',
+      );
+    } on PlatformException catch (error, stackTrace) {
+      _recordNativeApnsDiagnosticsUnavailable(
+        diagnosticCycleId,
+        'APNs 네이티브 진단 상태를 읽지 못했습니다.',
+      );
+      AppLogger.error(
+        'Failed to read native APNs diagnostics. code=${error.code}',
+        name: 'NotificationService',
+        stackTrace: stackTrace,
+      );
+    } catch (error, stackTrace) {
+      _recordNativeApnsDiagnosticsUnavailable(
+        diagnosticCycleId,
+        'APNs 네이티브 진단 상태를 읽지 못했습니다.',
+      );
+      AppLogger.error(
+        'Unexpected error while reading native APNs diagnostics.',
+        name: 'NotificationService',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  void _recordNativeApnsSnapshot(
+    int? diagnosticCycleId,
+    ApnsNativeDiagnosticSnapshot snapshot,
+  ) {
+    _record(
+      diagnosticCycleId,
+      FcmDiagnosticEvent(
+        FcmDiagnosticEventType.nativeApnsSnapshot,
+        nativeApnsSnapshot: snapshot,
+      ),
+    );
+  }
+
+  void _recordNativeApnsDiagnosticsUnavailable(
+    int? diagnosticCycleId,
+    String message,
+  ) {
+    _record(
+      diagnosticCycleId,
+      FcmDiagnosticEvent(
+        FcmDiagnosticEventType.nativeApnsSnapshot,
+        nativeApnsSnapshot: ApnsNativeDiagnosticSnapshot.unavailable(),
+        message: message,
+      ),
+    );
   }
 
   String _authorizationStatusName(AuthorizationStatus status) {

@@ -10,6 +10,7 @@ import 'package:washer/features/alarm/data/models/local/alarm_model.dart';
 import 'package:washer/features/alarm/data/repositories/alarm_repository.dart';
 import 'package:washer/features/alarm/presentation/providers/alarm_provider.dart';
 import 'package:washer/features/alarm/presentation/states/alarm_state.dart';
+import 'package:washer/features/auth/data/repositories/auth_repository.dart';
 import 'package:washer/features/reservation/data/data_sources/remote/reservation_status_remote_data_source.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/data/models/local/machine_model.dart';
@@ -19,6 +20,7 @@ import 'package:washer/features/reservation/presentation/providers/reservation_s
 import 'package:washer/features/user/data/data_sources/remote/user_remote_data_source.dart';
 import 'package:washer/features/user/data/models/my_user_model.dart';
 import 'package:washer/features/user/presentation/providers/my_user_provider.dart';
+import 'package:washer/features/user/presentation/providers/withdraw_provider.dart';
 
 /// 알림 조회 응답 시점을 테스트가 직접 제어하는 fake.
 class _ControlledAlarmRepository implements AlarmRepository {
@@ -85,6 +87,18 @@ class _ControlledUserDataSource implements UserRemoteDataSource {
   Future<void> withdraw() async {}
 }
 
+/// 로그아웃 API를 호출하지 않는 fake. 탈퇴 성공 경로만 검증한다.
+class _FakeAuthRepository implements AuthRepository {
+  @override
+  Future<void> login({
+    required String authCode,
+    required String redirectUri,
+  }) async {}
+
+  @override
+  Future<void> logout() async {}
+}
+
 AlarmModel _alarm(String id) => AlarmModel(
   id: id,
   status: AlarmType.COMPLETION,
@@ -127,6 +141,7 @@ void main() {
           reservationDataSource,
         ),
         userRemoteDataSourceProvider.overrideWithValue(userDataSource),
+        authRepositoryProvider.overrideWithValue(_FakeAuthRepository()),
       ],
     );
     addTearDown(() {
@@ -277,6 +292,54 @@ void main() {
       await staleRefresh;
 
       expect(container.read(myUserProvider).value, _nextUser);
+    });
+  });
+
+  group('내 정보 최초 조회와 세션 전환', () {
+    test('최초 조회 중 세션이 바뀌면 늦게 온 이전 사용자 정보가 새 사용자를 덮어쓰지 않는다', () async {
+      final initial = container.read(myUserProvider.future);
+      await _settle();
+
+      authNotifier.logout();
+      container.read(myUserProvider.notifier).setUser(_nextUser);
+      userDataSource.requests.single.complete(_previousUser);
+      await initial;
+
+      expect(container.read(myUserProvider).value, _nextUser);
+    });
+
+    test('최초 조회 중 세션이 바뀌면 이전 세션의 조회 오류가 새 사용자를 덮어쓰지 않는다', () async {
+      final initial = container.read(myUserProvider.future);
+      await _settle();
+
+      authNotifier.logout();
+      container.read(myUserProvider.notifier).setUser(_nextUser);
+      userDataSource.requests.single.completeError(Exception('이전 세션 오류'));
+      await initial;
+
+      expect(container.read(myUserProvider), isA<AsyncData<MyUserModel?>>());
+      expect(container.read(myUserProvider).value, _nextUser);
+    });
+  });
+
+  group('회원 탈퇴', () {
+    test('탈퇴에 성공하면 로그인 화면 이동 전에도 사용자별 상태를 비운다', () async {
+      final alarms = container.read(alarmProvider.notifier);
+      final fetch = alarms.fetchAlarmList();
+      alarmRepository.requests.single.complete([_alarm('old')]);
+      await fetch;
+      final controller = container.read(reservationSyncControllerProvider);
+      controller.startPolling(reservationId: 10, userId: 1);
+      container.read(myUserProvider.notifier).setUser(_previousUser);
+
+      final didWithdraw = await container
+          .read(withdrawProvider.notifier)
+          .withdraw();
+
+      expect(didWithdraw, isTrue);
+      expect(container.read(alarmProvider), const AlarmState());
+      expect(controller.isPolling, isFalse);
+      expect(container.read(myUserProvider).value, isNull);
     });
   });
 }

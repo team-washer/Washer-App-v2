@@ -14,9 +14,18 @@ class MyUserNotifier extends AsyncNotifier<MyUserModel?> {
     ref.keepAlive();
     ref.listen(sessionGenerationProvider, (_, _) => clear());
     final session = ref.read(sessionGenerationProvider);
-    final user = await ref.read(userRemoteDataSourceProvider).getMyUser();
-    // 조회 중에 세션이 바뀌었으면 이전 사용자 정보를 반영하지 않는다.
-    return ref.read(sessionGenerationProvider) == session ? user : null;
+    bool isStale() => ref.read(sessionGenerationProvider) != session;
+
+    // 조회 중에 세션이 바뀌었으면 이전 사용자의 결과(값·오류)를 반영하지 않고,
+    // 그 사이 새 세션이 설정한 현재 값을 유지한다.
+    final MyUserModel? user;
+    try {
+      user = await ref.read(userRemoteDataSourceProvider).getMyUser();
+    } catch (_) {
+      if (isStale()) return state.value;
+      rethrow;
+    }
+    return isStale() ? state.value : user;
   }
 
   /// 서버에서 내 정보를 다시 조회한다.

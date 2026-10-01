@@ -127,6 +127,14 @@ jobs:
             echo "::error::Failed to extract UUID from provisioning profile."
             exit 1
           fi
+
+          APNS_ENVIRONMENT=$(security cms -D -i "$PROFILE_PATH" | \
+            plutil -extract Entitlements.aps-environment raw - 2>/dev/null || true)
+          if [ "$APNS_ENVIRONMENT" != "production" ]; then
+            echo "::error::Provisioning profile must include aps-environment=production."
+            exit 1
+          fi
+          echo "APNs provisioning entitlement: production"
           echo "IOS_PROVISIONING_PROFILE_UUID=$PROFILE_UUID" >> "$GITHUB_ENV"
 
       - name: Resolve iOS version metadata
@@ -170,6 +178,7 @@ jobs:
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           TESTFLIGHT_CHANGELOG: ${{ inputs.changelog }}
+          VERIFY_APNS_ENTITLEMENT: "true"
         run: bundle exec fastlane ios upload_testflight
 
       - name: Clean up signing files

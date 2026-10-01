@@ -12,7 +12,7 @@ part 'alarm_data_source.g.dart';
 abstract class AlarmDataSource {
   Future<AlarmListResponse> getAlarmList();
   Future<void> deleteAllNotifications();
-  Future<void> registerFcmToken(String token);
+  Future<int?> registerFcmToken(String token);
   Future<void> deleteFcmToken();
 }
 
@@ -62,7 +62,7 @@ class AlarmDataSourceImpl implements AlarmDataSource {
   }
 
   @override
-  Future<void> registerFcmToken(String token) async {
+  Future<int?> registerFcmToken(String token) async {
     AppLogger.info(
       'FCM registration API request started. token=[REDACTED], length=${token.length}',
       name: 'AlarmDataSource',
@@ -72,6 +72,7 @@ class AlarmDataSourceImpl implements AlarmDataSource {
       'FCM registration API succeeded. statusCode=${response.response.statusCode}',
       name: 'AlarmDataSource',
     );
+    return response.response.statusCode;
   }
 
   @override

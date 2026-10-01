@@ -7,6 +7,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:washer/core/network/dio_client.dart';
+import 'package:washer/core/notifications/fcm_diagnostic.dart';
 import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/firebase_options.dart';
 
@@ -29,10 +30,15 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 /// FCM 권한 요청과 토큰 저장/갱신을 담당하는 서비스.
 class NotificationService {
-  NotificationService(this._messaging, this._storage);
+  NotificationService(
+    this._messaging,
+    this._storage, [
+    this._diagnostics,
+  ]);
 
   final FirebaseMessaging _messaging;
   final FlutterSecureStorage _storage;
+  final FcmDiagnosticReporter? _diagnostics;
 
   StreamSubscription<String>? _tokenRefreshSubscription;
   Future<void>? _initializationFuture;
@@ -77,6 +83,9 @@ class NotificationService {
         },
       );
 
+      // FCM is required after login. Explicitly restore auto-init in case a
+      // previous runtime setting persisted it as disabled.
+      await _messaging.setAutoInitEnabled(true);
       await _requestPermissions();
 
       _isInitialized = true;
@@ -94,10 +103,21 @@ class NotificationService {
   ///
   /// iOS Keychain에는 앱 재설치 뒤에도 값이 남을 수 있으므로 저장된 값만으로
   /// 현재 앱 인스턴스의 토큰을 판단하지 않는다.
-  Future<String?> ensureFcmToken() async {
+  Future<String?> ensureFcmToken({int? diagnosticCycleId}) async {
     await initialize();
+    final settings = await _messaging.getNotificationSettings();
+    _record(
+      diagnosticCycleId,
+      FcmDiagnosticEvent(
+        FcmDiagnosticEventType.permission,
+        permission: _authorizationStatusName(settings.authorizationStatus),
+        message: '알림 권한 상태를 확인했습니다.',
+      ),
+    );
     final storedToken = await getStoredFcmToken();
-    final currentToken = await _fetchAndStoreFcmTokenWhenReady();
+    final currentToken = await _fetchAndStoreFcmTokenWhenReady(
+      diagnosticCycleId,
+    );
     if (currentToken != null) {
       AppLogger.info(
         storedToken == currentToken
@@ -117,8 +137,8 @@ class NotificationService {
     _tokenRefreshSubscription?.cancel();
   }
 
-  Future<void> _requestPermissions() async {
-    await _messaging.requestPermission(
+  Future<NotificationSettings> _requestPermissions() async {
+    final settings = await _messaging.requestPermission(
       alert: true,
       badge: true,
       sound: true,
@@ -128,18 +148,34 @@ class NotificationService {
       badge: true,
       sound: true,
     );
+    return settings;
   }
 
-  Future<String?> _fetchAndStoreFcmToken() async {
+  Future<String?> _fetchAndStoreFcmToken(int? diagnosticCycleId) async {
     AppLogger.info(
       'FCM token acquisition started.',
       name: 'NotificationService',
+    );
+    _record(
+      diagnosticCycleId,
+      const FcmDiagnosticEvent(
+        FcmDiagnosticEventType.fcmStarted,
+        message: 'FCM 토큰 발급을 시작했습니다.',
+      ),
     );
     final token = await _messaging.getToken();
     if (token == null || token.isEmpty) {
       AppLogger.error(
         'FCM token acquisition failed: Firebase returned an empty token.',
         name: 'NotificationService',
+      );
+      _record(
+        diagnosticCycleId,
+        const FcmDiagnosticEvent(
+          FcmDiagnosticEventType.fcmEmpty,
+          failureStage: 'fcm_token',
+          message: 'Firebase가 빈 FCM 토큰을 반환했습니다.',
+        ),
       );
       return null;
     }
@@ -149,12 +185,21 @@ class NotificationService {
       'FCM token acquired and stored. token=[REDACTED], length=${token.length}',
       name: 'NotificationService',
     );
+    _record(
+      diagnosticCycleId,
+      const FcmDiagnosticEvent(
+        FcmDiagnosticEventType.fcmSuccess,
+        message: 'FCM 토큰을 확보했습니다.',
+      ),
+    );
     return token;
   }
 
-  Future<String?> _fetchAndStoreFcmTokenWhenReady() async {
+  Future<String?> _fetchAndStoreFcmTokenWhenReady(
+    int? diagnosticCycleId,
+  ) async {
     if (Platform.isIOS) {
-      final apnsTokenReady = await _waitForApnsToken();
+      final apnsTokenReady = await _waitForApnsToken(diagnosticCycleId);
       if (!apnsTokenReady) {
         AppLogger.error(
           'APNs token acquisition failed after $_apnsTokenMaxRetries attempts.',
@@ -165,12 +210,21 @@ class NotificationService {
     }
 
     try {
-      return await _fetchAndStoreFcmToken();
+      return await _fetchAndStoreFcmToken(diagnosticCycleId);
     } on FirebaseException catch (e) {
       if (_isApnsTokenNotSetError(e)) {
         AppLogger.error(
           'FCM token acquisition failed because the APNs token is not ready.',
           name: 'NotificationService',
+        );
+        _record(
+          diagnosticCycleId,
+          FcmDiagnosticEvent(
+            FcmDiagnosticEventType.fcmFailed,
+            firebaseExceptionCode: e.code,
+            failureStage: 'fcm_token',
+            message: 'APNs 토큰이 준비되지 않아 FCM 토큰 발급에 실패했습니다.',
+          ),
         );
         return null;
       }
@@ -178,6 +232,15 @@ class NotificationService {
         'FCM token acquisition failed with a Firebase error. code=${e.code}',
         name: 'NotificationService',
         stackTrace: e.stackTrace,
+      );
+      _record(
+        diagnosticCycleId,
+        FcmDiagnosticEvent(
+          FcmDiagnosticEventType.fcmFailed,
+          firebaseExceptionCode: e.code,
+          failureStage: 'fcm_token',
+          message: 'Firebase 오류로 FCM 토큰 발급에 실패했습니다.',
+        ),
       );
       rethrow;
     } catch (error, stackTrace) {
@@ -187,37 +250,104 @@ class NotificationService {
         error: error,
         stackTrace: stackTrace,
       );
+      _record(
+        diagnosticCycleId,
+        const FcmDiagnosticEvent(
+          FcmDiagnosticEventType.fcmFailed,
+          failureStage: 'fcm_token',
+          message: 'FCM 토큰 발급 중 알 수 없는 오류가 발생했습니다.',
+        ),
+      );
       rethrow;
     }
   }
 
   /// iOS에서 FCM 토큰 발급 전 필요한 APNS 토큰을 재시도하며 기다린다.
-  Future<bool> _waitForApnsToken() async {
+  Future<bool> _waitForApnsToken(int? diagnosticCycleId) async {
+    String? lastFirebaseErrorCode;
     for (var attempt = 0; attempt < _apnsTokenMaxRetries; attempt++) {
+      final retryAttempt = attempt + 1;
+      _record(
+        diagnosticCycleId,
+        FcmDiagnosticEvent(
+          FcmDiagnosticEventType.apnsWaiting,
+          retryAttempt: retryAttempt,
+          message: 'APNs 토큰을 기다리는 중입니다.',
+        ),
+      );
       try {
         final token = await _messaging.getAPNSToken();
         if (token != null && token.isNotEmpty) {
           AppLogger.info(
-            'APNs token acquired. token=[REDACTED], length=${token.length}, attempt=${attempt + 1}',
+            'APNs token acquired. token=[REDACTED], length=${token.length}, attempt=$retryAttempt',
             name: 'NotificationService',
+          );
+          _record(
+            diagnosticCycleId,
+            FcmDiagnosticEvent(
+              FcmDiagnosticEventType.apnsSuccess,
+              retryAttempt: retryAttempt,
+              message: 'APNs 토큰을 확보했습니다.',
+            ),
           );
           return true;
         }
       } on FirebaseException catch (e) {
+        lastFirebaseErrorCode = e.code;
         if (!_isApnsTokenNotSetError(e)) {
           AppLogger.error(
             'APNs token acquisition failed with a Firebase error. code=${e.code}',
             name: 'NotificationService',
             stackTrace: e.stackTrace,
           );
+          _record(
+            diagnosticCycleId,
+            FcmDiagnosticEvent(
+              FcmDiagnosticEventType.apnsFailed,
+              retryAttempt: retryAttempt,
+              firebaseExceptionCode: e.code,
+              failureStage: 'apns_token',
+              message: 'Firebase 오류로 APNs 토큰 확인에 실패했습니다.',
+            ),
+          );
           rethrow;
         }
       }
 
-      await Future<void>.delayed(_apnsTokenRetryDelay);
+      if (retryAttempt < _apnsTokenMaxRetries) {
+        await Future<void>.delayed(_apnsTokenRetryDelay);
+      }
     }
 
+    _record(
+      diagnosticCycleId,
+      FcmDiagnosticEvent(
+        FcmDiagnosticEventType.apnsFailed,
+        retryAttempt: _apnsTokenMaxRetries,
+        firebaseExceptionCode: lastFirebaseErrorCode,
+        failureStage: 'apns_token',
+        message: 'APNs 토큰 대기 횟수를 모두 소진했습니다.',
+      ),
+    );
     return false;
+  }
+
+  String _authorizationStatusName(AuthorizationStatus status) {
+    switch (status) {
+      case AuthorizationStatus.authorized:
+        return 'authorized';
+      case AuthorizationStatus.denied:
+        return 'denied';
+      case AuthorizationStatus.notDetermined:
+        return 'notDetermined';
+      case AuthorizationStatus.provisional:
+        return 'provisional';
+    }
+  }
+
+  void _record(int? cycleId, FcmDiagnosticEvent event) {
+    if (cycleId == null) return;
+    _diagnostics?.record(cycleId, event);
   }
 
   bool _isApnsTokenNotSetError(FirebaseException error) {
@@ -231,6 +361,7 @@ final notificationServiceProvider = Provider<NotificationService>((ref) {
   final service = NotificationService(
     FirebaseMessaging.instance,
     ref.watch(secureStorageProvider),
+    ref.watch(fcmDiagnosticProvider.notifier),
   );
   ref.onDispose(service.dispose);
   return service;

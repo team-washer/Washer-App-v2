@@ -4,7 +4,8 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/network/auth_notifier.dart';
 import 'package:washer/core/network/dio_client.dart';
-import 'package:washer/core/network/token_utils.dart';
+import 'package:washer/core/notifications/fcm_diagnostic.dart';
+import 'package:washer/core/notifications/fcm_session.dart';
 import 'package:washer/core/notifications/notification_service.dart';
 import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/features/alarm/data/repositories/alarm_repository.dart';
@@ -55,7 +56,7 @@ class _NotificationBootstrapperState
   Future<void> _initializeNotifications() async {
     try {
       await ref.read(notificationInitializationProvider.future);
-      await _syncCurrentFcmToken(trigger: 'app_start');
+      await _syncCurrentFcmToken(trigger: FcmSyncTrigger.appStart);
     } catch (error, stackTrace) {
       AppLogger.error(
         'Failed to initialize notifications.',
@@ -66,22 +67,25 @@ class _NotificationBootstrapperState
     }
   }
 
-  Future<void> _syncCurrentFcmToken({required String trigger}) async {
+  Future<void> _syncCurrentFcmToken({required FcmSyncTrigger trigger}) async {
     AppLogger.info(
-      'FCM sync started. trigger=$trigger',
+      'FCM sync started. trigger=${trigger.name}',
       name: 'NotificationBootstrapper',
     );
     final alarmRepository = ref.read(alarmRepositoryProvider);
     if (!await _hasActiveSession()) {
       AppLogger.info(
-        'FCM sync skipped because there is no active session. trigger=$trigger',
+        'FCM sync skipped because there is no active session. trigger=${trigger.name}',
         name: 'NotificationBootstrapper',
       );
+      ref
+          .read(fcmDiagnosticProvider.notifier)
+          .recordSessionUnavailable(trigger);
       return;
     }
 
     alarmRepository.enableFcmRegistrationForExistingSession();
-    await alarmRepository.registerCurrentFcmToken();
+    await alarmRepository.registerCurrentFcmToken(trigger: trigger);
   }
 
   Future<void> _syncCurrentFcmTokenAfterResume() async {
@@ -90,7 +94,7 @@ class _NotificationBootstrapperState
       name: 'NotificationBootstrapper',
     );
     try {
-      await _syncCurrentFcmToken(trigger: 'resume');
+      await _syncCurrentFcmToken(trigger: FcmSyncTrigger.resume);
     } catch (error, stackTrace) {
       AppLogger.error(
         'Failed to sync FCM token after app resumed.',
@@ -121,7 +125,10 @@ class _NotificationBootstrapperState
         return;
       }
 
-      await alarmRepository.registerFcmToken(token);
+      await alarmRepository.registerFcmToken(
+        token,
+        trigger: FcmSyncTrigger.tokenRefresh,
+      );
     } catch (error, stackTrace) {
       AppLogger.error(
         'Failed to handle refreshed FCM token.',
@@ -134,16 +141,9 @@ class _NotificationBootstrapperState
 
   Future<bool> _hasActiveSession() async {
     final storage = ref.read(secureStorageProvider);
-    final tokens = await Future.wait<String?>([
-      storage.read(key: 'access_token'),
-      storage.read(key: 'refresh_token'),
-    ]);
+    final hasActiveSession = await hasActiveNotificationSession(storage);
     if (!mounted) return false;
-
-    return tokens.any(
-      (token) =>
-          token != null && token.isNotEmpty && !TokenUtils.isExpired(token),
-    );
+    return hasActiveSession;
   }
 
   void _handleLogout() {

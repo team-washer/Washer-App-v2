@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:washer/core/network/dio_client.dart';
+import 'package:washer/core/notifications/fcm_diagnostic.dart';
 import 'package:washer/core/notifications/notification_service.dart';
 import 'package:washer/features/alarm/data/data_sources/alarm_data_source.dart';
 import 'package:washer/features/alarm/data/models/response/alarm_list_response.dart';
@@ -12,22 +13,41 @@ class _FakeAlarmDataSource implements AlarmDataSource {
   final registeredTokens = <String>[];
   Completer<void>? registrationCompleter;
   int registrationFailuresRemaining = 0;
+  int? registrationFailureStatusCode;
+  String? registrationErrorCode;
+  int registrationSuccessStatusCode = 200;
   var deleteCount = 0;
 
   @override
-  Future<void> registerFcmToken(String token) async {
+  Future<int?> registerFcmToken(String token) async {
     registeredTokens.add(token);
-    if (registrationFailuresRemaining > 0) {
-      registrationFailuresRemaining--;
-      throw DioException(
-        requestOptions: RequestOptions(path: 'notifications/fcm-token'),
-        type: DioExceptionType.connectionError,
-      );
-    }
     final completer = registrationCompleter;
     if (completer != null) {
       await completer.future;
     }
+    if (registrationFailuresRemaining > 0) {
+      registrationFailuresRemaining--;
+      final requestOptions = RequestOptions(
+        path: 'notifications/fcm-token',
+      );
+      throw DioException(
+        requestOptions: requestOptions,
+        response: registrationFailureStatusCode == null
+            ? null
+            : Response<dynamic>(
+                requestOptions: requestOptions,
+                statusCode: registrationFailureStatusCode,
+                data: {
+                  'message': 'FCM registration failed',
+                  'data': {'errorCode': registrationErrorCode},
+                },
+              ),
+        type: registrationFailureStatusCode == null
+            ? DioExceptionType.connectionError
+            : DioExceptionType.badResponse,
+      );
+    }
+    return registrationSuccessStatusCode;
   }
 
   @override
@@ -62,7 +82,7 @@ class _FakeNotificationService implements NotificationService {
   Future<void> initialize() async {}
 
   @override
-  Future<String?> ensureFcmToken() async {
+  Future<String?> ensureFcmToken({int? diagnosticCycleId}) async {
     ensureCount++;
     if (_tokenResponses.isNotEmpty) {
       return Future<String?>.sync(_tokenResponses.removeAt(0));
@@ -81,6 +101,54 @@ class _FakeNotificationService implements NotificationService {
 
   @override
   void dispose() {}
+}
+
+class _FakeFcmDiagnostics implements FcmDiagnosticReporter {
+  var cycleId = 0;
+  FcmSyncTrigger? lastTrigger;
+  final events = <FcmDiagnosticEvent>[];
+  var terminalFailureCount = 0;
+  var registrationEnabled = false;
+  var registrationBlocked = false;
+
+  @override
+  int beginSync(
+    FcmSyncTrigger trigger, {
+    required bool registrationEnabled,
+    required bool registrationBlocked,
+  }) {
+    cycleId++;
+    lastTrigger = trigger;
+    this.registrationEnabled = registrationEnabled;
+    this.registrationBlocked = registrationBlocked;
+    events.clear();
+    return cycleId;
+  }
+
+  @override
+  void record(int cycleId, FcmDiagnosticEvent event) {
+    if (cycleId == this.cycleId) events.add(event);
+  }
+
+  @override
+  void recordSessionUnavailable(FcmSyncTrigger trigger) {
+    lastTrigger = trigger;
+  }
+
+  @override
+  void reportTerminalFailure(int cycleId, {required String message}) {
+    if (cycleId == this.cycleId) terminalFailureCount++;
+  }
+
+  @override
+  void updateRegistrationState({
+    required bool enabled,
+    required bool blocked,
+    String? message,
+  }) {
+    registrationEnabled = enabled;
+    registrationBlocked = blocked;
+  }
 }
 
 Future<void> _flushEventQueue() async {
@@ -105,6 +173,81 @@ void main() {
       expect(dataSource.registeredTokens, ['ready-token']);
     });
 
+    test('explicit login sync posts the same token again', () async {
+      final dataSource = _FakeAlarmDataSource();
+      final repository = AlarmRepository(
+        dataSource,
+        _FakeNotificationService(token: 'same-login-token'),
+      )..enableFcmRegistration();
+
+      await repository.registerCurrentFcmToken(
+        trigger: FcmSyncTrigger.login,
+      );
+      await repository.registerCurrentFcmToken(
+        trigger: FcmSyncTrigger.login,
+      );
+
+      expect(dataSource.registeredTokens, [
+        'same-login-token',
+        'same-login-token',
+      ]);
+    });
+
+    test('logout then login posts the same Firebase token again', () async {
+      final dataSource = _FakeAlarmDataSource();
+      final notificationService = _FakeNotificationService(
+        token: 'same-device-token',
+      );
+      final repository = AlarmRepository(dataSource, notificationService)
+        ..enableFcmRegistration();
+
+      await repository.registerCurrentFcmToken(
+        trigger: FcmSyncTrigger.login,
+      );
+      await repository.deleteFcmToken();
+      notificationService.token = 'same-device-token';
+      repository.enableFcmRegistration();
+      await repository.registerCurrentFcmToken(
+        trigger: FcmSyncTrigger.login,
+      );
+
+      expect(dataSource.registeredTokens, [
+        'same-device-token',
+        'same-device-token',
+      ]);
+      expect(dataSource.deleteCount, 1);
+    });
+
+    test(
+      'app start, resume, and manual sync each force a server post',
+      () async {
+        final dataSource = _FakeAlarmDataSource();
+        final diagnostics = _FakeFcmDiagnostics();
+        final repository = AlarmRepository(
+          dataSource,
+          _FakeNotificationService(token: 'explicit-sync-token'),
+          diagnostics: diagnostics,
+        )..enableFcmRegistrationForExistingSession();
+
+        await repository.registerCurrentFcmToken(
+          trigger: FcmSyncTrigger.appStart,
+        );
+        await repository.registerCurrentFcmToken(
+          trigger: FcmSyncTrigger.resume,
+        );
+        await repository.registerCurrentFcmToken(
+          trigger: FcmSyncTrigger.manual,
+        );
+
+        expect(dataSource.registeredTokens, [
+          'explicit-sync-token',
+          'explicit-sync-token',
+          'explicit-sync-token',
+        ]);
+        expect(diagnostics.lastTrigger, FcmSyncTrigger.manual);
+      },
+    );
+
     test(
       'login starts a new cycle after token retries are exhausted',
       () async {
@@ -120,12 +263,16 @@ void main() {
         );
 
         repository.enableFcmRegistrationForExistingSession();
-        await repository.registerCurrentFcmToken();
+        await repository.registerCurrentFcmToken(
+          trigger: FcmSyncTrigger.appStart,
+        );
         await _flushEventQueue();
         expect(notificationService.ensureCount, 2);
 
         repository.enableFcmRegistration();
-        await repository.registerCurrentFcmToken();
+        await repository.registerCurrentFcmToken(
+          trigger: FcmSyncTrigger.login,
+        );
 
         expect(notificationService.ensureCount, 3);
         expect(dataSource.registeredTokens, ['login-token']);
@@ -243,11 +390,15 @@ void main() {
           maxTokenPreparationRetries: 2,
         )..enableFcmRegistrationForExistingSession();
 
-        await repository.registerCurrentFcmToken();
+        await repository.registerCurrentFcmToken(
+          trigger: FcmSyncTrigger.appStart,
+        );
         await _flushEventQueue();
         expect(notificationService.ensureCount, 3);
 
-        await repository.registerCurrentFcmToken();
+        await repository.registerCurrentFcmToken(
+          trigger: FcmSyncTrigger.resume,
+        );
         await _flushEventQueue();
 
         expect(notificationService.ensureCount, 5);
@@ -271,6 +422,34 @@ void main() {
         'server-retry-token',
         'server-retry-token',
       ]);
+    });
+
+    test('records server 4xx and 5xx status and errorCode', () async {
+      for (final statusCode in [400, 500]) {
+        final dataSource = _FakeAlarmDataSource()
+          ..registrationFailuresRemaining = 1
+          ..registrationFailureStatusCode = statusCode
+          ..registrationErrorCode = 'FCM_$statusCode';
+        final diagnostics = _FakeFcmDiagnostics();
+        final repository = AlarmRepository(
+          dataSource,
+          _FakeNotificationService(),
+          maxRegistrationRetries: 0,
+          diagnostics: diagnostics,
+        )..enableFcmRegistration();
+
+        await repository.registerFcmToken(
+          'server-error-token',
+          trigger: FcmSyncTrigger.tokenRefresh,
+        );
+
+        final failure = diagnostics.events.lastWhere(
+          (event) => event.type == FcmDiagnosticEventType.postFailed,
+        );
+        expect(failure.statusCode, statusCode);
+        expect(failure.errorCode, 'FCM_$statusCode');
+        expect(diagnostics.terminalFailureCount, 1);
+      }
     });
 
     test(
@@ -366,6 +545,62 @@ void main() {
       await Future.wait([first, second]);
 
       expect(dataSource.registeredTokens, ['same-token']);
+    });
+
+    test(
+      '실패한 token refresh와 겹친 수동 동기화는 새 POST를 즉시 시도한다',
+      () async {
+        final firstRequest = Completer<void>();
+        final dataSource = _FakeAlarmDataSource()
+          ..registrationCompleter = firstRequest
+          ..registrationFailuresRemaining = 1;
+        final repository = AlarmRepository(
+          dataSource,
+          _FakeNotificationService(token: 'overlap-token'),
+          registrationRetryDelay: const Duration(seconds: 10),
+        )..enableFcmRegistration();
+        addTearDown(repository.dispose);
+
+        final refresh = repository.registerFcmToken('overlap-token');
+        await Future<void>.delayed(Duration.zero);
+        dataSource.registrationCompleter = null;
+        final manual = repository.registerCurrentFcmToken(
+          trigger: FcmSyncTrigger.manual,
+        );
+        firstRequest.complete();
+
+        await Future.wait([refresh, manual]);
+
+        expect(dataSource.registeredTokens, [
+          'overlap-token',
+          'overlap-token',
+        ]);
+      },
+    );
+
+    test('로그아웃 중 늦게 실패한 POST는 재시도하거나 종료 실패로 보고하지 않는다', () async {
+      final request = Completer<void>();
+      final dataSource = _FakeAlarmDataSource()
+        ..registrationCompleter = request
+        ..registrationFailuresRemaining = 1;
+      final diagnostics = _FakeFcmDiagnostics();
+      final repository = AlarmRepository(
+        dataSource,
+        _FakeNotificationService(),
+        registrationRetryDelay: Duration.zero,
+        diagnostics: diagnostics,
+      )..enableFcmRegistration();
+
+      final registration = repository.registerFcmToken('logout-token');
+      await Future<void>.delayed(Duration.zero);
+      final logout = repository.deleteFcmToken();
+      request.complete();
+
+      await Future.wait([registration, logout]);
+
+      expect(dataSource.registeredTokens, ['logout-token']);
+      expect(dataSource.deleteCount, 1);
+      expect(diagnostics.terminalFailureCount, 0);
     });
 
     test('로그아웃이 시작되면 진행 중 등록 뒤에 삭제하고 재등록을 막는다', () async {

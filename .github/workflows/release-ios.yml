@@ -1,16 +1,23 @@
 name: Release - iOS App Store
 
-# main 에 push(머지)되면 App Store 심사에 자동 제출한다.
+# main 에 push(머지)되면 release.yml 이 이 워크플로우를 호출해 App Store 심사에 자동 제출한다.
+# (Discord 배포 알림은 release.yml 이 iOS·Android 결과를 모아 한 번에 보낸다)
 # - 마케팅 버전은 pubspec.yaml 의 version (Android 와 동일 출처)
 #   ASC 최고 버전 이하면 archive 전에 실패한다 (Fastfile assert_appstore_version_available)
 # - 릴리스 노트는 머지 커밋 메시지(PR 제목)에서 가져옴, 없으면 기본 문구
 # TestFlight 배포는 cd-ios.yml 이 따로 담당(같은 main push 로 동시 동작).
 # ⚠️ Apple 은 한 번에 버전 1개만 심사 → main 은 릴리스용으로 사용 권장.
 on:
-  push:
-    branches:
-      - main
-  # 수동 실행(테스트용). dry_run=true 면 빌드/서명(archive)까지만 하고 App Store 업로드는 건너뛴다.
+  workflow_call:
+    inputs:
+      dry_run:
+        type: boolean
+        default: false
+    outputs:
+      result:
+        description: "Fastfile CD_RESULT (JSON)"
+        value: ${{ jobs.release.outputs.result }}
+  # 수동 실행(테스트용, 알림 없음). dry_run=true 면 빌드/서명(archive)까지만 하고 App Store 업로드는 건너뛴다.
   workflow_dispatch:
     inputs:
       dry_run:
@@ -18,14 +25,17 @@ on:
         type: boolean
         default: true
 
+# release.yml 에서 호출되면 github.workflow 가 호출한 쪽 이름이 되므로 그룹 이름을 고정한다.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: release-ios-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
   release:
     name: Build & Submit to App Store
     runs-on: macos-latest
+    outputs:
+      result: ${{ steps.fastlane.outputs.result }}
 
     steps:
       - name: Checkout
@@ -178,14 +188,13 @@ jobs:
           echo "Profile UUID: $IOS_PROVISIONING_PROFILE_UUID"
 
       - name: Build & Submit to App Store
+        id: fastlane
         env:
           APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          # workflow_dispatch 의 dry_run 입력 전달 (push 트리거 시 빈 값 → 실제 심사 제출)
-          DRY_RUN: ${{ github.event.inputs.dry_run }}
-          # dSYM 업로드 실패 같은 배포 중 문제를 Discord 로 알린다 (Fastfile notify_discord)
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          # dry_run 입력 전달 (main push 로 호출되면 false → 실제 심사 제출)
+          DRY_RUN: ${{ inputs.dry_run }}
         run: bundle exec fastlane ios release_appstore
 
       - name: Clean up keychain and provisioning profile

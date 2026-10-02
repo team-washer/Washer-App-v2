@@ -114,7 +114,7 @@ class AuthInterceptor extends Interceptor {
       // 갱신 실패 시: 인증 없이 요청을 보내면 403 → onError → 재갱신으로
       // 무한 루프가 발생하므로, 로그아웃 처리 후 요청을 즉시 중단한다.
       if (_cachedAccessToken == null) {
-        await _handleRefreshFailure();
+        await _handleRefreshFailure(generation);
         return handler.reject(
           DioException(
             requestOptions: options,
@@ -149,7 +149,7 @@ class AuthInterceptor extends Interceptor {
       }
 
       if (newAccessToken == null) {
-        await _handleRefreshFailure();
+        await _handleRefreshFailure(generation);
         return handler.next(err);
       }
 
@@ -334,7 +334,14 @@ class AuthInterceptor extends Interceptor {
     );
   }
 
-  Future<void> _handleRefreshFailure() async {
+  /// [generation] 세대의 갱신 실패를 처리한다. 토큰을 지우고 [onLogout]을 호출한다.
+  ///
+  /// 삭제는 [startSession]·[clearCache]와 같은 직렬화 큐에서 세대를 확인한 뒤 실행해,
+  /// 처리 중에 새 로그인이 일어나도 새 세션의 토큰을 지우거나 로그아웃시키지 않는다.
+  Future<void> _handleRefreshFailure(int generation) async {
+    if (generation != _sessionGeneration) {
+      return;
+    }
     // 동시에 들어온 요청들이 각자 로그아웃을 호출하지 않도록 단일화한다.
     // 한 번의 갱신 실패 버스트에 대해 스토리지 삭제·onLogout 은 한 번만 실행된다.
     if (_isLoggedOut) {
@@ -347,8 +354,11 @@ class AuthInterceptor extends Interceptor {
     // 실패할 수 있다. 삭제가 실패하더라도 onLogout 은 반드시 호출되어야
     // 사용자가 잘못된 상태에 갇히지 않는다.
     try {
-      await _storage.delete(key: 'access_token');
-      await _storage.delete(key: 'refresh_token');
+      await _serializeStorage(() async {
+        if (generation != _sessionGeneration) return;
+        await _storage.delete(key: 'access_token');
+        await _storage.delete(key: 'refresh_token');
+      });
     } catch (error, stackTrace) {
       AppLogger.error(
         '로그아웃 처리 중 스토리지 삭제에 실패했습니다.',
@@ -356,6 +366,10 @@ class AuthInterceptor extends Interceptor {
         error: error,
         stackTrace: stackTrace,
       );
+    }
+    // 삭제를 기다리는 동안 새 세션이 시작됐으면 그 세션을 로그아웃시키지 않는다.
+    if (generation != _sessionGeneration) {
+      return;
     }
     onLogout?.call();
   }
@@ -372,18 +386,38 @@ class AuthInterceptor extends Interceptor {
   ///
   /// 세대를 올리므로 이전 세션에서 시작한 갱신·저장소 읽기의 결과는 버려지고,
   /// 이후 요청은 스토리지 저장이 끝나기 전이라도 새 토큰만 사용한다.
+  ///
+  /// 저장에 실패하면 로그인도 실패하므로, 메모리에만 활성화된 새 세션을 끝내고
+  /// 일부만 저장된 토큰을 지운 뒤 오류를 다시 던진다.
   Future<void> startSession({
     required String accessToken,
     required String refreshToken,
   }) async {
-    _sessionGeneration++;
+    final generation = ++_sessionGeneration;
     _cachedAccessToken = accessToken;
     _refreshFuture = null;
     _isLoggedOut = false;
-    await _serializeStorage(() async {
-      await _storage.write(key: 'access_token', value: accessToken);
-      await _storage.write(key: 'refresh_token', value: refreshToken);
-    });
+    try {
+      await _serializeStorage(() async {
+        await _storage.write(key: 'access_token', value: accessToken);
+        await _storage.write(key: 'refresh_token', value: refreshToken);
+      });
+    } catch (_) {
+      // 그 사이 다른 세션 전환이 있었다면 그쪽이 상태를 정리했다.
+      if (generation == _sessionGeneration) {
+        try {
+          await clearCache();
+        } catch (error, stackTrace) {
+          AppLogger.error(
+            '토큰 저장 실패 후 세션 정리에 실패했습니다.',
+            name: 'AuthInterceptor',
+            error: error,
+            stackTrace: stackTrace,
+          );
+        }
+      }
+      rethrow;
+    }
   }
 
   /// 세션을 끝낸다. 메모리 캐시 + 스토리지 토큰 모두 삭제

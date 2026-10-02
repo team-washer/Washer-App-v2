@@ -110,7 +110,7 @@ class AppEnvironment {
     return value;
   }
 
-  /// production flavor와 release 빌드에서는 HTTPS URL만 허용한다(#321).
+  /// production flavor와 release 빌드에서는 host가 있는 HTTPS URL만 허용한다(#321).
   @visibleForTesting
   static void ensureHttpsPolicy(
     String key,
@@ -123,7 +123,10 @@ class AppEnvironment {
     }
 
     final uri = Uri.tryParse(value);
-    if (uri == null || uri.scheme.toLowerCase() != 'https') {
+    if (uri == null ||
+        uri.scheme.toLowerCase() != 'https' ||
+        !uri.hasAuthority ||
+        uri.host.isEmpty) {
       throw StateError('$key must use HTTPS in production or release builds.');
     }
   }

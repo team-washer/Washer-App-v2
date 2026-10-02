@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/enums/laundry_action_type.dart';
-import 'package:washer/core/network/error.dart';
 import 'package:washer/shared/theme/washer_color.dart';
 import 'package:washer/shared/theme/app_spacing.dart';
 import 'package:washer/shared/theme/washer_typography.dart';
 import 'package:washer/shared/ui/dialog/dialog_action.dart';
 import 'package:washer/shared/ui/dialog/laundry_dialog_actions.dart';
 import 'package:washer/shared/ui/dialog/washer_dialog.dart';
-import 'package:washer/shared/ui/error_toast.dart';
+import 'package:washer/shared/ui/washer_toast.dart';
 
 /// 기기 예약 시작/예약 취소 확인 다이얼로그. 종류는 [actionType]으로 결정한다.
 class LaundryActionDialog extends ConsumerStatefulWidget {
@@ -38,8 +37,8 @@ class _LaundryActionDialogState extends ConsumerState<LaundryActionDialog> {
         final navigator = Navigator.of(context);
         final rootOverlay = Overlay.of(context, rootOverlay: true);
         navigator.pop();
-        rootOverlay.showErrorToast(
-          AppException(message: '예약 후 자동으로 기기 연결 확인이 진행됩니다.'),
+        rootOverlay.showToast(
+          WasherToast.info('예약 후 자동으로 기기 연결 확인이 진행됩니다.'),
         );
         break;
       case LaundryActionType.cancelReservation:

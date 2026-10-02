@@ -43,6 +43,24 @@ Future<void> _run(WidgetTester tester, DialogAction<bool> action) async {
 }
 
 void main() {
+  testWidgets('성공하면 스낵바가 아닌 성공 토스트로 성공 문구를 보여준다', (tester) async {
+    await _run(
+      tester,
+      DialogAction<bool>(
+        run: (_) async => true,
+        isSuccess: (result) => result,
+        successMessage: '성공했습니다.',
+        fallbackMessage: '처리에 실패했습니다.',
+        logName: 'TestAction',
+      ),
+    );
+
+    expect(find.byType(SnackBar), findsNothing);
+    expect(find.text('성공했습니다.'), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 6));
+  });
+
   testWidgets('실패 원인 정보가 없어도 스낵바가 아닌 에러 토스트로 기본 문구를 보여준다', (tester) async {
     await _run(tester, _failingAction());
 

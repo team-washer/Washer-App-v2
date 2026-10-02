@@ -254,6 +254,28 @@ platform :ios do
       output_directory: File.join(WORKSPACE, "build", "ios", "ipa"),
       clean: true
     )
+
+    upload_crashlytics_dsym
+  end
+
+  # Crashlytics 가 iOS 크래시 스택 트레이스를 심볼화할 수 있도록 build_app 이 만든 dSYM 을 업로드한다.
+  # 업로드가 실패해도 배포까지 막지는 않고 Actions 요약에 경고로 띄운다.
+  # (dSYM 이 빠진 버전은 콘솔의 "누락된 dSYM" 안내를 보고 수동 업로드하면 된다)
+  private_lane :upload_crashlytics_dsym do
+    dsym_path = lane_context[SharedValues::DSYM_OUTPUT_PATH]
+    begin
+      UI.user_error!("build_app 이 dSYM 경로를 남기지 않았습니다") if dsym_path.to_s.empty?
+
+      upload_symbols_to_crashlytics(
+        dsym_path: dsym_path,
+        gsp_path: File.join(WORKSPACE, "ios", "Runner", "GoogleService-Info.plist"),
+        binary_path: File.join(WORKSPACE, "ios", "Pods", "FirebaseCrashlytics", "upload-symbols")
+      )
+    rescue => e
+      msg = "Crashlytics dSYM 업로드 실패 — #{e.message}"
+      UI.important(msg)
+      puts "::warning::#{msg}"
+    end
   end
 end
 

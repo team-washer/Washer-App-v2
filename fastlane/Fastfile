@@ -7,6 +7,30 @@ RELEASE_NOTES_PATH = "fastlane/metadata/ko/release_notes.txt"
 PLAY_CHANGELOG_LOCALE = "ko-KR"
 PLAY_CHANGELOG_LIMIT = 500
 
+require "json"
+require "net/http"
+
+# DISCORD_WEBHOOK(Actions 시크릿)으로 배포 알림을 보낸다.
+# 에러 메시지 같은 외부 텍스트가 섞이므로 셸을 거치지 않고 JSON 으로 직렬화하고, 멘션은 막는다.
+# 웹훅이 없거나 전송이 실패해도 배포는 막지 않으며, 웹훅 URL 은 로그에 남기지 않는다.
+def notify_discord(title:, lines:)
+  webhook = ENV["DISCORD_WEBHOOK"].to_s
+  if webhook.empty?
+    UI.important("DISCORD_WEBHOOK 이 없어 Discord 알림을 건너뜀")
+    return
+  end
+
+  run_url = "#{ENV['GITHUB_SERVER_URL']}/#{ENV['GITHUB_REPOSITORY']}/actions/runs/#{ENV['GITHUB_RUN_ID']}" if ENV["GITHUB_RUN_ID"]
+  content = ([title] + lines + [run_url && "로그: #{run_url}"]).compact.join("\n")
+  payload = { content: content[0, 2000], allowed_mentions: { parse: [] } }.to_json
+
+  res = Net::HTTP.post(URI(webhook), payload, "Content-Type" => "application/json")
+  # Discord 에러 응답(예: {"code": 50006, ...})에는 웹훅 URL 이 없으므로 원인 파악용으로 남긴다.
+  UI.important("Discord 알림 전송 실패 (HTTP #{res.code}) #{res.body.to_s[0, 300]}") unless res.is_a?(Net::HTTPSuccess)
+rescue => e
+  UI.important("Discord 알림 전송 실패 — #{e.class}")
+end
+
 default_platform(:ios)
 
 platform :ios do
@@ -260,7 +284,8 @@ platform :ios do
   end
 
   # Crashlytics 가 iOS 크래시 스택 트레이스를 심볼화할 수 있도록 build_app 이 만든 dSYM 을 업로드한다.
-  # 업로드가 실패해도 배포까지 막지는 않고 Actions 요약에 경고로 띄운다.
+  # 업로드가 실패해도 배포까지 막지는 않는다. 대신 job 이 성공으로 끝나 묻히지 않도록
+  # Actions 경고와 함께 Discord 로 실패 원인을 알린다.
   # (dSYM 이 빠진 버전은 콘솔의 "누락된 dSYM" 안내를 보고 수동 업로드하면 된다)
   private_lane :upload_crashlytics_dsym do
     dsym_path = lane_context[SharedValues::DSYM_OUTPUT_PATH]
@@ -277,6 +302,16 @@ platform :ios do
       msg = "Crashlytics dSYM 업로드 실패 — #{e.message}"
       UI.important(msg)
       puts "::warning::#{msg}"
+
+      notify_discord(
+        title: "⚠️ iOS dSYM 업로드 실패",
+        lines: [
+          "작업: Crashlytics dSYM 업로드",
+          "버전: #{ENV['IOS_VERSION_NAME']} (#{ENV['IOS_BUILD_NUMBER']})",
+          "원인: #{e.message}",
+          "앱 배포는 계속 진행됩니다. Crashlytics 콘솔에서 해당 버전 dSYM 을 수동 업로드해주세요."
+        ]
+      )
     end
   end
 end

@@ -11,13 +11,22 @@ import 'http_client_adapter_config.dart';
 
 /// 요청에 액세스 토큰을 붙이고, 만료/401 시 토큰을 갱신해 재시도하는 인터셉터.
 /// 갱신에 실패하면 토큰을 지우고 [onLogout]을 호출한다.
+///
+/// 로그아웃([clearCache])은 세션 세대([_sessionGeneration])를 올린다. 로그아웃 전에
+/// 시작한 갱신은 응답이 늦게 와도 토큰을 저장하지 않고, 그 갱신을 기다리던 요청도
+/// 재시도하지 않는다(#279).
 class AuthInterceptor extends Interceptor {
   AuthInterceptor(
     this._dio,
     this._storage,
     this._environment, {
     this.onLogout,
+    @visibleForTesting Dio? refreshDio,
   }) {
+    if (refreshDio != null) {
+      _refreshDio = refreshDio;
+      return;
+    }
     _refreshDio = Dio(
       BaseOptions(
         baseUrl: _environment.apiBaseUrl,
@@ -49,6 +58,13 @@ class AuthInterceptor extends Interceptor {
   /// 유효 토큰을 다시 확보(재로그인 등)하면 해제된다.
   bool _isLoggedOut = false;
 
+  /// 세션 세대. 로그아웃마다 올라가며, 이전 세대에서 시작한
+  /// 갱신 결과를 폐기하는 기준이 된다.
+  int _sessionGeneration = 0;
+
+  /// [_serializeStorage]의 마지막 작업. 토큰 저장소 작업을 직렬화한다.
+  Future<void> _storageQueue = Future<void>.value();
+
   static const String _retryKey = 'is_retry_request';
 
   @override
@@ -76,7 +92,15 @@ class AuthInterceptor extends Interceptor {
         !TokenUtils.isExpired(_cachedAccessToken!);
 
     if (!hasValidToken) {
-      _cachedAccessToken = await _tryRefreshBeforeRequest();
+      final generation = _sessionGeneration;
+      final refreshedToken = await _tryRefreshToken();
+
+      // 갱신을 기다리는 동안 로그아웃되었으면 요청을 보내지 않는다.
+      // 이미 로그아웃 처리가 끝났으므로 onLogout을 다시 호출하지도 않는다.
+      if (generation != _sessionGeneration) {
+        return handler.reject(_sessionEndedException(options));
+      }
+      _cachedAccessToken = refreshedToken;
 
       // 갱신 실패 시: 인증 없이 요청을 보내면 403 → onError → 재갱신으로
       // 무한 루프가 발생하므로, 로그아웃 처리 후 요청을 즉시 중단한다.
@@ -101,31 +125,34 @@ class AuthInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
-    final statusCode = err.response?.statusCode;
     final isRetry = err.requestOptions.extra[_retryKey] == true;
 
-    if ((statusCode == 401 || statusCode == 403) && !isRetry) {
-      try {
-        final newAccessToken = await _refreshToken();
+    if (_needsTokenRefresh(err) && !isRetry) {
+      final generation = _sessionGeneration;
 
-        if (newAccessToken != null) {
-          final response = await _retryRequest(
-            err.requestOptions,
-            newAccessToken,
-          );
-          return handler.resolve(response);
-        }
+      // 1) 갱신 성공 여부를 먼저 확정한다. 네트워크 오류 등으로 갱신 자체가
+      //    실패하면 세션을 유지할 수 없으므로 로그아웃한다.
+      final newAccessToken = await _tryRefreshToken();
 
+      // 갱신을 기다리는 동안 로그아웃되었으면 원래 요청을 재시도하지 않는다.
+      if (generation != _sessionGeneration) {
+        return handler.next(err);
+      }
+
+      if (newAccessToken == null) {
         await _handleRefreshFailure();
         return handler.next(err);
-      } on DioException catch (e) {
-        AppLogger.error(
-          '토큰 갱신 후 요청 재시도 중 Dio 오류가 발생했습니다.',
-          name: 'AuthInterceptor',
-          error: e,
-          stackTrace: e.stackTrace,
+      }
+
+      // 2) 갱신이 확인된 뒤에만 재요청한다. 재요청 실패(409, 500, 네트워크 등)는
+      //    인증 문제가 아니므로 로그아웃하지 않고 그 오류를 호출부에 그대로 전달한다.
+      try {
+        final response = await _retryRequest(
+          err.requestOptions,
+          newAccessToken,
         );
-        await _handleRefreshFailure();
+        return handler.resolve(response);
+      } on DioException catch (e) {
         return handler.next(e);
       } catch (error, stackTrace) {
         AppLogger.error(
@@ -134,7 +161,6 @@ class AuthInterceptor extends Interceptor {
           error: error,
           stackTrace: stackTrace,
         );
-        await _handleRefreshFailure();
         return handler.next(err);
       }
     }
@@ -142,12 +168,29 @@ class AuthInterceptor extends Interceptor {
     return handler.next(err);
   }
 
-  Future<String?> _tryRefreshBeforeRequest() async {
+  /// 토큰을 갱신하면 해결될 수 있는 인증 오류인지 판단한다.
+  ///
+  /// 401은 항상 인증 실패다. 403은 원인별 코드(권한 부족·호실 세탁 금지·재가입 제한
+  /// 등, 백엔드 #196)가 있으면 토큰과 무관한 거부라 갱신하지 않는다. 갱신해도 같은
+  /// 거부가 반복되고, 갱신이 일시적으로 실패하면 로그아웃까지 되기 때문이다.
+  /// 코드가 없는 403은 구버전 서버의 인증 실패일 수 있어 기존처럼 갱신한다.
+  static bool _needsTokenRefresh(DioException err) {
+    final statusCode = err.response?.statusCode;
+    if (statusCode == 401) return true;
+    if (statusCode != 403) return false;
+
+    final body = err.response?.data;
+    final data = body is Map ? body['data'] : null;
+    final errorCode = data is Map ? data['errorCode'] : null;
+    return errorCode is! String || errorCode.trim().isEmpty;
+  }
+
+  Future<String?> _tryRefreshToken() async {
     try {
       return await _refreshToken();
     } catch (error, stackTrace) {
       AppLogger.error(
-        '요청 전 토큰 갱신 중 오류가 발생했습니다.',
+        '토큰 갱신 중 오류가 발생했습니다.',
         name: 'AuthInterceptor',
         error: error,
         stackTrace: stackTrace,
@@ -161,20 +204,30 @@ class AuthInterceptor extends Interceptor {
   }
 
   Future<String?> _refreshToken() async {
-    if (_refreshFuture != null) {
-      return _refreshFuture;
+    final inflight = _refreshFuture;
+    if (inflight != null) {
+      return inflight;
     }
 
-    _refreshFuture = _performRefresh();
+    final refresh = _performRefresh(_sessionGeneration);
+    _refreshFuture = refresh;
 
     try {
-      return await _refreshFuture;
+      return await refresh;
     } finally {
-      _refreshFuture = null;
+      // 로그아웃 뒤 새 세션에서 시작한 갱신을 이전 갱신의 종료가 지우지 않도록,
+      // 자기 자신일 때만 비운다.
+      if (identical(_refreshFuture, refresh)) {
+        _refreshFuture = null;
+      }
     }
   }
 
-  Future<String?> _performRefresh() async {
+  /// [generation] 세대의 토큰을 갱신한다. 응답을 받은 뒤 세대가 바뀌었으면
+  /// (로그아웃 등) 토큰을 저장하지 않고 null을 반환한다.
+  Future<String?> _performRefresh(int generation) async {
+    bool isStale() => generation != _sessionGeneration;
+
     final refreshToken = await _storage.read(key: 'refresh_token');
     if (refreshToken == null || refreshToken.isEmpty) {
       return null;
@@ -205,18 +258,39 @@ class AuthInterceptor extends Interceptor {
       ['refresh_token', 'refreshToken'],
     );
 
-    if (newAccessToken != null) {
-      _cachedAccessToken = newAccessToken;
-      await _storage.write(key: 'access_token', value: newAccessToken);
+    if (newAccessToken == null) {
+      return null;
+    }
 
+    // 세대 확인과 저장을 로그아웃 삭제와 같은 직렬화 구간에서 처리한다.
+    // 확인 직후 로그아웃 삭제가 먼저 끝나고 저장이 늦게 끝나면 세션이 되살아나므로,
+    // 확인·저장을 한 단위로 묶고 로그아웃 삭제는 그 뒤에 실행되게 한다.
+    final committed = await _serializeStorage(() async {
+      if (isStale()) return false;
+      await _storage.write(key: 'access_token', value: newAccessToken);
       if (newRefreshToken != null && newRefreshToken.isNotEmpty) {
         await _storage.write(key: 'refresh_token', value: newRefreshToken);
       }
+      return true;
+    });
 
-      return newAccessToken;
+    // 저장 중 로그아웃되었으면 뒤이은 로그아웃 삭제가 토큰을 지운다.
+    // 메모리 캐시에도 올리지 않는다.
+    if (!committed || isStale()) {
+      return null;
     }
+    _cachedAccessToken = newAccessToken;
+    return newAccessToken;
+  }
 
-    return null;
+  /// 토큰 저장소 쓰기·삭제를 순서대로 하나씩 실행한다.
+  ///
+  /// secure storage 호출은 플랫폼에서 호출 순서대로 끝난다는 보장이 없다.
+  /// 갱신 결과 저장과 로그아웃 삭제가 서로 끼어들지 않도록 이 큐를 거친다.
+  Future<T> _serializeStorage<T>(Future<T> Function() action) {
+    final result = _storageQueue.then((_) => action());
+    _storageQueue = result.then<void>((_) {}, onError: (Object _) {});
+    return result;
   }
 
   String? _readString(Map<String, dynamic> payload, List<String> keys) {
@@ -277,19 +351,25 @@ class AuthInterceptor extends Interceptor {
     onLogout?.call();
   }
 
-  /// 스토리지 토큰은 유지하고 메모리 캐시만 초기화
-  void clearInMemoryCache() {
-    _cachedAccessToken = null;
-    _refreshFuture = null;
-    _isLoggedOut = false;
+  DioException _sessionEndedException(RequestOptions options) {
+    return DioException(
+      requestOptions: options,
+      type: DioExceptionType.cancel,
+      error: '로그아웃되어 요청을 중단했습니다.',
+    );
   }
 
   /// 로그아웃 시 메모리 캐시 + 스토리지 토큰 모두 삭제
   Future<void> clearCache() async {
+    _sessionGeneration++;
     _cachedAccessToken = null;
     _refreshFuture = null;
     _isLoggedOut = false;
-    await _storage.delete(key: 'access_token');
-    await _storage.delete(key: 'refresh_token');
+    // 세대를 먼저 올렸으므로, 큐에서 이보다 앞선 갱신 저장은 끝난 뒤 여기서 지워지고
+    // 뒤늦게 실행되는 이전 세대의 저장은 세대 확인에서 버려진다.
+    await _serializeStorage(() async {
+      await _storage.delete(key: 'access_token');
+      await _storage.delete(key: 'refresh_token');
+    });
   }
 }

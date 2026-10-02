@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:washer/core/errors/app_exception.dart';
+import 'package:washer/core/network/error.dart';
 import 'package:washer/core/notifications/fcm_sync_trigger.dart';
 import 'package:washer/core/notifications/notification_service.dart';
 import 'package:washer/core/utils/app_logger.dart';

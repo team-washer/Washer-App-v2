@@ -71,3 +71,6 @@ android/key.properties
 
 # Play Store changelog — 빌드 시점에 fastlane/metadata/ko/release_notes.txt 에서 생성됨 (커밋 금지)
 fastlane/metadata/android/
+
+# Claude Code 개인 설정
+.claude/settings.local.json

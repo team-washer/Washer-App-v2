@@ -8,9 +8,8 @@ import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/features/alarm/data/repositories/alarm_repository.dart';
 import 'package:washer/features/auth/data/data_sources/remote/auth_remote_data_source.dart';
 import 'package:washer/features/auth/data/models/request/login_request.dart';
-import 'package:washer/features/auth/data/models/request/refresh_request.dart';
 
-/// 로그인/로그아웃/토큰 갱신과 토큰 저장소를 담당하는 인증 저장소
+/// 로그인/로그아웃과 토큰 저장소를 담당하는 인증 저장소
 class AuthRepository {
   final AuthRemoteDataSource _dataSource;
   final FlutterSecureStorage _storage;
@@ -57,20 +56,6 @@ class AuthRepository {
       _storage.delete(key: 'refresh_token'),
       _dioClient.clearAuthCache(),
     ]);
-  }
-
-  /// 저장된 refresh 토큰으로 access/refresh 토큰을 재발급해 저장한다.
-  Future<void> refresh() async {
-    final refreshToken = await _storage.read(key: 'refresh_token');
-    if (refreshToken == null) return;
-    final response = await _dataSource.refresh(
-      RefreshRequest(refreshToken: refreshToken),
-    );
-    await Future.wait([
-      _storage.write(key: 'access_token', value: response.accessToken),
-      _storage.write(key: 'refresh_token', value: response.refreshToken),
-    ]);
-    _dioClient.clearInMemoryCache();
   }
 }
 

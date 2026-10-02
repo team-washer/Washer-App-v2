@@ -64,7 +64,7 @@ Future<String?> _pollingMessageFor(DioException error) async {
     container.read(machineStatusProvider.future),
     throwsA(isA<DioException>()),
   );
-  return container.read(pollingErrorProvider);
+  return container.read(pollingErrorProvider)?.message;
 }
 
 void main() {
@@ -74,7 +74,7 @@ void main() {
         await _pollingMessageFor(
           _serverError(502, message: 'SmartThings down'),
         ),
-        '기기 서비스와 연결하지 못했습니다. 잠시 후 다시 시도해주세요.',
+        '기기와 연결할 수 없어요.\n잠시 후 다시 시도해주세요.',
       );
     });
 
@@ -83,35 +83,37 @@ void main() {
         _serverError(503, message: 'Redis connection failed'),
       );
 
-      expect(message, '서버가 일시적으로 불안정합니다. 잠시 후 다시 시도해주세요.');
+      expect(message, '서비스가 잠시 불안정해요.\n잠시 후 다시 시도해주세요.');
       expect(message, isNot(contains('Redis')));
     });
 
-    test('그 밖의 5xx는 상태 코드를 함께 보여준다', () async {
+    test('그 밖의 5xx는 서버 메시지 대신 일반 서버 오류 문구를 보여준다', () async {
       expect(
-        await _pollingMessageFor(_serverError(500)),
-        '서버 오류가 발생했습니다. (500)',
+        await _pollingMessageFor(
+          _serverError(500, message: 'NullPointerException'),
+        ),
+        '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
       );
     });
 
     test('403은 더 이상 조용히 실패하지 않고 안내한다', () async {
       expect(
         await _pollingMessageFor(_serverError(403)),
-        '이 작업을 수행할 권한이 없습니다.',
+        '이 기능을 이용할 수 없어요.',
       );
     });
 
-    test('404는 서버 메시지를 그대로 안내한다', () async {
+    test('404는 서버 메시지와 무관하게 고정 문구를 안내한다', () async {
       expect(
         await _pollingMessageFor(_serverError(404, message: '기기를 찾을 수 없습니다.')),
-        '기기를 찾을 수 없습니다.',
+        '예약 정보를 찾을 수 없어요.\n다시 확인해주세요.',
       );
     });
 
-    test('409는 서버 메시지가 없으면 기본 문구를 안내한다', () async {
+    test('409는 취소 전용 문구가 아닌 일반 충돌 문구를 안내한다', () async {
       expect(
         await _pollingMessageFor(_serverError(409)),
-        '현재 상태에서는 요청을 처리할 수 없습니다.',
+        '다른 요청과 겹쳤어요.\n최신 상태를 확인한 뒤 다시 시도해주세요.',
       );
     });
 
@@ -130,7 +132,7 @@ void main() {
       );
     });
 
-    test('응답이 없는 네트워크 오류는 기존 안내를 유지한다', () async {
+    test('응답이 없는 네트워크 오류는 앱 공통 연결 확인 문구를 보여준다', () async {
       final options = RequestOptions(path: '/machines/status');
 
       expect(
@@ -140,7 +142,7 @@ void main() {
             type: DioExceptionType.connectionTimeout,
           ),
         ),
-        '서버 응답 시간이 초과되었습니다.',
+        '네트워크 연결을 확인해주세요.',
       );
     });
   });

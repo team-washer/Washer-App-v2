@@ -106,7 +106,7 @@ void main() {
       expect(reportedCount, 0);
     });
 
-    testWidgets('내용이 비어 있으면 요청도 콜백도 없다', (tester) async {
+    testWidgets('내용이 비어 있으면 요청도 콜백도 없고 에러 토스트로 안내한다', (tester) async {
       final dataSource = _FakeReportRemoteDataSource();
       var reportedCount = 0;
       await _pumpAndOpenDialog(
@@ -116,6 +116,11 @@ void main() {
       );
 
       await tester.tap(find.text('신고하기'));
+      await tester.pump();
+
+      expect(find.byType(SnackBar), findsNothing);
+      expect(find.text('고장 내용을 입력해주세요.'), findsOneWidget);
+
       await tester.pumpAndSettle();
 
       expect(dataSource.lastDescription, isNull);

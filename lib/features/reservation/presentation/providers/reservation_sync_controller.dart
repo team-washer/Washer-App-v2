@@ -1,17 +1,20 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:washer/core/network/error.dart';
+import 'package:washer/core/network/session_generation_provider.dart';
 import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/features/reservation/data/data_sources/remote/reservation_status_remote_data_source.dart';
 import 'package:washer/features/reservation/presentation/providers/my_reservation_update.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
 import 'package:washer/features/user/presentation/providers/my_user_provider.dart';
 
-/// [ReservationSyncController] provider. dispose 시 polling을 정리한다.
+/// [ReservationSyncController] provider. 세션이 바뀌거나 dispose 시 polling을 정리한다.
 final reservationSyncControllerProvider = Provider<ReservationSyncController>((
   ref,
 ) {
   final controller = ReservationSyncController(ref);
+  ref.listen(sessionGenerationProvider, (_, _) => controller.resetSession());
   ref.onDispose(controller.dispose);
   return controller;
 });
@@ -149,7 +152,9 @@ class ReservationSyncController {
           name: 'ReservationSyncController',
         );
         stopPolling();
-        _ref.read(pollingErrorProvider.notifier).state = '서버 상태가 지연되고 있습니다.';
+        _ref.read(pollingErrorProvider.notifier).state = AppException(
+          message: '서버 상태가 지연되고 있습니다.',
+        );
       }
     }
   }
@@ -164,6 +169,16 @@ class ReservationSyncController {
       return _ref.read(myUserProvider).value?.id;
     }
     return null;
+  }
+
+  /// 세션이 바뀌면 polling을 멈추고 이전 사용자의 예약·사용자 식별 정보를 비운다.
+  /// 이미 보낸 요청의 응답은 [ActiveReservationNotifier]가 이전 세션 응답으로 버린다.
+  void resetSession() {
+    stopPolling();
+    _consecutiveFailures = 0;
+    _pollsSinceRoomSync = 0;
+    _trackedReservationId = null;
+    _myUserId = null;
   }
 
   /// polling 타이머를 정지한다.

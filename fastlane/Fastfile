@@ -36,7 +36,6 @@ default_platform(:ios)
 platform :ios do
   TEAM_ID = "UB2797YAAH"
   BUNDLE_ID = "com.washer.v2"
-  FIREBASE_IOS_APP_ID = "1:360429077717:ios:d49d6feca13ddb41c28e5c"
 
   desc "Build the iOS app and upload it to TestFlight without submitting for review (main 머지마다)"
   lane :upload_testflight do
@@ -292,10 +291,16 @@ platform :ios do
     begin
       UI.user_error!("build_app 이 dSYM 경로를 남기지 않았습니다") if dsym_path.to_s.empty?
 
+      # GoogleService-Info.plist 는 gitignore 대상이라 CI 에 없으므로 appId 를 직접 넘긴다.
+      # upload-symbols 는 없는 appId 로 보내도 성공으로 끝나 CI 에서 잡을 수 없으니, 직접 적지 않고
+      # flutterfire configure 가 만든 firebase.json(앱의 lib/firebase_options.dart 와 같은 출처)에서 읽는다.
+      firebase_config = JSON.parse(File.read(File.join(WORKSPACE, "firebase.json")))
+      app_id = firebase_config.dig("flutter", "platforms", "dart", "lib/firebase_options.dart", "configurations", "ios").to_s
+      UI.user_error!("firebase.json 에서 iOS appId 를 찾지 못했습니다") if app_id.empty?
+
       upload_symbols_to_crashlytics(
         dsym_path: dsym_path,
-        # GoogleService-Info.plist 는 gitignore 대상이라 CI 에 없다 → lib/firebase_options.dart 의 iOS appId 를 쓴다.
-        app_id: FIREBASE_IOS_APP_ID,
+        app_id: app_id,
         binary_path: File.join(WORKSPACE, "ios", "Pods", "FirebaseCrashlytics", "upload-symbols")
       )
     rescue => e

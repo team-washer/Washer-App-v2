@@ -48,6 +48,20 @@ test/          # lib 구조를 미러링 (core/, features/, shared/, architectur
 
 feature: `alarm`, `auth`, `history`, `home`, `report`, `reservation`, `user`
 
+### 모듈 README
+
+각 feature와 `core`, `shared`에는 `README.md`가 있습니다. README에는 모듈의 기능, 레이어 구성, 동작 흐름, API, 의존성, 주의사항이 정리되어 있습니다.
+
+- 모듈을 수정하기 전에 해당 README를 먼저 읽습니다.
+- 다음이 바뀌면 같은 PR에서 README도 갱신합니다.
+  - 기능
+  - 파일 구성
+  - provider
+  - API 경로
+  - 동작 흐름
+  - 모듈 간 의존성
+- Claude Code에서는 Stop 훅(`check_module_readme.dart`)이 README 갱신 누락을 확인합니다. 아래 "에이전트 하네스" 참고
+
 ## 아키텍처 규칙
 
 - **UI → provider → (repository) → data source** 방향만 허용. 위젯에서 Dio/data source를 직접 호출하지 않습니다.
@@ -125,4 +139,8 @@ feature: `alarm`, `auth`, `history`, `home`, `report`, `reservation`, `user`
 - 훅 (Write/Edit 후 자동 실행)
   - `.claude/hooks/format_dart.dart`: Dart 파일에 `dart format` 적용 (생성 파일 제외, FVM 우선)
   - `.claude/hooks/check_dart_conventions.dart`: `lib/` 파일의 파일명·위치·레이어 import·위젯 규칙, SnackBar 사용, 중복 선언(같은 파일명, 같은 public 타입·provider)을 검사. 수정 전에 없던 위반만 알립니다. 전체 점검은 `dart .claude/hooks/check_dart_conventions.dart --all`
+- 훅 (응답을 끝낼 때 자동 실행, Stop)
+  - `.claude/hooks/check_module_readme.dart`: 이번 턴에 수정한 모듈의 구조가 바뀌었는데 그 모듈의 `README.md`가 바뀌지 않았으면 끝내기 전에 README 갱신 여부를 확인하게 합니다.
+    - 구조 변경: Dart 파일 추가·삭제·이름 변경, feature의 `data_sources/`·`repositories/`·`providers/` 파일 수정 (커밋되지 않은 변경 기준, 생성 파일 제외)
+    - 한 턴에 한 번만 막습니다. README에 영향이 없으면 그대로 끝내도 됩니다.
 - 스킬 `.claude/skills/add-code`: 기능·파일·코드를 추가하기 전에 중복 코드를 찾고 위치·이름을 정하는 체크리스트

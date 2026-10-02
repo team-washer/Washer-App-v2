@@ -96,6 +96,18 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "dart \"$CLAUDE_PROJECT_DIR/.claude/hooks/check_module_readme.dart\"",
+            "timeout": 60,
+            "statusMessage": "모듈 README 갱신 확인"
+          }
+        ]
+      }
     ]
   }
 }

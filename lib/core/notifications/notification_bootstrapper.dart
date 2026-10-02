@@ -4,8 +4,8 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/network/auth_notifier.dart';
 import 'package:washer/core/network/dio_client.dart';
-import 'package:washer/core/notifications/fcm_diagnostic.dart';
 import 'package:washer/core/notifications/fcm_session.dart';
+import 'package:washer/core/notifications/fcm_sync_trigger.dart';
 import 'package:washer/core/notifications/notification_service.dart';
 import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/features/alarm/data/repositories/alarm_repository.dart';
@@ -78,9 +78,6 @@ class _NotificationBootstrapperState
         'FCM sync skipped because there is no active session. trigger=${trigger.name}',
         name: 'NotificationBootstrapper',
       );
-      ref
-          .read(fcmDiagnosticProvider.notifier)
-          .recordSessionUnavailable(trigger);
       return;
     }
 

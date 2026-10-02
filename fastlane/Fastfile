@@ -1,5 +1,3 @@
-require "shellwords"
-
 WORKSPACE = ENV.fetch("GITHUB_WORKSPACE", File.expand_path("..", __dir__))
 
 # What's New 단일 출처. iOS(deliver)는 이 경로를 그대로 읽고,
@@ -256,23 +254,6 @@ platform :ios do
       output_directory: File.join(WORKSPACE, "build", "ios", "ipa"),
       clean: true
     )
-
-    if ENV["VERIFY_APNS_ENTITLEMENT"] == "true"
-      archive_path = Actions.lane_context[SharedValues::XCODEBUILD_ARCHIVE]
-      UI.user_error!("Xcode archive path is unavailable") if archive_path.to_s.empty?
-
-      app_path = File.join(archive_path, "Products", "Applications", "Runner.app")
-      UI.user_error!("Signed Runner.app not found in archive") unless File.directory?(app_path)
-
-      apns_environment = sh(
-        "codesign -d --entitlements :- #{Shellwords.escape(app_path)} 2>/dev/null | " \
-        "plutil -extract aps-environment raw -"
-      ).strip
-      unless apns_environment == "production"
-        UI.user_error!("Signed Runner.app must include aps-environment=production")
-      end
-      UI.success("Signed Runner.app APNs entitlement: production")
-    end
   end
 end
 

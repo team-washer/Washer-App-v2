@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:washer/core/network/dio_client.dart';
-import 'package:washer/core/notifications/fcm_diagnostic.dart';
+import 'package:washer/core/notifications/fcm_sync_trigger.dart';
 import 'package:washer/core/notifications/notification_service.dart';
 import 'package:washer/features/alarm/data/data_sources/alarm_data_source.dart';
 import 'package:washer/features/alarm/data/models/response/alarm_list_response.dart';
@@ -82,7 +82,7 @@ class _FakeNotificationService implements NotificationService {
   Future<void> initialize() async {}
 
   @override
-  Future<String?> ensureFcmToken({int? diagnosticCycleId}) async {
+  Future<String?> ensureFcmToken() async {
     ensureCount++;
     if (_tokenResponses.isNotEmpty) {
       return Future<String?>.sync(_tokenResponses.removeAt(0));
@@ -101,54 +101,6 @@ class _FakeNotificationService implements NotificationService {
 
   @override
   void dispose() {}
-}
-
-class _FakeFcmDiagnostics implements FcmDiagnosticReporter {
-  var cycleId = 0;
-  FcmSyncTrigger? lastTrigger;
-  final events = <FcmDiagnosticEvent>[];
-  var terminalFailureCount = 0;
-  var registrationEnabled = false;
-  var registrationBlocked = false;
-
-  @override
-  int beginSync(
-    FcmSyncTrigger trigger, {
-    required bool registrationEnabled,
-    required bool registrationBlocked,
-  }) {
-    cycleId++;
-    lastTrigger = trigger;
-    this.registrationEnabled = registrationEnabled;
-    this.registrationBlocked = registrationBlocked;
-    events.clear();
-    return cycleId;
-  }
-
-  @override
-  void record(int cycleId, FcmDiagnosticEvent event) {
-    if (cycleId == this.cycleId) events.add(event);
-  }
-
-  @override
-  void recordSessionUnavailable(FcmSyncTrigger trigger) {
-    lastTrigger = trigger;
-  }
-
-  @override
-  void reportTerminalFailure(int cycleId, {required String message}) {
-    if (cycleId == this.cycleId) terminalFailureCount++;
-  }
-
-  @override
-  void updateRegistrationState({
-    required bool enabled,
-    required bool blocked,
-    String? message,
-  }) {
-    registrationEnabled = enabled;
-    registrationBlocked = blocked;
-  }
 }
 
 Future<void> _flushEventQueue() async {
@@ -222,11 +174,9 @@ void main() {
       'app start, resume, and manual sync each force a server post',
       () async {
         final dataSource = _FakeAlarmDataSource();
-        final diagnostics = _FakeFcmDiagnostics();
         final repository = AlarmRepository(
           dataSource,
           _FakeNotificationService(token: 'explicit-sync-token'),
-          diagnostics: diagnostics,
         )..enableFcmRegistrationForExistingSession();
 
         await repository.registerCurrentFcmToken(
@@ -244,7 +194,6 @@ void main() {
           'explicit-sync-token',
           'explicit-sync-token',
         ]);
-        expect(diagnostics.lastTrigger, FcmSyncTrigger.manual);
       },
     );
 
@@ -424,31 +373,23 @@ void main() {
       ]);
     });
 
-    test('records server 4xx and 5xx status and errorCode', () async {
-      for (final statusCode in [400, 500]) {
+    test('retries 5xx responses but does not retry 4xx responses', () async {
+      for (final entry in {400: 1, 500: 2}.entries) {
         final dataSource = _FakeAlarmDataSource()
           ..registrationFailuresRemaining = 1
-          ..registrationFailureStatusCode = statusCode
-          ..registrationErrorCode = 'FCM_$statusCode';
-        final diagnostics = _FakeFcmDiagnostics();
+          ..registrationFailureStatusCode = entry.key
+          ..registrationErrorCode = 'FCM_${entry.key}';
         final repository = AlarmRepository(
           dataSource,
           _FakeNotificationService(),
-          maxRegistrationRetries: 0,
-          diagnostics: diagnostics,
+          registrationRetryDelay: Duration.zero,
+          maxRegistrationRetries: 1,
         )..enableFcmRegistration();
 
-        await repository.registerFcmToken(
-          'server-error-token',
-          trigger: FcmSyncTrigger.tokenRefresh,
-        );
+        await repository.registerFcmToken('server-error-token');
+        await _flushEventQueue();
 
-        final failure = diagnostics.events.lastWhere(
-          (event) => event.type == FcmDiagnosticEventType.postFailed,
-        );
-        expect(failure.statusCode, statusCode);
-        expect(failure.errorCode, 'FCM_$statusCode');
-        expect(diagnostics.terminalFailureCount, 1);
+        expect(dataSource.registeredTokens, hasLength(entry.value));
       }
     });
 
@@ -578,17 +519,15 @@ void main() {
       },
     );
 
-    test('로그아웃 중 늦게 실패한 POST는 재시도하거나 종료 실패로 보고하지 않는다', () async {
+    test('로그아웃 중 늦게 실패한 POST는 재시도하지 않는다', () async {
       final request = Completer<void>();
       final dataSource = _FakeAlarmDataSource()
         ..registrationCompleter = request
         ..registrationFailuresRemaining = 1;
-      final diagnostics = _FakeFcmDiagnostics();
       final repository = AlarmRepository(
         dataSource,
         _FakeNotificationService(),
         registrationRetryDelay: Duration.zero,
-        diagnostics: diagnostics,
       )..enableFcmRegistration();
 
       final registration = repository.registerFcmToken('logout-token');
@@ -600,7 +539,6 @@ void main() {
 
       expect(dataSource.registeredTokens, ['logout-token']);
       expect(dataSource.deleteCount, 1);
-      expect(diagnostics.terminalFailureCount, 0);
     });
 
     test('로그아웃이 시작되면 진행 중 등록 뒤에 삭제하고 재등록을 막는다', () async {

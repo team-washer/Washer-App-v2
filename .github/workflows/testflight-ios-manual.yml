@@ -1,15 +1,12 @@
 name: Manual - iOS TestFlight
 
 on:
-  push:
-    branches:
-      - 'fix/#251-ios-laundry-push-notification'
   workflow_dispatch:
     inputs:
       changelog:
         description: TestFlight test notes
         required: false
-        default: "iOS laundry completion push notification test"
+        default: "iOS TestFlight test build"
 
 permissions:
   contents: read
@@ -127,20 +124,12 @@ jobs:
             echo "::error::Failed to extract UUID from provisioning profile."
             exit 1
           fi
-
-          APNS_ENVIRONMENT=$(security cms -D -i "$PROFILE_PATH" | \
-            plutil -extract Entitlements.aps-environment raw - 2>/dev/null || true)
-          if [ "$APNS_ENVIRONMENT" != "production" ]; then
-            echo "::error::Provisioning profile must include aps-environment=production."
-            exit 1
-          fi
-          echo "APNs provisioning entitlement: production"
           echo "IOS_PROVISIONING_PROFILE_UUID=$PROFILE_UUID" >> "$GITHUB_ENV"
 
       - name: Resolve iOS version metadata
         run: |
           VERSION_LINE="$(grep '^version:' pubspec.yaml | head -n 1 | awk '{print $2}')"
-          VERSION_NAME="1.2.1"
+          VERSION_NAME="${VERSION_LINE%%+*}"
           BASE_BUILD_NUMBER="${VERSION_LINE#*+}"
 
           if [ -z "$VERSION_NAME" ] || [ -z "$BASE_BUILD_NUMBER" ] || \
@@ -178,7 +167,6 @@ jobs:
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           TESTFLIGHT_CHANGELOG: ${{ inputs.changelog }}
-          VERIFY_APNS_ENTITLEMENT: "true"
         run: bundle exec fastlane ios upload_testflight
 
       - name: Clean up signing files

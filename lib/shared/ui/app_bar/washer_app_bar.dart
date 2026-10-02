@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:washer/core/network/auth_notifier.dart';
-import 'package:washer/core/notifications/fcm_diagnostic_dialog.dart';
 import 'package:washer/core/router/route_paths.dart';
 import 'package:washer/shared/theme/washer_color.dart';
 import 'package:washer/shared/theme/washer_icon.dart';
@@ -43,15 +42,9 @@ class WasherAppBar extends ConsumerWidget implements PreferredSizeWidget {
             return Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  // TODO(#251): Remove the TestFlight FCM diagnostic entry
-                  // point after iOS token registration is verified.
-                  onLongPress: () => showFcmDiagnosticDialog(context, ref),
-                  child: const WasherIcon(
-                    type: WasherIconType.logo,
-                    size: 40,
-                  ),
+                const WasherIcon(
+                  type: WasherIconType.logo,
+                  size: 40,
                 ),
                 Flexible(
                   child: Align(

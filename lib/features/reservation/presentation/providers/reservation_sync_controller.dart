@@ -15,7 +15,14 @@ final reservationSyncControllerProvider = Provider<ReservationSyncController>((
 ) {
   final controller = ReservationSyncController(ref);
   ref.listen(sessionGenerationProvider, (_, _) => controller.resetSession());
+  ref.listen(activeReservationProvider, (_, next) {
+    next.whenData((_) => controller.restorePollingFromCurrentState());
+  });
+  ref.listen(myUserProvider, (_, next) {
+    next.whenData((_) => controller.restorePollingFromCurrentState());
+  });
   ref.onDispose(controller.dispose);
+  controller.restorePollingFromCurrentState();
   return controller;
 });
 
@@ -56,6 +63,32 @@ class ReservationSyncController {
   int _pollsSinceRoomSync = 0;
 
   bool get isPolling => _pollingTimer != null;
+
+  /// 서버 재조회로 발견한 내 활성 예약의 polling을 복구한다.
+  ///
+  /// 현재 사용자와 소유자가 일치하는 예약만 추적하며, 이미 polling 중이면 기존
+  /// 타이머를 유지한다. 필요한 상태가 아직 로드되지 않았거나 내 예약이 없으면
+  /// 시작하지 않는다.
+  bool restorePollingFromCurrentState() {
+    if (isPolling) {
+      return false;
+    }
+
+    final reservations = _ref.read(activeReservationProvider).value;
+    final userId = _currentUserId();
+    if (reservations == null || userId == null) {
+      return false;
+    }
+
+    for (final reservation in reservations) {
+      if (reservation.userId != userId) {
+        continue;
+      }
+      startPolling(reservationId: reservation.id, userId: userId);
+      return true;
+    }
+    return false;
+  }
 
   /// polling을 (재)시작한다. 이미 돌고 있으면 정지 후 실패 카운터를 초기화해 다시 시작한다.
   ///

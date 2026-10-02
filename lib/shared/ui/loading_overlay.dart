@@ -34,11 +34,11 @@ Future<T> runWithLoadingOverlay<T>(
   try {
     return await action();
   } finally {
-    // 작업 도중 화면 이탈 등으로 오버레이가 해제되면 remove가 StateError를
-    // 던지므로, 살아 있을 때만 제거합니다.
-    if (overlay.mounted) {
-      entry.remove();
-    }
+    // remove는 overlay가 먼저 해제됐어도 entry의 연결을 안전하게 끊는다.
+    // dispose는 반드시 remove 뒤에 호출해야 한다.
+    entry
+      ..remove()
+      ..dispose();
   }
 }
 

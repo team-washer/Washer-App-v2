@@ -229,6 +229,70 @@ class _SlowReadStorage extends _SlowWriteStorage {
   }
 }
 
+/// refresh token 쓰기가 실패하는 저장소. access token만 저장된 부분 저장 상태를 만든다.
+class _FailingRefreshWriteStorage extends _SlowWriteStorage {
+  _FailingRefreshWriteStorage(super.initial) {
+    finishWrites();
+  }
+
+  @override
+  Future<void> write({
+    required String key,
+    required String? value,
+    AppleOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    AppleOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    if (key == 'refresh_token') {
+      throw Exception('저장 실패');
+    }
+    await super.write(key: key, value: value);
+  }
+}
+
+/// 삭제를 테스트가 [finishDeletes]를 부를 때 반영하는 저장소. 쓰기는 바로 반영한다.
+/// 갱신 실패 정리의 삭제가 늦게 끝나는 상황을 흉내 낸다.
+class _SlowDeleteStorage extends _SlowWriteStorage {
+  _SlowDeleteStorage(super.initial) {
+    finishWrites();
+  }
+
+  final List<Completer<void>> _deletes = [];
+  final Completer<void> _firstDeleteStarted = Completer<void>();
+  bool _deletesReleased = false;
+
+  Future<void> get firstDeleteStarted => _firstDeleteStarted.future;
+
+  void finishDeletes() {
+    _deletesReleased = true;
+    for (final delete in _deletes) {
+      if (!delete.isCompleted) delete.complete();
+    }
+  }
+
+  @override
+  Future<void> delete({
+    required String key,
+    AppleOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    AppleOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    if (!_deletesReleased) {
+      final done = Completer<void>();
+      _deletes.add(done);
+      if (!_firstDeleteStarted.isCompleted) _firstDeleteStarted.complete();
+      await done.future;
+    }
+    values.remove(key);
+  }
+}
+
 class _Harness {
   _Harness({FlutterSecureStorage? storage})
     : storage = storage ?? const FlutterSecureStorage() {
@@ -582,6 +646,58 @@ void main() {
 
       expect(await pending, isA<Response<dynamic>>());
       expect(h.api.authorizations, ['Bearer $_newAccess']);
+    });
+
+    test('토큰 저장이 실패하면 새 세션을 메모리에 남기지 않고 일부 저장된 토큰도 지운다', () async {
+      final storage = _FailingRefreshWriteStorage({});
+      final h = _Harness(storage: storage);
+
+      await expectLater(
+        h.interceptor.startSession(
+          accessToken: _newAccess,
+          refreshToken: _newRefresh,
+        ),
+        throwsException,
+      );
+      final result = await h.request();
+
+      expect(storage.values, isEmpty, reason: '서로 다른 세션의 토큰 조합이 남으면 안 된다');
+      expect(result, isA<DioException>());
+      expect(
+        h.api.authorizations,
+        isNot(contains('Bearer $_newAccess')),
+        reason: '실패한 로그인의 토큰으로 요청하지 않는다',
+      );
+    });
+
+    test('갱신 실패 정리 중 새 로그인이 일어나도 새 세션의 토큰을 지우거나 로그아웃시키지 않는다', () async {
+      final storage = _SlowDeleteStorage({
+        'access_token': 'old-access',
+        'refresh_token': 'old-refresh',
+      });
+      final h = _Harness(storage: storage);
+
+      final pending = h.request();
+      await h.refresh.started(0);
+      h.refresh.fail(0);
+      // 이전 세션의 갱신 실패 정리가 토큰 삭제를 시작했다.
+      await storage.firstDeleteStarted;
+
+      final login = h.interceptor.startSession(
+        accessToken: _newAccess,
+        refreshToken: _newRefresh,
+      );
+      await _flush();
+      storage.finishDeletes();
+      await login;
+      await pending;
+
+      expect(storage.values, {
+        'access_token': _newAccess,
+        'refresh_token': _newRefresh,
+      });
+      expect(h.logoutCalls, 0, reason: '새 세션을 로그아웃시키면 안 된다');
+      expect(await h.request(), isA<Response<dynamic>>());
     });
   });
 }

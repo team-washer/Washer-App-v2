@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:washer/features/history/presentation/widgets/history_dialog.dart';
 import 'package:washer/shared/theme/washer_color.dart';
 import 'package:washer/shared/theme/washer_icon.dart';
+import 'package:washer/shared/ui/buttons/washer_icon_button.dart';
 
 /// 기기 사용 이력 다이얼로그를 여는 아이콘 버튼.
 class MachineHistoryIconButton extends StatelessWidget {

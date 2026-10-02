@@ -104,6 +104,21 @@ void main() {
       );
     });
 
+    test('release 빌드는 host가 없는 HTTPS 주소를 거부한다', () {
+      for (final value in ['https:api.example.test', 'https:///api/v2/']) {
+        expect(
+          () => AppEnvironment.ensureHttpsPolicy(
+            'API_BASE_URL',
+            value,
+            AppFlavor.development,
+            isReleaseMode: true,
+          ),
+          throwsStateError,
+          reason: value,
+        );
+      }
+    });
+
     test('release 빌드의 HTTPS URL은 허용한다', () {
       expect(
         () => AppEnvironment.ensureHttpsPolicy(

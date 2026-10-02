@@ -43,7 +43,7 @@ MachineCardAvailableFooter (reservation) → showDialog(ReportBrokenDialog(onRep
 
 ## 의존성
 
-- 사용: `core/network`, `shared/ui/dialog`(`DialogAction`, `runDialogAction`, `WasherDialog`), `shared/ui/error_toast`, `shared/theme`
+- 사용: `core/network`, `shared/ui/dialog`(`DialogAction`, `runDialogAction`, `WasherDialog`), `shared/ui/washer_toast`, `shared/theme`
 - 이 모듈을 쓰는 곳: `reservation`(`machine_card_available_footer.dart`)
 
 ## 주의사항

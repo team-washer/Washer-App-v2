@@ -38,7 +38,7 @@ SplashScreen._bootstrap
   → userRemoteDataSource.getMyUser() → myUserProvider.setUser(user)
   (조회 실패·로그인 필요 시 myUserProvider.clear())
 
-HomeBody
+_HomeBody (home_screen.dart)
   → 앱 resume 시 ref.invalidate(myUserProvider)
   → 당겨서 새로고침 시 myUserProvider.notifier.refresh()
 ```

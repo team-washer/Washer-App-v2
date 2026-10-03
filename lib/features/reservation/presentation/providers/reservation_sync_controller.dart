@@ -51,6 +51,8 @@ class ReservationSyncController {
   final Ref _ref;
   Timer? _pollingTimer;
   int _consecutiveFailures = 0;
+  int _pollingRestoreSuspensions = 0;
+  bool _restartPollingWhenRestoreResumes = false;
 
   /// 호실 목록에서 "내 예약"을 가리키는 예약 ID.
   /// 서버가 내 예약이 없다고(null) 응답할 때 목록에서 무엇을 지울지 알기 위해 보관한다.
@@ -70,7 +72,7 @@ class ReservationSyncController {
   /// 타이머를 유지한다. 필요한 상태가 아직 로드되지 않았거나 내 예약이 없으면
   /// 시작하지 않는다.
   bool restorePollingFromCurrentState() {
-    if (isPolling) {
+    if (_pollingRestoreSuspensions > 0 || isPolling) {
       return false;
     }
 
@@ -88,6 +90,30 @@ class ReservationSyncController {
       return true;
     }
     return false;
+  }
+
+  /// 예약 취소처럼 의도적으로 polling을 멈춘 동안 자동 복구를 보류한다.
+  void suspendPollingRestore() {
+    _pollingRestoreSuspensions += 1;
+  }
+
+  /// 보류가 모두 끝난 뒤, 취소 실패 등 필요한 경우에만 polling을 다시 시작한다.
+  void resumePollingRestore({bool restartPolling = false}) {
+    if (_pollingRestoreSuspensions == 0) {
+      return;
+    }
+
+    _restartPollingWhenRestoreResumes |= restartPolling;
+    _pollingRestoreSuspensions -= 1;
+    if (_pollingRestoreSuspensions > 0) {
+      return;
+    }
+
+    final shouldRestart = _restartPollingWhenRestoreResumes;
+    _restartPollingWhenRestoreResumes = false;
+    if (shouldRestart && !isPolling) {
+      startPolling();
+    }
   }
 
   /// polling을 (재)시작한다. 이미 돌고 있으면 정지 후 실패 카운터를 초기화해 다시 시작한다.
@@ -212,6 +238,8 @@ class ReservationSyncController {
     _pollsSinceRoomSync = 0;
     _trackedReservationId = null;
     _myUserId = null;
+    _pollingRestoreSuspensions = 0;
+    _restartPollingWhenRestoreResumes = false;
   }
 
   /// polling 타이머를 정지한다.

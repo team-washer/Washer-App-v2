@@ -18,7 +18,6 @@ abstract class ActiveReservationModel with _$ActiveReservationModel {
     required int machineId,
     required String machineName,
     String? reservedAt,
-    String? confirmedAt,
     String? startTime,
     String? expectedCompletionTime,
     String? actualCompletionTime,

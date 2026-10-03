@@ -1,71 +1,46 @@
-import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:washer/core/utils/app_logger.dart';
+import 'package:washer/core/network/error.dart';
 import 'package:washer/features/report/data/data_sources/remote/report_remote_data_source.dart';
-import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
 
+/// 기기 고장 신고 요청과 그 진행 상태를 관리하는 Notifier.
+///
+/// 다른 feature(reservation)를 알지 않는다. 신고 후 화면 갱신이 필요하면
+/// 호출한 쪽이 `ReportBrokenDialog.onReported` 콜백으로 처리한다.
 class ReportNotifier extends AsyncNotifier<void> {
   @override
   Future<void> build() async {}
 
+  /// 고장 신고를 접수하고 성공 여부를 반환한다.
   Future<bool> createMalfunctionReport({
     required int machineId,
     required String description,
   }) async {
     state = const AsyncLoading();
 
-    try {
-      await ref
+    final result = await guardApiCall(
+      () => ref
           .read(reportRemoteDataSourceProvider)
           .createMalfunctionReport(
             machineId: machineId,
             description: description,
-          );
+          ),
+      logName: 'ReportNotifier',
+    );
 
-      try {
-        await refreshReservationStatusProviders(ref);
-      } catch (error, stackTrace) {
-        AppLogger.error(
-          '고장 신고 후 상태 새로고침 중 오류가 발생했습니다.',
-          name: 'ReportNotifier',
-          error: error,
-          stackTrace: stackTrace,
-        );
-      }
-
-      state = const AsyncData(null);
-      return true;
-    } catch (error, stackTrace) {
-      AppLogger.error(
-        '고장 신고 중 오류가 발생했습니다.',
-        name: 'ReportNotifier',
-        error: error,
-        stackTrace: stackTrace,
-      );
-      state = AsyncError(error, stackTrace);
-      return false;
+    switch (result) {
+      case ResultSuccess():
+        state = const AsyncData(null);
+        return true;
+      case ResultFailure(:final error):
+        state = AsyncError(error, StackTrace.current);
+        return false;
     }
   }
 
+  /// 신고 상태를 초기값으로 되돌린다.
   void reset() {
     state = const AsyncData(null);
   }
-}
-
-String reportErrorMessage(Object? error) {
-  const fallback = '고장 신고에 실패했습니다. 다시 시도해 주세요.';
-  if (error is! DioException || error.response?.data == null) {
-    return fallback;
-  }
-
-  final response = error.response!.data;
-  if (response is Map<String, dynamic> &&
-      response['message'] is String &&
-      (response['message'] as String).isNotEmpty) {
-    return response['message'] as String;
-  }
-
-  return fallback;
 }
 
 final reportProvider = AsyncNotifierProvider<ReportNotifier, void>(

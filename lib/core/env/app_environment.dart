@@ -2,8 +2,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+/// 실행 환경(개발/운영).
 enum AppFlavor { development, production }
 
+/// `.env.*` 파일과 빌드 옵션(APP_ENV)에서 읽은 앱 환경 설정.
 class AppEnvironment {
   AppEnvironment._({
     required this.flavor,
@@ -13,6 +15,16 @@ class AppEnvironment {
     required this.oauthClientId,
     required this.allowBadCertificates,
   });
+
+  /// 테스트에서 환경 파일 없이 값을 지정해 만든다.
+  @visibleForTesting
+  AppEnvironment.test({
+    this.apiBaseUrl = 'https://example.test/api/v2/',
+    this.refreshTokenEndpoint = 'auth/refresh',
+  }) : flavor = AppFlavor.development,
+       oauthBaseUrl = '',
+       oauthClientId = '',
+       allowBadCertificates = false;
 
   static late final AppEnvironment instance;
 
@@ -25,6 +37,7 @@ class AppEnvironment {
 
   bool get isDevelopment => flavor == AppFlavor.development;
 
+  /// 환경 파일을 로드해 [instance]를 초기화한다. 앱 시작 시 한 번 호출해야 한다.
   static Future<void> initialize() async {
     final flavor = _resolveFlavor();
 
@@ -56,19 +69,34 @@ class AppEnvironment {
   }
 
   static bool _resolveAllowBadCertificates(AppFlavor flavor) {
-    if (flavor == AppFlavor.production) {
+    return resolveAllowBadCertificates(
+      flavor: flavor,
+      rawValue: dotenv.env['ALLOW_BAD_CERTIFICATES'],
+    );
+  }
+
+  /// 인증서 검증 우회 허용 여부. release 빌드는 flavor와 관계없이 항상 거부한다(#321).
+  ///
+  /// debug·profile의 development flavor에서 `ALLOW_BAD_CERTIFICATES`가 명시적으로
+  /// 켜진 경우에만 로컬·자체 서명 인증서를 허용한다.
+  @visibleForTesting
+  static bool resolveAllowBadCertificates({
+    required AppFlavor flavor,
+    required String? rawValue,
+    bool isReleaseMode = kReleaseMode,
+  }) {
+    if (isReleaseMode || flavor == AppFlavor.production) {
       return false;
     }
 
-    final rawValue =
-        dotenv.env['ALLOW_BAD_CERTIFICATES']?.trim().toLowerCase() ?? '';
+    final value = rawValue?.trim().toLowerCase() ?? '';
 
-    return rawValue == 'true' || rawValue == '1' || rawValue == 'yes';
+    return value == 'true' || value == '1' || value == 'yes';
   }
 
   static String _resolveUrl(String key, AppFlavor flavor) {
     final value = dotenv.get(key);
-    _ensureProductionHttps(key, value, flavor);
+    ensureHttpsPolicy(key, value, flavor);
     return value;
   }
 
@@ -78,22 +106,28 @@ class AppEnvironment {
       return value;
     }
 
-    _ensureProductionHttps(key, value, flavor);
+    ensureHttpsPolicy(key, value, flavor);
     return value;
   }
 
-  static void _ensureProductionHttps(
+  /// production flavor와 release 빌드에서는 host가 있는 HTTPS URL만 허용한다(#321).
+  @visibleForTesting
+  static void ensureHttpsPolicy(
     String key,
     String value,
-    AppFlavor flavor,
-  ) {
-    if (flavor != AppFlavor.production) {
+    AppFlavor flavor, {
+    bool isReleaseMode = kReleaseMode,
+  }) {
+    if (!isReleaseMode && flavor != AppFlavor.production) {
       return;
     }
 
     final uri = Uri.tryParse(value);
-    if (uri == null || uri.scheme.toLowerCase() != 'https') {
-      throw StateError('$key must use HTTPS in production.');
+    if (uri == null ||
+        uri.scheme.toLowerCase() != 'https' ||
+        !uri.hasAuthority ||
+        uri.host.isEmpty) {
+      throw StateError('$key must use HTTPS in production or release builds.');
     }
   }
 }
@@ -109,6 +143,7 @@ extension on AppFlavor {
   }
 }
 
+/// [AppEnvironment.instance]를 노출하는 provider.
 final appEnvironmentProvider = Provider<AppEnvironment>((_) {
   return AppEnvironment.instance;
 });

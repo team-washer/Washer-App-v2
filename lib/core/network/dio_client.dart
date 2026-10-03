@@ -6,8 +6,9 @@ import 'package:washer/core/env/app_environment.dart';
 
 import 'auth_interceptor.dart';
 import 'auth_notifier.dart';
-import 'insecure_http_client_adapter.dart';
+import 'http_client_adapter_config.dart';
 
+/// 앱 공용 [Dio] 인스턴스와 인증 인터셉터를 구성하는 클라이언트.
 class DioClient {
   static const Duration _connectTimeout = Duration(seconds: 30);
   static const Duration _receiveTimeout = Duration(seconds: 30);
@@ -49,22 +50,34 @@ class DioClient {
           responseHeader: true,
           responseBody: true,
           error: true,
+          logPrint: (message) => debugPrint(sanitizeDioLog(message)),
         ),
       );
     }
   }
 
+  /// 인증/로깅 인터셉터가 적용된 [Dio].
   Dio get dio => _dio;
 
-  void clearInMemoryCache() => _authInterceptor.clearInMemoryCache();
+  /// 로그인으로 새 세션을 시작한다. 토큰 저장소와 인증 캐시를 함께 갱신한다.
+  Future<void> startSession({
+    required String accessToken,
+    required String refreshToken,
+  }) => _authInterceptor.startSession(
+    accessToken: accessToken,
+    refreshToken: refreshToken,
+  );
 
+  /// 세션을 끝낸다. 토큰 저장소와 인증 캐시를 함께 비운다.
   Future<void> clearAuthCache() => _authInterceptor.clearCache();
 }
 
+/// 토큰 등 민감 정보를 저장하는 secure storage.
 final secureStorageProvider = Provider<FlutterSecureStorage>(
   (_) => const FlutterSecureStorage(),
 );
 
+/// [DioClient] 싱글톤 provider.
 final dioClientProvider = Provider<DioClient>(
   (ref) => DioClient(
     ref.watch(secureStorageProvider),
@@ -72,6 +85,32 @@ final dioClientProvider = Provider<DioClient>(
   ),
 );
 
+/// 리포지토리/데이터소스에서 사용하는 [Dio] provider.
 final dioProvider = Provider<Dio>((ref) {
   return ref.watch(dioClientProvider).dio;
 });
+
+/// Dio 디버그 로그에 인증/FCM 토큰 원문이 남지 않도록 민감 값을 가린다.
+@visibleForTesting
+String sanitizeDioLog(Object message) {
+  var sanitized = message.toString();
+  final authorizationPattern = RegExp(
+    r'''((?:^|\s)["']?authorization["']?\s*:\s*["']?(?:Bearer\s+)?)([^"',\s}\]]+)''',
+    caseSensitive: false,
+    multiLine: true,
+  );
+  final tokenPattern = RegExp(
+    r'''((?:^|[{\s,])["']?(?:token|accessToken|refreshToken|access_token|refresh_token)["']?\s*:\s*["']?)([^"',\s}\]]+)''',
+    caseSensitive: false,
+    multiLine: true,
+  );
+
+  sanitized = sanitized.replaceAllMapped(
+    authorizationPattern,
+    (match) => '${match.group(1)}[REDACTED]',
+  );
+  return sanitized.replaceAllMapped(
+    tokenPattern,
+    (match) => '${match.group(1)}[REDACTED]',
+  );
+}

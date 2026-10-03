@@ -1,4 +1,7 @@
-﻿class MyUserModel {
+﻿/// 로그인한 사용자 정보 (id, 이름, 호실).
+///
+/// 서버 응답의 키 이름이 일정하지 않아 여러 후보 키에서 값을 찾아 채운다.
+class MyUserModel {
   const MyUserModel({
     this.id,
     this.name,
@@ -32,6 +35,7 @@
     );
   }
 
+  /// int/num/String 어느 형태로 와도 int로 변환하고, 불가능하면 null을 반환한다.
   static int? _toInt(dynamic value) {
     if (value is int) {
       return value;
@@ -48,6 +52,7 @@
     return null;
   }
 
+  /// 후보 값 중 공백 제거 후 비어 있지 않은 첫 문자열을 반환한다.
   static String? _firstNonEmptyString(List<dynamic> values) {
     for (final value in values) {
       if (value == null) {

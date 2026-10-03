@@ -6,7 +6,7 @@ on:
       changelog:
         description: TestFlight test notes
         required: false
-        default: "iOS laundry completion push notification test"
+        default: "iOS TestFlight test build"
 
 permissions:
   contents: read

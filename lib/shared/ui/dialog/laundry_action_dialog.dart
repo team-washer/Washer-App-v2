@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/enums/laundry_action_type.dart';
-import 'package:washer/shared/theme/color.dart';
-import 'package:washer/shared/theme/spacing.dart';
-import 'package:washer/shared/theme/typography.dart';
+import 'package:washer/shared/theme/washer_color.dart';
+import 'package:washer/shared/theme/app_spacing.dart';
+import 'package:washer/shared/theme/washer_typography.dart';
 import 'package:washer/shared/ui/dialog/dialog_action.dart';
-import 'package:washer/shared/ui/dialog/dialog_actions.dart';
+import 'package:washer/shared/ui/dialog/laundry_dialog_actions.dart';
 import 'package:washer/shared/ui/dialog/washer_dialog.dart';
+import 'package:washer/shared/ui/washer_toast.dart';
 
+/// 기기 예약 시작/예약 취소 확인 다이얼로그. 종류는 [actionType]으로 결정한다.
 class LaundryActionDialog extends ConsumerStatefulWidget {
   const LaundryActionDialog({
     super.key,
@@ -33,18 +35,16 @@ class _LaundryActionDialogState extends ConsumerState<LaundryActionDialog> {
       case LaundryActionType.reserve:
         // pop 직후 context가 무효화될 수 있으므로 미리 캡처한다.
         final navigator = Navigator.of(context);
-        final messenger = ScaffoldMessenger.of(context);
+        final rootOverlay = Overlay.of(context, rootOverlay: true);
         navigator.pop();
-        messenger.showSnackBar(
-          const SnackBar(
-            content: Text('예약 후 자동으로 기기 연결 확인이 진행됩니다.'),
-          ),
+        rootOverlay.showToast(
+          WasherToast.info('예약 후 자동으로 기기 연결 확인이 진행됩니다.'),
         );
         break;
       case LaundryActionType.cancelReservation:
         await runDialogAction(
           context,
-          DialogActions.cancelReservation(
+          LaundryDialogActions.cancelReservation(
             reservationId: widget.reservationId,
           ),
         );
@@ -79,6 +79,7 @@ class _LaundryActionDialogState extends ConsumerState<LaundryActionDialog> {
   }
 }
 
+/// 액션 종류별 확인 버튼의 문구/색.
 class _ActionConfig {
   const _ActionConfig({
     required this.confirmText,

@@ -1,0 +1,56 @@
+name: Release
+
+# main 에 push(머지)되면 iOS·Android 스토어 배포를 동시에 실행하고,
+# 둘 다 끝나면 결과를 모아 Discord 로 배포당 메시지(embed 카드) 1개를 보낸다.
+# - 플랫폼별 빌드·배포 내용은 release-ios.yml / release-android.yml 참고
+# - 결과는 각 Fastfile lane 이 남긴 CD_RESULT(JSON)를 쓴다. fastlane 실행 전에 실패하면 결과가 비어
+#   "배포 준비 단계" 실패로 표시된다.
+# - dry run 은 실패하거나 경고(dSYM 업로드 실패 등)가 있을 때만 알린다.
+on:
+  push:
+    branches:
+      - main
+  # 수동 실행(테스트용). dry_run=true 면 양쪽 모두 빌드/서명까지만 하고 스토어 업로드는 건너뛴다.
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "빌드/서명까지만 하고 스토어 업로드는 건너뜀 (테스트용)"
+        type: boolean
+        default: true
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ios:
+    uses: ./.github/workflows/release-ios.yml
+    with:
+      dry_run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+    secrets: inherit
+
+  android:
+    uses: ./.github/workflows/release-android.yml
+    with:
+      dry_run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+    secrets: inherit
+
+  notify:
+    name: Discord 배포 알림
+    needs: [ios, android]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 메시지 형식·직렬화는 scripts/notify_cd.sh · notify_cd.jq 참고 (GitHub 웹훅 봇 같은 embed 카드)
+      - name: Send CD result
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+          IOS_JOB: ${{ needs.ios.result }}
+          IOS_RESULT: ${{ needs.ios.outputs.result }}
+          ANDROID_JOB: ${{ needs.android.result }}
+          ANDROID_RESULT: ${{ needs.android.outputs.result }}
+          ANDROID_CONFIGURED: ${{ needs.android.outputs.configured }}
+        run: bash scripts/notify_cd.sh

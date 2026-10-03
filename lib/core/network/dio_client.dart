@@ -50,6 +50,7 @@ class DioClient {
           responseHeader: true,
           responseBody: true,
           error: true,
+          logPrint: (message) => debugPrint(sanitizeDioLog(message)),
         ),
       );
     }
@@ -88,3 +89,28 @@ final dioClientProvider = Provider<DioClient>(
 final dioProvider = Provider<Dio>((ref) {
   return ref.watch(dioClientProvider).dio;
 });
+
+/// Dio 디버그 로그에 인증/FCM 토큰 원문이 남지 않도록 민감 값을 가린다.
+@visibleForTesting
+String sanitizeDioLog(Object message) {
+  var sanitized = message.toString();
+  final authorizationPattern = RegExp(
+    r'''((?:^|\s)["']?authorization["']?\s*:\s*["']?(?:Bearer\s+)?)([^"',\s}\]]+)''',
+    caseSensitive: false,
+    multiLine: true,
+  );
+  final tokenPattern = RegExp(
+    r'''((?:^|[{\s,])["']?(?:token|accessToken|refreshToken|access_token|refresh_token)["']?\s*:\s*["']?)([^"',\s}\]]+)''',
+    caseSensitive: false,
+    multiLine: true,
+  );
+
+  sanitized = sanitized.replaceAllMapped(
+    authorizationPattern,
+    (match) => '${match.group(1)}[REDACTED]',
+  );
+  return sanitized.replaceAllMapped(
+    tokenPattern,
+    (match) => '${match.group(1)}[REDACTED]',
+  );
+}

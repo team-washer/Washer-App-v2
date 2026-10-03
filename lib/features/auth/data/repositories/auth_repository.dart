@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/network/dio_client.dart';
+import 'package:washer/core/notifications/fcm_sync_trigger.dart';
+import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/features/alarm/data/repositories/alarm_repository.dart';
 import 'package:washer/features/auth/data/data_sources/remote/auth_remote_data_source.dart';
 import 'package:washer/features/auth/data/models/request/login_request.dart';
@@ -33,7 +35,16 @@ class AuthRepository {
       refreshToken: response.refreshToken,
     );
 
-    unawaited(_alarmRepository.registerCurrentFcmToken());
+    _alarmRepository.enableFcmRegistration();
+    AppLogger.info(
+      'FCM sync scheduled after login.',
+      name: 'AuthRepository',
+    );
+    unawaited(
+      _alarmRepository.registerCurrentFcmToken(
+        trigger: FcmSyncTrigger.login,
+      ),
+    );
   }
 
   Future<void> logout() async {

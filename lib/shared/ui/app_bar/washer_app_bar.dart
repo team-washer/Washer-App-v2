@@ -43,7 +43,7 @@ class WasherAppBar extends ConsumerWidget implements PreferredSizeWidget {
             return Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                WasherIcon(
+                const WasherIcon(
                   type: WasherIconType.logo,
                   size: 40,
                 ),

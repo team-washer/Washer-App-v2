@@ -62,18 +62,56 @@ final machineStatusProvider =
 
 /// 서버의 기기 상태를 불러오고 새로고침한다. keepAlive로 화면 이동 시에도 유지된다.
 class MachineStatusNotifier extends AsyncNotifier<MachineStatusResponse> {
+  int _requestSeq = 0;
+  Future<MachineStatusResponse>? _latestRequest;
+
   Future<MachineStatusResponse> _load() async {
     return ref
         .read(reservationStatusRemoteDataSourceProvider)
         .getMachineStatus();
   }
 
+  ({int id, Future<MachineStatusResponse> future}) _startRequest() {
+    final id = ++_requestSeq;
+    final future = _load();
+    _latestRequest = future;
+    return (id: id, future: future);
+  }
+
+  bool _isLatestRequest(int requestId) => requestId == _requestSeq;
+
+  Future<MachineStatusResponse> _waitForLatestRequest() async {
+    while (true) {
+      final requestId = _requestSeq;
+      final request = _latestRequest;
+      if (request == null) {
+        throw StateError('기기 상태 요청이 시작되지 않았습니다.');
+      }
+
+      try {
+        final result = await request;
+        if (_isLatestRequest(requestId)) {
+          return result;
+        }
+      } catch (error, stackTrace) {
+        if (_isLatestRequest(requestId)) {
+          Error.throwWithStackTrace(error, stackTrace);
+        }
+      }
+    }
+  }
+
   @override
   Future<MachineStatusResponse> build() async {
     ref.keepAlive();
+    final request = _startRequest();
+    final MachineStatusResponse machineStatus;
     try {
-      return await _load();
+      machineStatus = await request.future;
     } catch (e, st) {
+      if (!_isLatestRequest(request.id)) {
+        return _waitForLatestRequest();
+      }
       AppLogger.error(
         '기기 상태를 불러오는 중 오류가 발생했습니다.',
         name: 'MachineStatusNotifier',
@@ -83,14 +121,26 @@ class MachineStatusNotifier extends AsyncNotifier<MachineStatusResponse> {
       _reportPollingError(ref, e);
       rethrow;
     }
+
+    if (!_isLatestRequest(request.id)) {
+      return _waitForLatestRequest();
+    }
+    return machineStatus;
   }
 
   Future<void> refresh() async {
+    final request = _startRequest();
     state = const AsyncLoading();
     try {
-      final machineStatus = await _load();
+      final machineStatus = await request.future;
+      if (!_isLatestRequest(request.id)) {
+        return;
+      }
       state = AsyncData(machineStatus);
     } catch (e, st) {
+      if (!_isLatestRequest(request.id)) {
+        return;
+      }
       AppLogger.error(
         '기기 상태를 새로고침하는 중 오류가 발생했습니다.',
         name: 'MachineStatusNotifier',

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:washer/core/network/error.dart';
-import 'package:washer/shared/theme/washer_icon.dart';
+import 'package:washer/shared/ui/buttons/washer_icon_button.dart';
 import 'package:washer/shared/ui/washer_toast.dart';
 
 Future<OverlayState> _pumpHost(WidgetTester tester) async {

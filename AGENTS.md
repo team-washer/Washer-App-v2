@@ -41,7 +41,7 @@ lib/
     presentation/
       providers/   # Notifier / AsyncNotifier — 비즈니스 로직
       screens/     # 화면 (pages 아님)
-      widgets/     # 한 파일에 위젯 하나
+      widgets/     # 사용 범위 기준 (아래 "위젯 위치" 참고)
   shared/      # theme, 공용 UI(app_bar, buttons, dialog, indicators, layout)
 test/          # lib 구조를 미러링 (core/, features/, shared/, architecture/, support/)
 ```
@@ -70,7 +70,13 @@ feature: `alarm`, `auth`, `history`, `home`, `report`, `reservation`, `user`
 - **feature 간 import는 순환 금지** — `test/architecture/feature_dependency_test.dart`가 검사합니다.
   - `report`는 다른 feature를 import하지 않는 leaf입니다.
   - `shared`는 `report`를 import하지 않습니다.
-- 한 파일에 위젯 하나, 파일명은 클래스명의 snake_case. 위젯은 200줄 이하로 유지합니다.
+- 위젯 위치는 사용 범위로 정합니다.
+  1. 다른 feature에서도 쓰는, 특정 feature에 묶이지 않는 UI → `lib/shared`(로직·유틸은 `lib/core`)
+  2. 같은 feature 안에서 여러 위젯·화면이 쓰는 위젯 → feature 안의 별도 파일
+  3. 한 위젯에서만 쓰는 위젯 → 그 위젯 파일의 private 위젯(`_Name`)
+  - 예외: 합쳐서 200줄을 넘으면 별도 파일로 둡니다. Screen(`presentation/screens/`)·`MainShell`·`SplashScreen`은 라우트 진입점이라 대상이 아닙니다. 테스트에서 직접 쓰는 위젯과 `shared`의 공용 디자인 컴포넌트는 public으로 둡니다.
+  - 특정 feature의 provider에 묶인 위젯(예: `HistoryDialog`, `ReportBrokenDialog`)은 다른 feature가 써도 그 feature에 두고 import합니다(순환 금지).
+- 파일명은 public 위젯 클래스명의 snake_case입니다. 위젯은 200줄 이하로 유지합니다.
 
 ## 오류 처리
 
@@ -138,7 +144,7 @@ feature: `alarm`, `auth`, `history`, `home`, `report`, `reservation`, `user`
   - `git diff --no-index`는 차단 (Claude Code는 읽기 전용 git 명령을 기본 허용하므로, 이 명령으로 git 밖 파일을 읽는 경로를 막음)
 - 훅 (Write/Edit 후 자동 실행)
   - `.claude/hooks/format_dart.dart`: Dart 파일에 `dart format` 적용 (생성 파일 제외, FVM 우선)
-  - `.claude/hooks/check_dart_conventions.dart`: `lib/` 파일의 파일명·위치·레이어 import·위젯 규칙, SnackBar 사용, 중복 선언(같은 파일명, 같은 public 타입·provider)을 검사. 수정 전에 없던 위반만 알립니다. 전체 점검은 `dart .claude/hooks/check_dart_conventions.dart --all`
+  - `.claude/hooks/check_dart_conventions.dart`: `lib/` 파일의 파일명·위치·레이어 import, SnackBar 사용, 중복 선언(같은 파일명, 같은 public 타입·provider)을 검사하고, 위젯 위치(한 위젯에서만 쓰는 public 위젯, 쓰이지 않는 위젯)를 안내합니다. 위젯 위치 안내는 차단하지 않습니다. 수정 전에 없던 위반만 알립니다. 전체 점검은 `dart .claude/hooks/check_dart_conventions.dart --all`
 - 훅 (응답을 끝낼 때 자동 실행, Stop)
   - `.claude/hooks/check_module_readme.dart`: 이번 턴에 수정한 모듈의 구조가 바뀌었는데 그 모듈의 `README.md`가 바뀌지 않았으면 끝내기 전에 README 갱신 여부를 확인하게 합니다.
     - 구조 변경: Dart 파일 추가·삭제·이름 변경, feature의 `data_sources/`·`repositories/`·`providers/` 파일 수정 (커밋되지 않은 변경 기준, 생성 파일 제외)

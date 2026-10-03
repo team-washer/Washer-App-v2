@@ -4,7 +4,7 @@
 
 ## 기능
 
-- 사용 기록 다이얼로그: 예약 화면의 기기 카드에서 기록 아이콘(`MachineHistoryIconButton`)을 누르면 열립니다.
+- 사용 기록 다이얼로그: 예약 화면의 기기 카드에서 기록 아이콘(`machine_reservation_card.dart`의 `_MachineHistoryIconButton`)을 누르면 열립니다.
 - 조회 범위는 **전날 00:00 ~ 오늘 23:59:59**입니다. 앱을 주로 밤(21:20~새벽)에 쓰기 때문에, 자정이 지나도 전날 기록을 볼 수 있게 했습니다.
 - 페이지가 여러 개면 모든 페이지(`size: 50`)를 순회해 합칩니다.
 
@@ -33,19 +33,19 @@ repository 없이 provider가 data source를 직접 사용합니다. 화면(scre
 ## 동작 흐름
 
 ```
-MachineHistoryIconButton (reservation) → showDialog(HistoryDialog)
+_MachineHistoryIconButton (reservation) → showDialog(HistoryDialog)
   → initState: HistoryNotifier.fetchRecentHistory(machineId)
       → guardApiCall(getMachineHistory) 를 last == true 까지 반복
       → 성공: HistoryState.historyList
       → 실패: historyErrorProvider = AppException, errorMessage 설정
-  → HistoryDialog가 ref.listen(historyErrorProvider) → showErrorToast
+  → HistoryDialog가 ref.listen(historyErrorProvider) → WasherToast.error
   → 목록: HistoryCard (상태 배지, 예약 호실, 예약 시간, 완료/취소/예정 시간)
 ```
 
 ## 의존성
 
-- 사용: `core/network`, `core/utils`(`DateTimeFormatter`), `shared/theme`, `shared/ui`(`WasherDialog`, `StatusBadge`, `error_toast`)
-- 이 모듈을 쓰는 곳: `reservation`(`machine_history_icon_button.dart`)
+- 사용: `core/network`, `core/utils`(`DateTimeFormatter`), `shared/theme`, `shared/ui`(`WasherDialog`, `StatusBadge`, `washer_toast`)
+- 이 모듈을 쓰는 곳: `reservation`(`machine_reservation_card.dart`)
 
 ## 주의사항
 

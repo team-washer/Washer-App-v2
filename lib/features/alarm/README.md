@@ -24,7 +24,7 @@ alarm/
     providers/alarm_provider.dart            # AlarmNotifier (목록 조회·화면 이탈 시 정리)
     states/alarm_state.dart                  # AlarmStatus(initial/loading/success/error) + 목록
     screens/alarm_screen.dart
-    widgets/                                 # alarm_list, alarm_list_body, alarm_date_section, alarm_date_divider, alarm_card
+    widgets/                                 # alarm_list(+ _AlarmListBody), alarm_date_section(+ _AlarmCard, _AlarmDateDivider)
 ```
 
 ## 레이어
@@ -34,7 +34,7 @@ alarm/
 | data source | `AlarmDataSource` / `AlarmApiService` | API 호출. 응답이 `data`로 감싸져 있든 아니든 파싱 |
 | repository | `AlarmRepository` | `Notifications` → `AlarmModel` 변환. 삭제·FCM 관련 실패는 로그만 남기고 던지지 않음 |
 | provider | `alarmProvider` (`AlarmNotifier`) | `guardApiCall`로 조회, `AlarmState` 갱신 |
-| UI | `AlarmScreen` → `AlarmList` → `AlarmListBody` | 상태별 화면(안내/로딩/오류+재시도/목록) |
+| UI | `AlarmScreen` → `AlarmList` → `_AlarmListBody` | 상태별 화면(안내/로딩/오류+재시도/목록) |
 
 ## API
 
@@ -50,11 +50,11 @@ alarm/
 **목록 조회**
 
 ```
-HomeBody 진입 / AlarmList initState
+_HomeBody 진입 / AlarmList initState
   → AlarmNotifier.fetchAlarmList()        # 이미 로드했으면 force 없이는 다시 부르지 않음
   → AlarmRepository.fetchAlarms()
   → AlarmDataSource.getAlarmList()        # GET notifications
-  → AlarmState(status: success, alarms)   # MainShell 뱃지, AlarmListBody가 구독
+  → AlarmState(status: success, alarms)   # MainShell 뱃지, _AlarmListBody가 구독
 ```
 
 - 홈 화면을 당겨서 새로고침하면 `fetchAlarmList(force: true)`로 다시 불러옵니다.
@@ -82,7 +82,7 @@ AlarmList.dispose
 ## 주의사항
 
 - 알림 화면은 탭마다 하위 경로(`/home/alarm`, `/washer/alarm`, `/dryer/alarm`)로 열립니다. `RoutePaths.alarmSubRoute` 참고
-- 서버가 새 알림 타입을 추가해도 목록이 깨지지 않도록 `AlarmType.unknown`으로 폴백합니다. 새 타입을 지원하려면 `alarm_type.dart`와 `AlarmCard._titleFor`를 함께 수정합니다.
+- 서버가 새 알림 타입을 추가해도 목록이 깨지지 않도록 `AlarmType.unknown`으로 폴백합니다. 새 타입을 지원하려면 `alarm_type.dart`와 `_AlarmCard._titleFor`(`alarm_date_section.dart`)를 함께 수정합니다.
 - `dispose`에서는 `ref`를 쓸 수 없어서 `initState`에서 notifier를 미리 캡처해 둡니다.
 
 ## 테스트

@@ -8,6 +8,7 @@ import 'package:washer/features/home/presentation/widgets/home_error_view.dart';
 import 'package:washer/features/home/presentation/widgets/machine_status_section.dart';
 import 'package:washer/features/home/presentation/widgets/my_reservation_section.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
+import 'package:washer/features/reservation/presentation/providers/reservation_sync_controller.dart';
 import 'package:washer/features/user/presentation/providers/my_user_provider.dart';
 import 'package:washer/core/network/error.dart';
 import 'package:washer/shared/ui/washer_toast.dart';
@@ -35,6 +36,7 @@ class _HomeBodyState extends ConsumerState<HomeBody>
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      ref.read(reservationSyncControllerProvider);
       ref.read(activeReservationProvider.notifier).ensureLoaded();
       // 앱/홈 진입 시 알람을 불러와 알림 뱃지를 갱신한다.
       // (force=false라 이미 로드됐으면 중복 호출하지 않는다.)

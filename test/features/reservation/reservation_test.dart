@@ -22,6 +22,7 @@ class FakeReservationRemoteDataSource implements ReservationRemoteDataSource {
     this.createdReservation = _reservedReservation,
     this.createdReservationBuilder,
     this.cancelError,
+    this.cancelFuture,
     this.cancelResponse = _noPenaltyCancel,
   });
 
@@ -31,6 +32,7 @@ class FakeReservationRemoteDataSource implements ReservationRemoteDataSource {
   final ActiveReservationModel Function(int machineId)?
   createdReservationBuilder;
   final Object? cancelError;
+  final Future<CancelReservationResponse>? cancelFuture;
   final CancelReservationResponse cancelResponse;
   int? lastMachineId;
   String? lastStartTime;
@@ -53,6 +55,10 @@ class FakeReservationRemoteDataSource implements ReservationRemoteDataSource {
   Future<CancelReservationResponse> cancelReservation({required int id}) async {
     cancelledId = id;
     cancelledIds.add(id);
+    final pendingCancel = cancelFuture;
+    if (pendingCancel != null) {
+      return pendingCancel;
+    }
     final nextError = cancelError;
     if (nextError != null) {
       throw nextError;
@@ -472,6 +478,51 @@ void main() {
       ]);
 
       expect(reservationDataSource.cancelledIds, [114, 115]);
+    });
+
+    test('#323: 취소 요청 중 목록이 갱신돼도 polling을 다시 시작하지 않는다', () async {
+      final cancelCompleter = Completer<CancelReservationResponse>();
+      final reservationDataSource = FakeReservationRemoteDataSource(
+        cancelFuture: cancelCompleter.future,
+      );
+      final container = ProviderContainer(
+        overrides: [
+          reservationRemoteDataSourceProvider.overrideWith(
+            (ref) => reservationDataSource,
+          ),
+          reservationStatusRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeReservationStatusRemoteDataSource(
+              machineStatusLoader: () async =>
+                  const MachineStatusResponse(machines: [], totalCount: 0),
+              activeReservationsLoader: () async => const [
+                _reservedReservation,
+              ],
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(activeReservationProvider.future);
+      final controller = container.read(reservationSyncControllerProvider)
+        ..startPolling(reservationId: 114, userId: 15);
+      addTearDown(controller.stopPolling);
+
+      final cancellation = container
+          .read(reservationActionProvider.notifier)
+          .cancel(reservationId: 114);
+      expect(controller.isPolling, isFalse);
+
+      await container.read(activeReservationProvider.notifier).refresh();
+      expect(
+        controller.isPolling,
+        isFalse,
+        reason: '취소 중에는 기존 예약 재조회가 polling을 복구하면 안 된다',
+      );
+
+      cancelCompleter.complete(_noPenaltyCancel);
+      expect(await cancellation, isTrue);
+      expect(controller.isPolling, isFalse);
     });
 
     test('예약 전 조회 결과 이미 예약된 기기면 요청을 보내지 않고 예외를 담는다', () async {

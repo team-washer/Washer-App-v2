@@ -58,6 +58,16 @@ class DioClient {
   /// 인증/로깅 인터셉터가 적용된 [Dio].
   Dio get dio => _dio;
 
+  /// 로그인으로 새 세션을 시작한다. 토큰 저장소와 인증 캐시를 함께 갱신한다.
+  Future<void> startSession({
+    required String accessToken,
+    required String refreshToken,
+  }) => _authInterceptor.startSession(
+    accessToken: accessToken,
+    refreshToken: refreshToken,
+  );
+
+  /// 세션을 끝낸다. 토큰 저장소와 인증 캐시를 함께 비운다.
   Future<void> clearAuthCache() => _authInterceptor.clearCache();
 }
 

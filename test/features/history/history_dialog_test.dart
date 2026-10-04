@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:washer/features/history/data/data_sources/history_remote_data_source.dart';
 import 'package:washer/features/history/presentation/widgets/history_dialog.dart';
+import 'package:washer/shared/theme/washer_error_message.dart';
 
 import 'controlled_history_data_source.dart';
 
@@ -47,6 +48,19 @@ class _OpenThenCloseHostState extends State<_OpenThenCloseHost> {
   }
 }
 
+const _emptyMessage = '당일 사용 기록이 없습니다.';
+
+Future<ControlledHistoryDataSource> _pumpDialog(WidgetTester tester) async {
+  final dataSource = ControlledHistoryDataSource();
+  await tester.pumpWidget(
+    _app(
+      dataSource,
+      const HistoryDialog(machineName: 'Washer-3F-L1', machineId: 1),
+    ),
+  );
+  return dataSource;
+}
+
 void main() {
   group('HistoryDialog 조회 시작', () {
     testWidgets('정상적으로 열면 해당 기기의 기록을 조회한다', (tester) async {
@@ -73,6 +87,54 @@ void main() {
       expect(find.byType(HistoryDialog), findsNothing);
       expect(dataSource.requests, isEmpty);
       expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('HistoryDialog 본문 상태', () {
+    testWidgets('응답 전에는 빈 기록 문구 대신 로딩을 보여준다', (tester) async {
+      await _pumpDialog(tester);
+
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.text(_emptyMessage), findsNothing);
+    });
+
+    testWidgets('조회 실패 후 토스트가 사라져도 오류 안내와 재시도가 남는다', (tester) async {
+      final dataSource = await _pumpDialog(tester);
+
+      dataSource.requests.single.fail();
+      await tester.pumpAndSettle(const Duration(seconds: 10));
+
+      expect(find.text(WasherErrorMessage.historyLoadFailed), findsOneWidget);
+      expect(find.text('다시 시도'), findsOneWidget);
+      expect(find.text(_emptyMessage), findsNothing);
+    });
+
+    testWidgets('재시도하면 다시 조회해 기록을 보여준다', (tester) async {
+      final dataSource = await _pumpDialog(tester);
+      dataSource.requests.single.fail();
+      await tester.pumpAndSettle(const Duration(seconds: 10));
+
+      await tester.tap(find.text('다시 시도'));
+      await tester.pump();
+      expect(dataSource.requests, hasLength(2));
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+      dataSource.requests.last.succeed([1]);
+      await tester.pumpAndSettle();
+
+      expect(find.text('301호'), findsOneWidget);
+      expect(find.text(WasherErrorMessage.historyLoadFailed), findsNothing);
+    });
+
+    testWidgets('기록이 없으면 오류와 다른 빈 기록 문구를 보여준다', (tester) async {
+      final dataSource = await _pumpDialog(tester);
+
+      dataSource.requests.single.succeed([]);
+      await tester.pumpAndSettle();
+
+      expect(find.text(_emptyMessage), findsOneWidget);
+      expect(find.text(WasherErrorMessage.historyLoadFailed), findsNothing);
+      expect(find.text('다시 시도'), findsNothing);
     });
   });
 }

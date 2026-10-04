@@ -64,10 +64,15 @@ HomeBody 진입 / AlarmList initState
 ```
 AlarmList.dispose
   → AlarmNotifier.clearAllOnLeave()
+  → (이미 정리 중이면 새로 시작하지 않고 진행 중인 정리를 함께 기다림)
+  → (목록이 비어 있으면 _hasLoaded = false만 하고 끝냄. 삭제·재조회 없음)
   → deleteAllNotifications()              # DELETE notifications (실패해도 예외 없음)
-  → fetchAlarmList(force: true)           # 서버 기준으로 다시 맞춤 (로컬을 임의로 비우지 않음)
+  → 목록 재조회                           # 서버 기준으로 다시 맞춤 (로컬을 임의로 비우지 않음)
   → _hasLoaded = false                    # 다음 진입 시 새로 조회
 ```
+
+- 정리(삭제 → 재조회)가 끝나기 전에 알림 화면에 다시 들어오면 `fetchAlarmList()`는 정리가 끝날 때까지 기다린 뒤 한 번 더 조회합니다. 정리 중의 응답에는 그 사이 생긴 알림이 빠져 있을 수 있기 때문입니다. 평소 진입·이탈에서는 추가 조회가 없습니다.
+- 정리 중에 세션이 바뀌면 새 세션의 조회는 정리를 기다리지 않고, 이전 세션의 정리는 재조회·로드 플래그 초기화를 하지 않습니다.
 
 **FCM 토큰** (`auth`에서 호출)
 
@@ -88,3 +93,4 @@ AlarmList.dispose
 ## 테스트
 
 - `test/features/alarm/alarm_type_test.dart`
+- `test/features/alarm/alarm_provider_test.dart` (화면 이탈 후 재진입 조회. 빈 목록, 정리 중 재진입, 겹친 정리, 세션 전환 포함)

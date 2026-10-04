@@ -30,19 +30,23 @@ class _HistoryDialogState extends ConsumerState<HistoryDialog> {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(historyProvider.notifier).fetchRecentHistory(widget.machineId);
+      ref.read(historyProvider(widget.machineId).notifier).fetchRecentHistory();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<Object?>(historyErrorProvider, (previous, next) {
+    final provider = historyProvider(widget.machineId);
+    ref.listen<Object?>(provider.select((state) => state.error), (
+      previous,
+      next,
+    ) {
       if (next != null) {
         context.showToast(WasherToast.error(next));
       }
     });
 
-    final state = ref.watch(historyProvider);
+    final state = ref.watch(provider);
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -75,7 +79,7 @@ class _HistoryDialogState extends ConsumerState<HistoryDialog> {
       );
     }
 
-    if (state.errorMessage != null) {
+    if (state.error != null) {
       return const SizedBox.shrink();
     }
 

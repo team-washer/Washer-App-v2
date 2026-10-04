@@ -30,6 +30,8 @@ class _HistoryDialogState extends ConsumerState<HistoryDialog> {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // 콜백이 실행되기 전에 다이얼로그가 닫혔으면 조회를 시작하지 않는다.
+      if (!mounted) return;
       ref.read(historyProvider(widget.machineId).notifier).fetchRecentHistory();
     });
   }

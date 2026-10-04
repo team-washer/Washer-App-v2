@@ -16,8 +16,10 @@ class HistoryNotifier extends Notifier<HistoryState> {
   // 같은 기기를 다시 조회하면 이전 요청의 응답은 버리기 위한 요청 번호
   int _requestId = 0;
 
+  // 다이얼로그를 열자마자 조회하므로 첫 화면부터 로딩으로 보여준다.
+  // (조회 전 잠깐 빈 기록 문구가 보이지 않게 한다.)
   @override
-  HistoryState build() => const HistoryState();
+  HistoryState build() => const HistoryState(isLoading: true);
 
   /// 기기의 최근 2일(전날 00:00 ~ 오늘 23:59) 사용 기록을 조회한다.
   ///

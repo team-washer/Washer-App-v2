@@ -5,6 +5,7 @@
 ## 기능
 
 - 사용 기록 다이얼로그: 예약 화면의 기기 카드에서 기록 아이콘(`MachineHistoryIconButton`)을 누르면 열립니다.
+- 조회에 실패하면 토스트와 함께 다이얼로그 본문에 오류 안내(`WasherErrorMessage.historyLoadFailed`)와 다시 시도 버튼이 남습니다.
 - 조회 범위는 **전날 00:00 ~ 오늘 23:59:59**입니다. 앱을 주로 밤(21:20~새벽)에 쓰기 때문에, 자정이 지나도 전날 기록을 볼 수 있게 했습니다.
 - 페이지가 여러 개면 모든 페이지(`size: 50`)를 순회해 합칩니다.
 
@@ -39,12 +40,13 @@ MachineHistoryIconButton (reservation) → showDialog(HistoryDialog)
       → 성공: HistoryState.historyList
       → 실패: HistoryState.error = AppException
   → HistoryDialog가 ref.listen(historyProvider(machineId).select(error)) → WasherToast.error
+  → 본문: 로딩(첫 화면 포함) / 오류 안내 + 다시 시도 / 빈 기록 문구 / 목록
   → 목록: HistoryCard (상태 배지, 예약 호실, 예약 시간, 완료/취소/예정 시간)
 ```
 
 ## 의존성
 
-- 사용: `core/network`, `core/utils`(`DateTimeFormatter`), `shared/theme`, `shared/ui`(`WasherDialog`, `StatusBadge`, `WasherToast`)
+- 사용: `core/network`, `core/utils`(`DateTimeFormatter`), `shared/theme`(`WasherErrorMessage` 등), `shared/ui`(`WasherDialog`, `StatusBadge`, `WasherToast`)
 - 이 모듈을 쓰는 곳: `reservation`(`machine_history_icon_button.dart`)
 
 ## 주의사항
@@ -57,4 +59,4 @@ MachineHistoryIconButton (reservation) → showDialog(HistoryDialog)
 ## 테스트
 
 - `test/features/history/history_provider_test.dart`: 기기별 상태 격리, 늦은 응답 무시
-- `test/features/history/history_dialog_test.dart`: 다이얼로그 조회 시작·즉시 닫기
+- `test/features/history/history_dialog_test.dart`: 다이얼로그 조회 시작·즉시 닫기, 로딩·오류·재시도·빈 기록 표시

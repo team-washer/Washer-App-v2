@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/shared/ui/washer_toast.dart';
 import 'package:washer/shared/theme/washer_color.dart';
+import 'package:washer/shared/theme/washer_error_message.dart';
 import 'package:washer/shared/theme/app_spacing.dart';
 import 'package:washer/shared/theme/washer_typography.dart';
 import 'package:washer/shared/ui/dialog/washer_dialog.dart';
@@ -82,7 +83,11 @@ class _HistoryDialogState extends ConsumerState<HistoryDialog> {
     }
 
     if (state.error != null) {
-      return const SizedBox.shrink();
+      return _HistoryErrorView(
+        onRetry: () => ref
+            .read(historyProvider(widget.machineId).notifier)
+            .fetchRecentHistory(),
+      );
     }
 
     if (state.historyList.isEmpty) {
@@ -111,6 +116,37 @@ class _HistoryDialogState extends ConsumerState<HistoryDialog> {
             item: item,
           );
         },
+      ),
+    );
+  }
+}
+
+/// 기록 조회 실패 시 다이얼로그 본문에 남는 오류 안내 + 재시도 버튼
+class _HistoryErrorView extends StatelessWidget {
+  const _HistoryErrorView({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              WasherErrorMessage.historyLoadFailed,
+              style: WasherTypography.body1(WasherColor.baseGray500),
+              textAlign: TextAlign.center,
+            ),
+            AppGap.v12,
+            TextButton(
+              onPressed: onRetry,
+              child: const Text('다시 시도'),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -50,5 +50,5 @@ MachineHistoryIconButton (reservation) → showDialog(HistoryDialog)
 ## 주의사항
 
 - 알 수 없는 상태 문자열은 `HistoryStatus.reserved`로 처리합니다(`HistoryStatusX.fromString`).
-- `HistoryCard`의 마지막 시간 값: 취소는 `createdAt`, 그 외는 `completionTime`을 씁니다(없으면 `-`).
+- `HistoryCard`의 마지막 시간 값은 `completionTime`을 씁니다(없으면 `-`). 서버가 실제 완료 시각, 없으면 취소 시각(`cancelledAt`)을 채워 주므로 취소 기록의 "취소 시간"도 이 값입니다. `createdAt`은 예약 생성 시각입니다.
 - `historyErrorProvider`는 legacy `StateProvider`입니다. 조회를 시작할 때 `null`로 초기화합니다.

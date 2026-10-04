@@ -10,7 +10,7 @@ import 'package:washer/features/history/presentation/states/history_state.dart';
 import 'package:washer/features/history/presentation/providers/history_provider.dart';
 import 'package:washer/features/history/presentation/widgets/history_card.dart';
 
-/// 기기의 당일 사용 기록을 보여주는 다이얼로그
+/// 기기의 최근 2일(전날 00:00 ~ 오늘 23:59) 사용 기록을 보여주는 다이얼로그
 class HistoryDialog extends ConsumerStatefulWidget {
   const HistoryDialog({
     super.key,
@@ -95,7 +95,7 @@ class _HistoryDialogState extends ConsumerState<HistoryDialog> {
         padding: const EdgeInsets.all(20),
         child: Center(
           child: Text(
-            '당일 사용 기록이 없습니다.',
+            '최근 2일 동안 사용 기록이 없어요.',
             style: WasherTypography.body1(WasherColor.baseGray500),
           ),
         ),

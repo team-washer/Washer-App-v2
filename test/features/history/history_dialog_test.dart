@@ -48,7 +48,7 @@ class _OpenThenCloseHostState extends State<_OpenThenCloseHost> {
   }
 }
 
-const _emptyMessage = '당일 사용 기록이 없습니다.';
+const _emptyMessage = '최근 2일 동안 사용 기록이 없어요.';
 
 Future<ControlledHistoryDataSource> _pumpDialog(WidgetTester tester) async {
   final dataSource = ControlledHistoryDataSource();

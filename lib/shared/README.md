@@ -68,7 +68,7 @@ shared/
 
 - `MainShell`은 `alarmProvider`를 구독해 알림 뱃지를 표시합니다.
 - 현재 탭을 다시 누르면 그 탭의 첫 화면으로 돌아갑니다.
-- 앱바 알림 버튼을 누르면 현재 탭 아래의 `alarm` 경로로 push합니다.
+- 앱바 알림 버튼을 누르면 현재 탭 아래의 `alarm` 경로로 push합니다. 이미 알림 화면이면 다시 push하지 않습니다.
 - 설정 메뉴에서 로그아웃(`logoutProvider`)과 회원탈퇴(`withdrawProvider`)를 실행합니다.
 
 ## 의존성
@@ -96,3 +96,4 @@ shared/
 
 - `dialog_action_test.dart`
 - `error_toast_test.dart`
+- `washer_app_bar_test.dart`

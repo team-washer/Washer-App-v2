@@ -120,7 +120,13 @@ class WasherAppBar extends ConsumerWidget implements PreferredSizeWidget {
                       onNotificationTap: () {
                         final location = GoRouterState.of(context).uri.path;
                         final baseRoute = _resolveAlarmBaseRoute(location);
-                        context.push('$baseRoute/${RoutePaths.alarmSubRoute}');
+                        final alarmRoute =
+                            '$baseRoute/${RoutePaths.alarmSubRoute}';
+                        // 이미 알림 화면이면 같은 화면을 다시 쌓지 않는다.
+                        if (location == alarmRoute) {
+                          return;
+                        }
+                        context.push(alarmRoute);
                       },
                     ),
                   ),

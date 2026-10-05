@@ -53,7 +53,7 @@ MachineHistoryIconButton (reservation) → showDialog(HistoryDialog)
 ## 주의사항
 
 - 알 수 없는 상태 문자열은 `HistoryStatus.reserved`로 처리합니다(`HistoryStatusX.fromString`).
-- `HistoryCard`의 마지막 시간 값: 취소는 `createdAt`, 그 외는 `completionTime`을 씁니다(없으면 `-`).
+- `HistoryCard`의 마지막 시간 값은 `completionTime`을 씁니다(없으면 `-`). 서버가 실제 완료 시각, 없으면 취소 시각(`cancelledAt`)을 채워 주므로 취소 기록의 "취소 시간"도 이 값입니다. `createdAt`은 예약 생성 시각입니다.
 - `historyProvider`는 `machineId`별 `autoDispose` family입니다. 기기마다 상태가 따로 있고 다이얼로그가 닫히면 해제됩니다.
 - 응답을 받은 뒤 상태가 해제됐거나(`ref.mounted == false`) 같은 기기에서 더 최신 조회가 시작됐으면 그 응답은 버립니다. 늦은 응답이 다른 기기나 최신 조회 결과를 덮지 않게 하기 위해서입니다.
 
@@ -61,3 +61,4 @@ MachineHistoryIconButton (reservation) → showDialog(HistoryDialog)
 
 - `test/features/history/history_provider_test.dart`: 기기별 상태 격리, 늦은 응답 무시
 - `test/features/history/history_dialog_test.dart`: 다이얼로그 조회 시작·즉시 닫기, 로딩·오류·재시도·빈 기록 표시
+- `test/features/history/history_card_test.dart`: 취소·완료 기록의 시간 표시

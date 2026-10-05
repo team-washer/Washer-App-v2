@@ -301,6 +301,21 @@ class ActiveReservationNotifier
     }
   }
 
+  /// DELETE 성공을 최신 내 예약 업데이트로 기록하고 취소 대상만 즉시 제거한다.
+  /// 호실 조회가 진행 중이어도 서버가 확정한 취소는 그 응답을 기다리지 않는다.
+  void removeCancelledReservation(int reservationId) {
+    final update = MyReservationUpdate(
+      requestId: beginRequest(),
+      mine: null,
+      trackedId: reservationId,
+    );
+    _appliedMineRequestId = update.requestId;
+    _latestMyUpdate = update;
+    _latestList = update.applyTo(_latestList);
+    _hasFetched = true;
+    state = AsyncData(_latestList);
+  }
+
   /// polling으로 확인한 내 활성 예약 결과를 호실 목록에 반영한다.
   ///
   /// 이미 반영된 더 최근 결과(내 예약 polling 또는 호실 스냅샷)보다 먼저 시작한 요청의

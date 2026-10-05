@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:washer/features/reservation/data/data_sources/remote/reservation_status_remote_data_source.dart';
@@ -16,6 +18,7 @@ class _FakeServer implements ReservationStatusRemoteDataSource {
   ActiveReservationModel? mine;
   Object? roomError;
   Object? mineError;
+  Future<List<ActiveReservationModel>>? pendingRoom;
   int roomRequestCount = 0;
 
   @override
@@ -25,7 +28,7 @@ class _FakeServer implements ReservationStatusRemoteDataSource {
     if (error != null) {
       throw error;
     }
-    return room;
+    return pendingRoom ?? room;
   }
 
   @override
@@ -338,6 +341,75 @@ void main() {
 
       expect(controller.isPolling, isTrue);
       expect(controller.restorePollingFromCurrentState(), isFalse);
+    });
+  });
+
+  group('#326 취소 경계 이전 응답 무효화', () {
+    late _FakeServer server;
+    late ProviderContainer container;
+    late ActiveReservationNotifier notifier;
+
+    setUp(() async {
+      server = _FakeServer()..room = [_mine, _roommate];
+      container = ProviderContainer(
+        overrides: [
+          reservationStatusRemoteDataSourceProvider.overrideWith(
+            (ref) => server,
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      await container.read(activeReservationProvider.future);
+      notifier = container.read(activeReservationProvider.notifier);
+    });
+
+    test('취소 이전 requestId의 내 예약 업데이트는 stale이다', () {
+      final oldRequestId = notifier.beginRequest();
+      notifier.removeCancelledReservation(114);
+
+      final result = notifier.applyMyReservation(
+        MyReservationUpdate(
+          requestId: oldRequestId,
+          mine: _mine,
+          trackedId: 114,
+        ),
+      );
+
+      expect(result.isStale, isTrue);
+      expect(result.hasChanged, isFalse);
+      expect(container.read(activeReservationProvider).value, [_roommate]);
+    });
+
+    test('호실 조회가 진행 중이어도 취소 대상은 즉시 제거된다', () async {
+      final roomResponse = Completer<List<ActiveReservationModel>>();
+      server.pendingRoom = roomResponse.future;
+      final reload = notifier.reloadInBackground();
+
+      notifier.removeCancelledReservation(114);
+      expect(container.read(activeReservationProvider).value, [_roommate]);
+      roomResponse.complete([_mine, _roommate]);
+      await reload;
+
+      expect(container.read(activeReservationProvider).value, [_roommate]);
+    });
+
+    test('취소 이전의 보류된 polling 결과가 취소 경계를 덮지 않는다', () async {
+      final roomResponse = Completer<List<ActiveReservationModel>>();
+      server.pendingRoom = roomResponse.future;
+      final reload = notifier.reloadInBackground();
+      notifier.applyMyReservation(
+        MyReservationUpdate(
+          requestId: notifier.beginRequest(),
+          mine: _mine,
+          trackedId: 114,
+        ),
+      );
+
+      notifier.removeCancelledReservation(114);
+      roomResponse.completeError(Exception('호실 조회 실패'));
+      await reload;
+
+      expect(container.read(activeReservationProvider).value, [_roommate]);
     });
   });
 

@@ -14,7 +14,8 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$HistoryState {
 
- bool get isLoading; String? get errorMessage; List<HistoryContent> get historyList;
+ bool get isLoading;// 마지막 조회가 실패했을 때의 오류. 다시 조회를 시작하면 null로 비운다.
+ AppException? get error; List<HistoryContent> get historyList;
 /// Create a copy of HistoryState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +26,16 @@ $HistoryStateCopyWith<HistoryState> get copyWith => _$HistoryStateCopyWithImpl<H
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is HistoryState&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&const DeepCollectionEquality().equals(other.historyList, historyList));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is HistoryState&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.error, error) || other.error == error)&&const DeepCollectionEquality().equals(other.historyList, historyList));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,isLoading,errorMessage,const DeepCollectionEquality().hash(historyList));
+int get hashCode => Object.hash(runtimeType,isLoading,error,const DeepCollectionEquality().hash(historyList));
 
 @override
 String toString() {
-  return 'HistoryState(isLoading: $isLoading, errorMessage: $errorMessage, historyList: $historyList)';
+  return 'HistoryState(isLoading: $isLoading, error: $error, historyList: $historyList)';
 }
 
 
@@ -45,7 +46,7 @@ abstract mixin class $HistoryStateCopyWith<$Res>  {
   factory $HistoryStateCopyWith(HistoryState value, $Res Function(HistoryState) _then) = _$HistoryStateCopyWithImpl;
 @useResult
 $Res call({
- bool isLoading, String? errorMessage, List<HistoryContent> historyList
+ bool isLoading, AppException? error, List<HistoryContent> historyList
 });
 
 
@@ -62,11 +63,11 @@ class _$HistoryStateCopyWithImpl<$Res>
 
 /// Create a copy of HistoryState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? isLoading = null,Object? errorMessage = freezed,Object? historyList = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? isLoading = null,Object? error = freezed,Object? historyList = null,}) {
   return _then(_self.copyWith(
 isLoading: null == isLoading ? _self.isLoading : isLoading // ignore: cast_nullable_to_non_nullable
-as bool,errorMessage: freezed == errorMessage ? _self.errorMessage : errorMessage // ignore: cast_nullable_to_non_nullable
-as String?,historyList: null == historyList ? _self.historyList : historyList // ignore: cast_nullable_to_non_nullable
+as bool,error: freezed == error ? _self.error : error // ignore: cast_nullable_to_non_nullable
+as AppException?,historyList: null == historyList ? _self.historyList : historyList // ignore: cast_nullable_to_non_nullable
 as List<HistoryContent>,
   ));
 }
@@ -152,10 +153,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool isLoading,  String? errorMessage,  List<HistoryContent> historyList)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool isLoading,  AppException? error,  List<HistoryContent> historyList)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _HistoryState() when $default != null:
-return $default(_that.isLoading,_that.errorMessage,_that.historyList);case _:
+return $default(_that.isLoading,_that.error,_that.historyList);case _:
   return orElse();
 
 }
@@ -173,10 +174,10 @@ return $default(_that.isLoading,_that.errorMessage,_that.historyList);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool isLoading,  String? errorMessage,  List<HistoryContent> historyList)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool isLoading,  AppException? error,  List<HistoryContent> historyList)  $default,) {final _that = this;
 switch (_that) {
 case _HistoryState():
-return $default(_that.isLoading,_that.errorMessage,_that.historyList);case _:
+return $default(_that.isLoading,_that.error,_that.historyList);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -193,10 +194,10 @@ return $default(_that.isLoading,_that.errorMessage,_that.historyList);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool isLoading,  String? errorMessage,  List<HistoryContent> historyList)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool isLoading,  AppException? error,  List<HistoryContent> historyList)?  $default,) {final _that = this;
 switch (_that) {
 case _HistoryState() when $default != null:
-return $default(_that.isLoading,_that.errorMessage,_that.historyList);case _:
+return $default(_that.isLoading,_that.error,_that.historyList);case _:
   return null;
 
 }
@@ -208,11 +209,12 @@ return $default(_that.isLoading,_that.errorMessage,_that.historyList);case _:
 
 
 class _HistoryState implements HistoryState {
-  const _HistoryState({this.isLoading = false, this.errorMessage, final  List<HistoryContent> historyList = const []}): _historyList = historyList;
+  const _HistoryState({this.isLoading = false, this.error, final  List<HistoryContent> historyList = const []}): _historyList = historyList;
   
 
 @override@JsonKey() final  bool isLoading;
-@override final  String? errorMessage;
+// 마지막 조회가 실패했을 때의 오류. 다시 조회를 시작하면 null로 비운다.
+@override final  AppException? error;
  final  List<HistoryContent> _historyList;
 @override@JsonKey() List<HistoryContent> get historyList {
   if (_historyList is EqualUnmodifiableListView) return _historyList;
@@ -231,16 +233,16 @@ _$HistoryStateCopyWith<_HistoryState> get copyWith => __$HistoryStateCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _HistoryState&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&const DeepCollectionEquality().equals(other._historyList, _historyList));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _HistoryState&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.error, error) || other.error == error)&&const DeepCollectionEquality().equals(other._historyList, _historyList));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,isLoading,errorMessage,const DeepCollectionEquality().hash(_historyList));
+int get hashCode => Object.hash(runtimeType,isLoading,error,const DeepCollectionEquality().hash(_historyList));
 
 @override
 String toString() {
-  return 'HistoryState(isLoading: $isLoading, errorMessage: $errorMessage, historyList: $historyList)';
+  return 'HistoryState(isLoading: $isLoading, error: $error, historyList: $historyList)';
 }
 
 
@@ -251,7 +253,7 @@ abstract mixin class _$HistoryStateCopyWith<$Res> implements $HistoryStateCopyWi
   factory _$HistoryStateCopyWith(_HistoryState value, $Res Function(_HistoryState) _then) = __$HistoryStateCopyWithImpl;
 @override @useResult
 $Res call({
- bool isLoading, String? errorMessage, List<HistoryContent> historyList
+ bool isLoading, AppException? error, List<HistoryContent> historyList
 });
 
 
@@ -268,11 +270,11 @@ class __$HistoryStateCopyWithImpl<$Res>
 
 /// Create a copy of HistoryState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? isLoading = null,Object? errorMessage = freezed,Object? historyList = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? isLoading = null,Object? error = freezed,Object? historyList = null,}) {
   return _then(_HistoryState(
 isLoading: null == isLoading ? _self.isLoading : isLoading // ignore: cast_nullable_to_non_nullable
-as bool,errorMessage: freezed == errorMessage ? _self.errorMessage : errorMessage // ignore: cast_nullable_to_non_nullable
-as String?,historyList: null == historyList ? _self._historyList : historyList // ignore: cast_nullable_to_non_nullable
+as bool,error: freezed == error ? _self.error : error // ignore: cast_nullable_to_non_nullable
+as AppException?,historyList: null == historyList ? _self._historyList : historyList // ignore: cast_nullable_to_non_nullable
 as List<HistoryContent>,
   ));
 }

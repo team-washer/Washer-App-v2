@@ -1,25 +1,34 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:washer/core/network/error.dart';
 import 'package:washer/features/history/data/data_sources/history_remote_data_source.dart';
 import 'package:washer/features/history/data/models/machine_history_response.dart';
 import 'package:washer/features/history/presentation/states/history_state.dart';
 
-/// 사용 기록 조회 오류를 UI(스낵바)로 전달하기 위한 일회성 오류 상태
-final historyErrorProvider = StateProvider<Object?>((ref) => null);
-
+/// 기기 한 대([machineId])의 사용 기록 조회 상태.
+///
+/// 기기마다 상태를 따로 두고 다이얼로그가 닫히면 해제되므로,
+/// 늦게 도착한 이전 기기의 응답이 다른 기기의 기록·오류를 덮지 않는다.
 class HistoryNotifier extends Notifier<HistoryState> {
+  HistoryNotifier(this.machineId);
+
+  final int machineId;
+
+  // 같은 기기를 다시 조회하면 이전 요청의 응답은 버리기 위한 요청 번호
+  int _requestId = 0;
+
+  // 다이얼로그를 열자마자 조회하므로 첫 화면부터 로딩으로 보여준다.
+  // (조회 전 잠깐 빈 기록 문구가 보이지 않게 한다.)
   @override
-  HistoryState build() => const HistoryState();
+  HistoryState build() => const HistoryState(isLoading: true);
 
   /// 기기의 최근 2일(전날 00:00 ~ 오늘 23:59) 사용 기록을 조회한다.
   ///
   /// 앱 주 사용 시간대가 PM 9:20 ~ 새벽이므로, 자정이 지난 후에도
   /// 전날 사용 기록을 확인할 수 있도록 조회 범위를 전날부터 시작한다.
   /// 페이지가 여러 개인 경우 모든 페이지를 순회해 전체 기록을 합쳐 반환한다.
-  Future<void> fetchRecentHistory(int machineId) async {
-    state = state.copyWith(isLoading: true, errorMessage: null);
-    ref.read(historyErrorProvider.notifier).state = null;
+  Future<void> fetchRecentHistory() async {
+    final requestId = ++_requestId;
+    state = state.copyWith(isLoading: true, error: null);
 
     final now = DateTime.now();
     final yesterday = now.subtract(const Duration(days: 1));
@@ -57,6 +66,11 @@ class HistoryNotifier extends Notifier<HistoryState> {
         logName: 'HistoryNotifier',
       );
 
+      // 다이얼로그가 닫혀 상태가 해제됐거나 더 최신 조회가 시작됐으면 버린다.
+      if (!ref.mounted || requestId != _requestId) {
+        return;
+      }
+
       switch (result) {
         case ResultSuccess(:final value):
           allHistory.addAll(value.content);
@@ -69,9 +83,8 @@ class HistoryNotifier extends Notifier<HistoryState> {
           }
           page++;
         case ResultFailure(:final error):
-          ref.read(historyErrorProvider.notifier).state = error;
           state = state.copyWith(
-            errorMessage: '사용 기록을 불러오는데 실패했습니다.',
+            error: error,
             isLoading: false,
           );
           return;
@@ -80,6 +93,6 @@ class HistoryNotifier extends Notifier<HistoryState> {
   }
 }
 
-final historyProvider = NotifierProvider<HistoryNotifier, HistoryState>(
-  HistoryNotifier.new,
-);
+/// 기기 ID별 사용 기록 상태. 기록 다이얼로그가 닫히면 자동으로 해제된다.
+final historyProvider = NotifierProvider.autoDispose
+    .family<HistoryNotifier, HistoryState, int>(HistoryNotifier.new);

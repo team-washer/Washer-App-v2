@@ -7,7 +7,11 @@ import 'package:washer/shared/theme/app_spacing.dart';
 import 'package:washer/shared/theme/washer_typography.dart';
 import 'package:washer/shared/ui/indicators/status_badge.dart';
 
-/// 사용 기록 1건을 표시하는 카드 (취소는 생성 시각, 그 외는 완료 시각 기준)
+/// 사용 기록 1건을 표시하는 카드.
+///
+/// 마지막 시간 값은 서버의 `completionTime`을 쓴다. 서버가 실제 완료 시각,
+/// 없으면 취소 시각을 채워 주므로 취소 기록도 같은 필드가 취소 시각이다.
+/// (`createdAt`은 예약 생성 시각이라 취소 시각으로 쓰지 않는다.)
 class HistoryCard extends StatelessWidget {
   const HistoryCard({
     super.key,
@@ -21,9 +25,7 @@ class HistoryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final status = HistoryStatusX.fromString(item.status);
-    final rawTime = status == HistoryStatus.cancelled
-        ? item.createdAt
-        : item.completionTime;
+    final rawTime = item.completionTime;
     final timeValue = rawTime == null
         ? '-'
         : DateTimeFormatter.formatToShortWithTime(rawTime);

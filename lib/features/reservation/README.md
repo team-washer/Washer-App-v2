@@ -9,7 +9,7 @@
   - 기기 카드마다 상태별 하단 영역: 예약 가능, 내 예약, 남의 예약, 사용 중, 사용 불가, 통세척 중
   - 카드에서 예약, 예약 취소, 고장 신고(`report`), 사용 기록(`history`)
 - 예약 생성: 패널티 사전 확인 → 최신 기기 상태 재확인 → 예약 → polling 시작
-- 예약 취소: polling을 잠시 멈추고 취소 → 상태 새로고침
+- 예약 취소: polling 복구 보류 → DELETE 성공 경계에서 이전 polling 무효화·대상 제거 → 상태 재조회
 - 내 활성 예약 polling(10초): 완료·취소를 감지하고 기기 상태를 갱신합니다.
 - 예약 실패 원인 분류(`ReservationErrorCause`, #306)
 
@@ -62,7 +62,7 @@ repository 없이 provider가 data source를 직접 사용합니다.
 | provider | 타입 | 역할 |
 | --- | --- | --- |
 | `machineStatusProvider` | `AsyncNotifier<MachineStatusResponse>` (keepAlive) | 기기 상태. `refresh()` |
-| `activeReservationProvider` | `AsyncNotifier<List<ActiveReservationModel>>` (keepAlive) | 호실 활성 예약. `ensureLoaded()`, `refresh()`, `reloadInBackground()`, `applyMyReservation()` |
+| `activeReservationProvider` | `AsyncNotifier<List<ActiveReservationModel>>` (keepAlive) | 호실 활성 예약. `ensureLoaded()`, `refresh()`, `reloadInBackground()`, `applyMyReservation()`, `removeCancelledReservation()` |
 | `reservationActionProvider` | `AsyncNotifier<ActiveReservationModel?>` | `reserve()`, `cancel()`. 같은 대상의 중복 요청은 single-flight로 합침(#261) |
 | `reservationSyncControllerProvider` | `Provider<ReservationSyncController>` | `startPolling()`, `stopPolling()`, `syncActiveReservation()`, 기존 예약 polling 복구 |
 | `clockProvider` | `StreamProvider<DateTime>` | 1초 시계. 카운트다운 텍스트만 구독 |
@@ -105,9 +105,12 @@ ReservationScreen → ReservationMachineList
 ```
 LaundryActionDialog(cancelReservation) → runDialogAction(LaundryDialogActions.cancelReservation)
   → ReservationActionNotifier.cancel(reservationId)
-      → stopPolling()                  # 진행 중인 polling 응답이 취소된 예약을 되살리지 않도록
-      → DELETE reservations/{id} → refreshReservationStatusProviders()
-      → 실패 시 원래 polling 중이었다면 startPolling()으로 재개
+      → suspendPollingRestore() + stopPolling()
+      → DELETE reservations/{id}
+      → 성공: removeCancelledReservation(id)로 새 요청 순번 경계 생성 + 대상만 즉시 제거
+              기기 refresh + 호실 reloadInBackground (조회 실패해도 취소 성공·남은 예약 유지)
+      → DELETE 실패: 예약 유지, 원래 polling 중이었다면 재개
+      → finally: resumePollingRestore() (취소 성공 시 polling 재시작 없음)
 ```
 
 **polling** (`ReservationSyncController`, 예약 생성 또는 기존 내 예약 발견 뒤 시작)

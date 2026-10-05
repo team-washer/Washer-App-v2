@@ -16,6 +16,8 @@ import 'package:washer/features/reservation/data/models/remote/reservation_avail
 import 'package:washer/features/reservation/presentation/providers/reservation_action_provider.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_exceptions.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_sync_controller.dart';
+import 'package:washer/features/user/data/models/my_user_model.dart';
+import 'package:washer/features/user/presentation/providers/my_user_provider.dart';
 
 class FakeReservationRemoteDataSource implements ReservationRemoteDataSource {
   FakeReservationRemoteDataSource({
@@ -139,7 +141,132 @@ class FakeReservationStatusRemoteDataSource
   }
 }
 
+class _CancelTestUserNotifier extends MyUserNotifier {
+  @override
+  Future<MyUserModel?> build() async =>
+      const MyUserModel(id: 15, name: '나', roomNumber: '420');
+}
+
 void main() {
+  group('#326 취소 성공 경계', () {
+    final roommate = _reservedReservation.copyWith(id: 200, userId: 16);
+    late List<ActiveReservationModel> room;
+    late Object? roomError;
+    late Object? machineError;
+    late Completer<ActiveReservationModel?> pollingResponse;
+    late Completer<CancelReservationResponse> deleteResponse;
+    late ProviderContainer container;
+    late ReservationSyncController controller;
+
+    setUp(() async {
+      room = [_reservedReservation, roommate];
+      roomError = null;
+      machineError = null;
+      pollingResponse = Completer<ActiveReservationModel?>();
+      deleteResponse = Completer<CancelReservationResponse>();
+      container = ProviderContainer(
+        overrides: [
+          myUserProvider.overrideWith(_CancelTestUserNotifier.new),
+          reservationRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeReservationRemoteDataSource(
+              cancelFuture: deleteResponse.future,
+            ),
+          ),
+          reservationStatusRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeReservationStatusRemoteDataSource(
+              machineStatusLoader: () async {
+                if (machineError != null) throw machineError!;
+                return const MachineStatusResponse(machines: [], totalCount: 0);
+              },
+              activeReservationsLoader: () async {
+                if (roomError != null) throw roomError!;
+                return room;
+              },
+              myActiveReservationLoader: () => pollingResponse.future,
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      await Future.wait([
+        container.read(myUserProvider.future),
+        container.read(activeReservationProvider.future),
+        container.read(machineStatusProvider.future),
+        container.read(reservationActionProvider.future),
+      ]);
+      controller = container.read(reservationSyncControllerProvider);
+      expect(controller.isPolling, isTrue);
+    });
+
+    test('취소 성공 뒤 호실 조회가 실패해도 이전 polling이 예약을 되살리지 않는다', () async {
+      final polling = controller.syncActiveReservation();
+      roomError = Exception('취소 후 호실 조회 실패');
+      final cancellation = container
+          .read(reservationActionProvider.notifier)
+          .cancel(reservationId: 114);
+      deleteResponse.complete(_noPenaltyCancel);
+
+      expect(await cancellation, isTrue);
+      expect(
+        container.read(reservationActionProvider),
+        isA<AsyncData<ActiveReservationModel?>>(),
+      );
+      final afterCancellation = container.read(activeReservationProvider).value;
+      pollingResponse.complete(_reservedReservation);
+      await polling;
+
+      expect(afterCancellation, [roommate]);
+      expect(container.read(activeReservationProvider).value, [roommate]);
+      expect(controller.isPolling, isFalse);
+      expect(controller.restorePollingFromCurrentState(), isFalse);
+    });
+
+    test('DELETE 실패 시 예약을 유지하고 polling 복원 보류를 해제한다', () async {
+      final cancellation = container
+          .read(reservationActionProvider.notifier)
+          .cancel(reservationId: 114);
+      expect(controller.isPolling, isFalse);
+      deleteResponse.completeError(Exception('DELETE 실패'));
+
+      expect(await cancellation, isFalse);
+      expect(container.read(reservationActionProvider).hasError, isTrue);
+      expect(container.read(activeReservationProvider).value, room);
+      expect(controller.isPolling, isTrue);
+      controller.stopPolling();
+      expect(controller.restorePollingFromCurrentState(), isTrue);
+    });
+
+    test('정상 취소는 내 예약만 제거하고 polling을 중단한다', () async {
+      final polling = controller.syncActiveReservation();
+      final cancellation = container
+          .read(reservationActionProvider.notifier)
+          .cancel(reservationId: 114);
+      room = [roommate];
+      deleteResponse.complete(_noPenaltyCancel);
+
+      expect(await cancellation, isTrue);
+      pollingResponse.complete(_reservedReservation);
+      await polling;
+      expect(container.read(activeReservationProvider).value, [roommate]);
+      expect(controller.isPolling, isFalse);
+    });
+
+    test('취소 뒤 기기 조회 실패도 취소 실패로 처리하지 않는다', () async {
+      final cancellation = container
+          .read(reservationActionProvider.notifier)
+          .cancel(reservationId: 114);
+      room = [roommate];
+      machineError = Exception('취소 후 기기 조회 실패');
+      deleteResponse.complete(_noPenaltyCancel);
+
+      expect(await cancellation, isTrue);
+      expect(container.read(reservationActionProvider).hasError, isFalse);
+      expect(container.read(activeReservationProvider).value, [roommate]);
+      expect(container.read(machineStatusProvider).hasError, isTrue);
+      expect(controller.isPolling, isFalse);
+    });
+  });
+
   group('MachineModel placement', () {
     test('parses floor side and number from machine name', () {
       const model = MachineModel(

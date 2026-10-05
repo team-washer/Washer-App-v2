@@ -30,7 +30,7 @@ iOS는 GitHub Actions 외에 **Xcode Cloud** 경로도 있습니다: `ios/ci_scr
 ### 자동 (평상시)
 `main`에 push(=PR 머지)되면 `release.yml`이 `release-android.yml`·`release-ios.yml`을 동시에 실행 → 그대로 **스토어에 실배포**됩니다.
 - Android: Play production 트랙 즉시 정식 출시.
-- iOS: App Store 심사 자동 제출. 심사 승인 후 **출시는 수동**(`automatic_release: false`). 이미 심사 대기/진행 중 버전이 있으면 이번 제출은 자동 skip.
+- iOS: App Store 심사 자동 제출. 심사 승인 즉시 **자동 출시**(`automatic_release: true`). 이미 심사 대기/진행 중 버전이 있으면 이번 제출은 자동 skip.
 
 ### 수동 (테스트/재실행) — `workflow_dispatch`
 GitHub → **Actions** 탭 → 워크플로우 선택 → **Run workflow**.
@@ -72,8 +72,9 @@ GitHub → **Actions** 탭 → 워크플로우 선택 → **Run workflow**.
 
 ### ⚠️ iOS 심사 스킵 시 What's New 누적 작성
 - iOS 제출이 스킵되면(이전 버전이 `WAITING_FOR_REVIEW`/`IN_REVIEW`/`PENDING_APPLE_RELEASE`/`PROCESSING_FOR_APP_STORE`) **그때 쓴 What's New는 App Store에 반영되지 않습니다.** 다음 릴리스 노트에 **이번 변경사항까지 누적**해서 쓰세요. 스킵되면 Actions 실행 요약에 어떤 버전·어떤 상태 때문인지 경고가 뜹니다.
-- 🚨 **가장 흔한 함정: `PENDING_DEVELOPER_RELEASE`** (심사 통과, 개발자가 출시 버튼 누르기 대기). `automatic_release: false`라 승인된 빌드는 항상 이 상태로 남습니다. **방치하면 이후 iOS 배포가 계속 막힙니다.** 승인 알림을 받으면 App Store Connect에서 **출시** 버튼을 눌러 상태를 비우세요.
-  - 실제로 2026-08-02·08-05 iOS 배포가 이 상태 때문에 연속 실패했습니다(guard 목록에 이 상태가 빠져 있어 그냥 통과한 뒤 Apple이 새 버전 생성을 거부: `You cannot create a new version of the App in the current state`).
+- `PENDING_DEVELOPER_RELEASE`(심사 통과, 개발자가 출시 버튼 누르기 대기)는 2026-08-15부터 자동 출시(`automatic_release: true`)로 바꿔 **새로 생기지 않습니다.** 다만 App Store Connect에서 수동으로 제출한 버전이 이 상태로 남아 있으면 이후 iOS 배포가 계속 막히므로, 그때는 **출시** 버튼을 눌러 상태를 비우세요.
+  - 수동 출시였던 2026-08-02·08-05에 iOS 배포가 이 상태 때문에 연속 실패했습니다(Apple이 새 버전 생성을 거부: `You cannot create a new version of the App in the current state`). 자동 출시로 바꾼 이유입니다.
+  - 출시 시점을 직접 고르려고 `automatic_release: false`로 되돌리면, 승인될 때마다 출시 버튼을 눌러야 다음 배포가 나갑니다.
 - guard에는 **시간이 지나면 저절로 풀리는 상태만** 담겨 있습니다. `REJECTED`·`INVALID_BINARY`처럼 사람이 손봐야 하는 상태는 일부러 제외해 빨갛게 실패시킵니다.
 
 ---

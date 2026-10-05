@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:washer/features/alarm/data/models/alarm_type.dart';
 import 'package:washer/features/alarm/presentation/widgets/alarm_card.dart';
-import 'package:washer/features/alarm/presentation/widgets/alarm_date_divider.dart';
 import 'package:washer/shared/theme/app_spacing.dart';
+import 'package:washer/shared/theme/washer_color.dart';
+import 'package:washer/shared/theme/washer_typography.dart';
 
 /// 화면 표시용으로 가공된 알람 항목 (시간은 포맷된 문자열)
 class AlarmDisplayItem {
@@ -31,7 +32,7 @@ class AlarmDateSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AlarmDateDivider(date: date),
+        _AlarmDateDivider(date: date),
         AppGap.v8,
         ...alarms.map(
           (alarm) => Padding(
@@ -42,6 +43,38 @@ class AlarmDateSection extends StatelessWidget {
               descriptionText: alarm.description,
             ),
           ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 날짜 텍스트를 가운데 두고 양옆에 선을 그려 알람 그룹을 구분하는 위젯
+class _AlarmDateDivider extends StatelessWidget {
+  final String date;
+
+  const _AlarmDateDivider({required this.date});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Expanded(
+          child: Divider(color: WasherColor.baseGray500, thickness: 1),
+        ),
+        Flexible(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text(
+              date,
+              style: WasherTypography.body4(WasherColor.baseGray500),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ),
+        const Expanded(
+          child: Divider(color: WasherColor.baseGray500, thickness: 1),
         ),
       ],
     );

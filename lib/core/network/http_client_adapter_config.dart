@@ -2,14 +2,18 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
+import 'package:flutter/foundation.dart';
 
 /// [allowBadCertificates]가 true일 때만 자체 서명 인증서를 허용하는
 /// HTTP 클라이언트 어댑터를 [dio]에 설정한다. false면 기본 어댑터를 그대로 둔다.
+///
+/// 환경 설정이 잘못 들어와도 release 빌드에서는 인증서 검증을 우회하지 않는다(#321).
 void configureHttpClientAdapter(
   Dio dio, {
   required bool allowBadCertificates,
+  @visibleForTesting bool isReleaseMode = kReleaseMode,
 }) {
-  if (!allowBadCertificates) {
+  if (!allowBadCertificates || isReleaseMode) {
     return;
   }
 

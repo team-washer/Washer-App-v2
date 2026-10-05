@@ -10,7 +10,7 @@ shared/
     washer_color.dart           # 색상 팔레트 (mainColor100~, baseGray, errorColor 등)
     washer_typography.dart      # 텍스트 스타일 (SUIT 폰트, .sp)
     app_spacing.dart            # AppSpacing / AppGap / AppPadding / AppRadius
-    washer_icon.dart            # WasherIconType(SVG), WasherIcon, WasherIconButton
+    washer_icon.dart            # WasherIconType(SVG), WasherIcon
     washer_theme.dart           # ThemeData
     washer_error_message.dart   # 사용자 노출 오류·안내 문구 모음
   ui/
@@ -30,19 +30,21 @@ shared/
       laundry_action_dialog.dart    # 예약 취소 확인 다이얼로그
       laundry_status_dialog.dart    # 기기 현황 다이얼로그 (사용 가능하면 예약하기)
       dialog_info_row.dart, force_update_dialog.dart
-    buttons/                    # WasherBigButton, WasherSmallButton, WasherTextButton
+    buttons/                    # WasherBigButton, WasherSmallButton, WasherTextButton, WasherIconButton
     indicators/                 # StatusBadge, StatusDot
-    error_toast.dart            # showErrorToast (BuildContext / OverlayState 확장)
+    washer_toast.dart           # WasherToast(error/success/info) + showToast (BuildContext / OverlayState 확장)
     loading_overlay.dart        # showLoadingWhile, runWithLoadingOverlay
 ```
 
 ## 주요 흐름
 
-**에러 토스트** (`ui/error_toast.dart`)
+**토스트** (`ui/washer_toast.dart`)
 
-- 사용자에게 보여주는 메시지(오류, 입력 검증, 성공·안내)는 모두 에러 토스트로 띄웁니다. `SnackBar`는 쓰지 않습니다.
-- context가 유효할 때는 `context.showErrorToast(error)`를 씁니다.
-- 비동기 작업 뒤에는 미리 캡처한 `Overlay.of(context, rootOverlay: true).showErrorToast(error)`를 씁니다.
+- 사용자에게 보여주는 메시지(오류, 입력 검증, 성공·안내)는 모두 토스트로 띄웁니다. `SnackBar`는 쓰지 않습니다.
+- 종류는 factory로 고릅니다: `WasherToast.error(error)`, `WasherToast.success('...')`, `WasherToast.info('...')`.
+- 토스트는 한 번에 하나만 보이고 나머지는 순서대로 대기합니다. 종류와 메시지가 같은 토스트는 최신 것 하나만 보여줍니다.
+- context가 유효할 때는 `context.showToast(WasherToast.error(error))`를 씁니다.
+- 비동기 작업 뒤에는 미리 캡처한 `Overlay.of(context, rootOverlay: true).showToast(...)`를 씁니다.
 - 넘긴 값은 `AppException.from`으로 변환됩니다.
   - 문자열을 그대로 넘기면 "알 수 없는 오류"가 되므로 `AppException(message: '...')`로 감쌉니다.
   - 취소된 요청(`isCancelled`)은 띄우지 않습니다.
@@ -68,7 +70,7 @@ shared/
 
 - `MainShell`은 `alarmProvider`를 구독해 알림 뱃지를 표시합니다.
 - 현재 탭을 다시 누르면 그 탭의 첫 화면으로 돌아갑니다.
-- 앱바 알림 버튼을 누르면 현재 탭 아래의 `alarm` 경로로 push합니다.
+- 앱바 알림 버튼을 누르면 현재 탭 아래의 `alarm` 경로로 push합니다. 이미 알림 화면이면 다시 push하지 않습니다.
 - 설정 메뉴에서 로그아웃(`logoutProvider`)과 회원탈퇴(`withdrawProvider`)를 실행합니다.
 
 ## 의존성
@@ -95,4 +97,5 @@ shared/
 `test/shared/` 아래에 있습니다.
 
 - `dialog_action_test.dart`
-- `error_toast_test.dart`
+- `washer_toast_test.dart`
+- `washer_app_bar_test.dart`

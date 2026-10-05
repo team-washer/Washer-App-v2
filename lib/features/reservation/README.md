@@ -35,8 +35,9 @@ reservation/
       reservation_exceptions.dart        # 도메인 예외, ReservationErrorCause, ReservationException
       reservation_error_mapper.dart      # 실패 → ReservationException 정규화
     screens/reservation_screen.dart
-    widgets/                             # reservation_machine_list, machine_reservation_card, machine_card_*_footer,
-                                         # floor_selector_row, laundry_layout_dialog, *_countdown_text 등
+    widgets/                             # reservation_machine_list, machine_reservation_card(+ _MachineHistoryIconButton),
+                                         # machine_card_footer(+ _MachineCardCleaningFooter, _MachineCardUnavailableFooter),
+                                         # machine_card_*_footer, floor_selector_row, laundry_layout_dialog 등
 ```
 
 repository 없이 provider가 data source를 직접 사용합니다.
@@ -65,7 +66,7 @@ repository 없이 provider가 data source를 직접 사용합니다.
 | `reservationActionProvider` | `AsyncNotifier<ActiveReservationModel?>` | `reserve()`, `cancel()`. 같은 대상의 중복 요청은 single-flight로 합침(#261) |
 | `reservationSyncControllerProvider` | `Provider<ReservationSyncController>` | `startPolling()`, `stopPolling()`, `syncActiveReservation()`, 기존 예약 polling 복구 |
 | `clockProvider` | `StreamProvider<DateTime>` | 1초 시계. 카운트다운 텍스트만 구독 |
-| `pollingErrorProvider` | `StateProvider<AppException?>` | 조회·polling 실패 안내. `HomeBody`가 토스트로 띄움 |
+| `pollingErrorProvider` | `StateProvider<AppException?>` | 조회·polling 실패 안내. home의 `_HomeBody`가 토스트로 띄움 |
 
 ## 동작 흐름
 
@@ -142,7 +143,7 @@ LaundryActionDialog(cancelReservation) → runDialogAction(LaundryDialogActions.
 - 예약 실패 문구는 `reservationErrorToAppException`이 정합니다.
   - 분류 순서: 도메인 예외 → 서버 `errorCode` → 400/409 상태 코드와 액션
   - UI는 문구 문자열이 아니라 `ReservationErrorCause`로 분기합니다.
-- 카운트다운처럼 1초마다 바뀌는 텍스트는 별도 위젯(`*_countdown_text.dart`)으로 분리해 재빌드 범위를 줄입니다.
+- 카운트다운처럼 1초마다 바뀌는 텍스트는 별도 위젯(예: `machine_card_reserved_by_me_footer.dart`의 `_ReservedByMeCountdownText`)으로 분리해 재빌드 범위를 줄입니다. 같은 파일의 private 위젯이어도 위젯 클래스가 따로면 재빌드 범위는 같습니다.
 - 예약 확인 뒤 만료 시간은 `reservationExpiryMinutes`(5분)입니다.
 
 ## 테스트

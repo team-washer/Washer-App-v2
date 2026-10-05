@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:washer/core/network/auth_notifier.dart';
 import 'package:washer/core/network/error.dart';
 import 'package:washer/core/network/session_generation_provider.dart';
+import 'package:washer/core/notifications/fcm_sync_trigger.dart';
 import 'package:washer/features/alarm/data/models/alarm_type.dart';
 import 'package:washer/features/alarm/data/models/local/alarm_model.dart';
 import 'package:washer/features/alarm/data/repositories/alarm_repository.dart';
@@ -27,6 +28,15 @@ class _ControlledAlarmRepository implements AlarmRepository {
   final requests = <Completer<List<AlarmModel>>>[];
 
   @override
+  void enableFcmRegistration() {}
+
+  @override
+  void enableFcmRegistrationForExistingSession() {}
+
+  @override
+  void disableFcmRegistration({bool blockUntilLogin = false}) {}
+
+  @override
   Future<List<AlarmModel>> fetchAlarms() {
     final completer = Completer<List<AlarmModel>>();
     requests.add(completer);
@@ -37,10 +47,22 @@ class _ControlledAlarmRepository implements AlarmRepository {
   Future<void> deleteAllNotifications() async {}
 
   @override
-  Future<void> registerCurrentFcmToken() async {}
+  Future<void> registerCurrentFcmToken({
+    FcmSyncTrigger trigger = FcmSyncTrigger.manual,
+  }) async {}
+
+  @override
+  Future<void> registerFcmToken(
+    String fcmToken, {
+    FcmSyncTrigger trigger = FcmSyncTrigger.tokenRefresh,
+    bool forceServerSync = false,
+  }) async {}
 
   @override
   Future<void> deleteFcmToken() async {}
+
+  @override
+  void dispose() {}
 }
 
 /// 호실 목록·내 예약 응답 시점을 테스트가 직접 제어하는 fake.

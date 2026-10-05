@@ -19,31 +19,32 @@
 ```
 home/
   presentation/
-    screens/home_screen.dart              # HomeBody만 감싸는 최상위 화면
+    screens/home_screen.dart              # 최상위 화면
+                                          #   + _HomeBody: provider 구독, 새로고침·resume·오류 토스트 조율
+                                          #   + _HomeErrorView: 기기 현황 조회 실패 + 재시도
     widgets/
-      home_body.dart                      # provider 구독, 새로고침·resume·오류 토스트 조율
-      home_error_view.dart                # 기기 현황 조회 실패 + 재시도
       my_reservation_section.dart         # 예약 현황 섹션
       my_reservation_card.dart            # 활성 예약 카드 한 장
+                                          #   + _MyReservationCancelButton: 예약 취소 → LaundryActionDialog
       my_reservation_status_body.dart     # 상태(laundryStatus)별 본문
-      my_reservation_cancel_button.dart   # 예약 취소 → LaundryActionDialog
-      reservation_expiry_text.dart        # 예약 만료 카운트다운 (clockProvider)
-      in_use_countdown_text.dart          # 남은 사용 시간 (clockProvider)
+                                          #   + _ReservationExpiryText: 예약 만료 카운트다운 (clockProvider)
+                                          #   + _InUseCountdownText: 남은 사용 시간 (clockProvider)
       machine_status_section.dart         # 기기 현황 섹션(헤더 + 그리드 sliver), 배치 순 정렬
-      machine_section_header.dart         # 섹션 제목 + 전체보기
+                                          #   + _MachineSectionHeader: 섹션 제목 + 전체보기
       machine_status_tile.dart            # 기기 타일 → LaundryStatusDialog
 ```
 
 ## 동작 흐름
 
 ```
-HomeBody
+_HomeBody (home_screen.dart)
   initState (첫 프레임 후)
+    → reservationSyncControllerProvider 초기화    # 기존 내 활성 예약 polling 복구
     → activeReservationProvider.ensureLoaded()     # 호실 활성 예약 최초 1회
     → alarmProvider.fetchAlarmList()               # 알림 뱃지
   build
-    → ref.listen(pollingErrorProvider) → showErrorToast 후 null로 초기화
-    → machineStatusProvider.when(loading / error: HomeErrorView / data)
+    → ref.listen(pollingErrorProvider) → WasherToast.error 후 null로 초기화
+    → machineStatusProvider.when(loading / error: _HomeErrorView / data)
     → 호실: myUserProvider.roomNumber → 없으면 첫 활성 예약의 userRoomNumber
     → 층 필터 → washer/dryer 분리 → MyReservationSection + MachineStatusSection x2
   당겨서 새로고침
@@ -54,7 +55,7 @@ HomeBody
 
 ## 의존성
 
-- 사용: `reservation`(`machineStatusProvider`, `activeReservationProvider`, `clockProvider`, `pollingErrorProvider`, 모델), `user`(`myUserProvider`), `alarm`(`alarmProvider`), `core/enums`, `core/utils`(`RoomFormatter`, `DateTimeFormatter`), `core/constants`, `core/router`, `shared/ui/dialog`(`LaundryStatusDialog`, `LaundryActionDialog`), `shared/ui/error_toast`
+- 사용: `reservation`(`machineStatusProvider`, `activeReservationProvider`, `clockProvider`, `pollingErrorProvider`, 모델), `user`(`myUserProvider`), `alarm`(`alarmProvider`), `core/enums`, `core/utils`(`RoomFormatter`, `DateTimeFormatter`), `core/constants`, `core/router`, `shared/ui/dialog`(`LaundryStatusDialog`, `LaundryActionDialog`), `shared/ui/washer_toast`
 - 이 모듈을 쓰는 곳: `core/router`(`HomeScreen`)
 
 ## 주의사항

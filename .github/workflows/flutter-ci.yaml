@@ -83,33 +83,46 @@ jobs:
         run: fvm flutter test
 
       # Discord 알림
+      # PR 제목·커밋 메시지 같은 외부 텍스트는 스크립트에 직접 끼워 넣지 않고 env로만
+      # 넘겨 셸 변수로 참조하고, payload는 jq로 직렬화한다(#315). 웹훅 URL은 출력하지 않는다.
       - name: Discord notification
         if: always()
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          EVENT_NAME: ${{ github.event_name }}
+          JOB_STATUS: ${{ job.status }}
+          PR_NUMBER: ${{ github.event.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          COMMIT_URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
         run: |
           if [ -z "$DISCORD_WEBHOOK" ]; then
             echo "::warning::Discord webhook URL is not set. Skipping notification."
             exit 0
           fi
-          
-          SERVER_URL="${{ github.server_url }}"
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            EVENT_INFO="PR #${{ github.event.number }}: ${{ github.event.pull_request.title }} (${{ github.event.pull_request.html_url }})"
+
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            EVENT_INFO="PR #$PR_NUMBER: $PR_TITLE ($PR_URL)"
           else
-            EVENT_INFO="커밋: ${{ github.event.head_commit.message }} ($SERVER_URL/${{ github.repository }}/commit/${{ github.sha }})"
+            EVENT_INFO="커밋: $COMMIT_MESSAGE ($COMMIT_URL)"
           fi
-          
-          FLUTTER_INFO="Flutter 버전: ${{ env.FLUTTER_VERSION }}"
-          
-          if [ "${{ job.status }}" = "success" ]; then
+
+          FLUTTER_INFO="Flutter 버전: ${FLUTTER_VERSION:-unknown}"
+
+          if [ "$JOB_STATUS" = "success" ]; then
             TITLE="✅ CI/CD 파이프라인 성공"
-            DESCRIPTION="모든 작업이 성공적으로 완료되었습니다! 🎉\n$FLUTTER_INFO"
+            DESCRIPTION="모든 작업이 성공적으로 완료되었습니다! 🎉"
           else
             TITLE="❌ CI/CD 파이프라인 실패"
-            DESCRIPTION="GitHub Actions 로그를 확인해주세요. 🔍\n$FLUTTER_INFO"
+            DESCRIPTION="GitHub Actions 로그를 확인해주세요. 🔍"
           fi
-          
-          curl -H "Content-Type: application/json" -X POST -d "{
-            \"content\": \"$TITLE\n$DESCRIPTION\n$EVENT_INFO\"
-          }" "$DISCORD_WEBHOOK"
+
+          jq -n \
+            --arg title "$TITLE" \
+            --arg description "$DESCRIPTION" \
+            --arg flutter "$FLUTTER_INFO" \
+            --arg event "$EVENT_INFO" \
+            '{content: ([$title, $description, $flutter, $event] | join("\n"))}' \
+            | curl -sS -o /dev/null -H "Content-Type: application/json" -X POST \
+              --data-binary @- "$DISCORD_WEBHOOK"

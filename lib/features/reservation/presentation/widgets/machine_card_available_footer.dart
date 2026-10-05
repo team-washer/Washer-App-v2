@@ -9,6 +9,7 @@ import 'package:washer/features/reservation/presentation/providers/reservation_s
 import 'package:washer/features/reservation/presentation/widgets/machine_card_layout_helpers.dart';
 import 'package:washer/shared/theme/washer_color.dart';
 import 'package:washer/shared/theme/washer_icon.dart';
+import 'package:washer/shared/ui/buttons/washer_icon_button.dart';
 import 'package:washer/shared/theme/app_spacing.dart';
 import 'package:washer/shared/theme/washer_typography.dart';
 import 'package:washer/shared/ui/buttons/washer_big_button.dart';

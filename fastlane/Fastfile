@@ -420,13 +420,14 @@ platform :android do
   # versionCode 는 Play 의 모든 트랙에 올라간 값보다 커야 한다.
   # run number 는 워크플로마다 따로 세서(release.yml 호출 · 수동 실행) 그것만으로는 증가를 보장하지 못하므로,
   # Play 에서 트랙별 versionCode 를 조회해 "최고값 + 1" 과 워크플로가 넘긴 값(1000 + run number) 중 큰 값을 쓴다.
-  # 조회는 읽기 전용이라 dry run 에서도 실행해 키·권한 문제를 미리 드러낸다. 키가 없으면 워크플로 값을 그대로 쓴다.
+  # ⚠️ 조회도 Play 에 edit 를 새로 만들어, 동시에 진행 중인 업로드의 edit 를 지운다("This Edit has been deleted").
+  #    그래서 업로드하지 않는 dry run 에서는 조회하지 않고 워크플로 값을 그대로 쓴다.
   private_lane :next_play_version_code do
     base = ENV.fetch("ANDROID_BUILD_NUMBER").to_i
     json_key_data = ENV["SUPPLY_JSON_KEY_DATA"].to_s
 
-    if json_key_data.empty?
-      UI.important("SUPPLY_JSON_KEY_DATA 가 없어 Play versionCode 조회를 건너뜀 — #{base} 사용")
+    if ENV["DRY_RUN"] == "true" || json_key_data.empty?
+      UI.important("dry run 이거나 SUPPLY_JSON_KEY_DATA 가 없어 Play versionCode 조회를 건너뜀 — #{base} 사용")
       next base.to_s
     end
 

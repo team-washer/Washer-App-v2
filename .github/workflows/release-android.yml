@@ -1,14 +1,24 @@
 name: Release - Android Play Store
 
-# main 에 push(머지)되면 Play Store production 트랙으로 자동 출시한다.
+# main 에 push(머지)되면 release.yml 이 이 워크플로우를 호출해 Play Store production 트랙으로 자동 출시한다.
+# (Discord 배포 알림은 release.yml 이 iOS·Android 결과를 모아 한 번에 보낸다)
 # - 베타(internal) 배포는 cd-android.yml 이 따로 담당(같은 main push 로 동시 동작).
 # - 버전명은 pubspec.yaml, versionCode 는 run number 로 고정(중복 방지).
 # ⚠️ 신규 앱은 콘솔에서 production 최초 출시를 1회 수동 진행해야 이후 API 출시가 가능하다.
 on:
-  push:
-    branches:
-      - main
-  # 수동 실행(테스트용). dry_run=true 면 AAB 빌드/서명까지만 하고 Play Store 업로드는 건너뛴다.
+  workflow_call:
+    inputs:
+      dry_run:
+        type: boolean
+        default: false
+    outputs:
+      result:
+        description: "Fastfile CD_RESULT (JSON)"
+        value: ${{ jobs.release.outputs.result }}
+      configured:
+        description: "GOOGLE_PLAY_JSON_KEY 설정 여부"
+        value: ${{ jobs.guard.outputs.configured }}
+  # 수동 실행(테스트용, 알림 없음). dry_run=true 면 AAB 빌드/서명까지만 하고 Play Store 업로드는 건너뛴다.
   workflow_dispatch:
     inputs:
       dry_run:
@@ -16,8 +26,9 @@ on:
         type: boolean
         default: true
 
+# release.yml 에서 호출되면 github.workflow 가 호출한 쪽 이름이 되므로 그룹 이름을 고정한다.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: release-android-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -45,8 +56,10 @@ jobs:
     name: Build & Release to Play Store (production)
     needs: guard
     # 실배포는 Play Store 키가 있을 때만. dry-run(테스트)은 키 없이도 빌드 검증을 위해 실행.
-    if: needs.guard.outputs.configured == 'true' || github.event.inputs.dry_run == 'true'
+    if: needs.guard.outputs.configured == 'true' || inputs.dry_run
     runs-on: ubuntu-latest
+    outputs:
+      result: ${{ steps.fastlane.outputs.result }}
 
     steps:
       - name: Checkout
@@ -125,12 +138,13 @@ jobs:
           echo "ANDROID_BUILD_NUMBER=$((1000 + GITHUB_RUN_NUMBER))" >> "$GITHUB_ENV"
 
       - name: Release to Play Store (production)
+        id: fastlane
         env:
           # Google Play API 서비스 계정 키 (google-services.json과 다른 별도 키)
           # Google Play Console → 설정 → API 액세스 → 서비스 계정에서 발급
           SUPPLY_JSON_KEY_DATA: ${{ secrets.GOOGLE_PLAY_JSON_KEY }}
-          # workflow_dispatch 의 dry_run 입력 전달 (push 트리거 시 빈 값 → 실배포)
-          DRY_RUN: ${{ github.event.inputs.dry_run }}
+          # dry_run 입력 전달 (main push 로 호출되면 false → 실배포)
+          DRY_RUN: ${{ inputs.dry_run }}
         run: bundle exec fastlane android release_play_store
 
       - name: Cleanup sensitive files

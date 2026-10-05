@@ -24,7 +24,7 @@ alarm/
     providers/alarm_provider.dart            # AlarmNotifier (목록 조회·화면 이탈 시 정리)
     states/alarm_state.dart                  # AlarmStatus(initial/loading/success/error) + 목록
     screens/alarm_screen.dart
-    widgets/                                 # alarm_list(+ _AlarmListBody), alarm_date_section(+ _AlarmCard, _AlarmDateDivider)
+    widgets/                                 # alarm_list(+ _AlarmListBody), alarm_date_section(+ _AlarmDateDivider), alarm_card(테스트에서 직접 써서 public 유지)
 ```
 
 ## 레이어
@@ -64,10 +64,16 @@ _HomeBody 진입 / AlarmList initState
 ```
 AlarmList.dispose
   → AlarmNotifier.clearAllOnLeave()
+  → (이미 정리 중이면 새로 시작하지 않고 진행 중인 정리를 함께 기다림)
+  → (목록이 비어 있으면 _hasLoaded = false만 하고 끝냄. 삭제·재조회 없음)
   → deleteAllNotifications()              # DELETE notifications (실패해도 예외 없음)
-  → fetchAlarmList(force: true)           # 서버 기준으로 다시 맞춤 (로컬을 임의로 비우지 않음)
+  → 목록 재조회                           # 서버 기준으로 다시 맞춤 (로컬을 임의로 비우지 않음)
   → _hasLoaded = false                    # 다음 진입 시 새로 조회
 ```
+
+- 정리(삭제 → 재조회)가 끝나기 전에 알림 화면에 다시 들어오면 `fetchAlarmList()`는 정리가 끝날 때까지 기다린 뒤 한 번 더 조회합니다. 정리 중의 응답에는 그 사이 생긴 알림이 빠져 있을 수 있기 때문입니다. 평소 진입·이탈에서는 추가 조회가 없습니다.
+- 정리 중에 세션이 바뀌면 새 세션의 조회는 정리를 기다리지 않고, 이전 세션의 정리는 재조회·로드 플래그 초기화를 하지 않습니다.
+- 조회 응답은 가장 최근에 시작한 조회의 것만 반영합니다. 화면을 떠나기 전에 시작한 조회가 늦게 성공해도 목록·뱃지에는 반영하지만 로드 플래그는 다시 세우지 않아, 다음 진입에서 새로 조회합니다.
 
 **FCM 토큰** (`auth`에서 호출)
 
@@ -82,9 +88,12 @@ AlarmList.dispose
 ## 주의사항
 
 - 알림 화면은 탭마다 하위 경로(`/home/alarm`, `/washer/alarm`, `/dryer/alarm`)로 열립니다. `RoutePaths.alarmSubRoute` 참고
-- 서버가 새 알림 타입을 추가해도 목록이 깨지지 않도록 `AlarmType.unknown`으로 폴백합니다. 새 타입을 지원하려면 `alarm_type.dart`와 `_AlarmCard._titleFor`(`alarm_date_section.dart`)를 함께 수정합니다.
+- 서버가 새 알림 타입을 추가해도 목록이 깨지지 않도록 `AlarmType.unknown`으로 폴백합니다. 새 타입을 지원하려면 `alarm_type.dart`와 `AlarmCard._titleFor`를 함께 수정합니다.
+- 서버는 세탁기·건조기에 같은 `COMPLETION`·`MALFUNCTION` 타입을 쓰고 기기 종류를 내려주지 않습니다. 그래서 두 타입의 카드 제목은 `이용 완료`·`기기 이상`처럼 기기 종류와 무관한 문구로 표시합니다.
 - `dispose`에서는 `ref`를 쓸 수 없어서 `initState`에서 notifier를 미리 캡처해 둡니다.
 
 ## 테스트
 
 - `test/features/alarm/alarm_type_test.dart`
+- `test/features/alarm/alarm_provider_test.dart` (화면 이탈 후 재진입 조회. 빈 목록, 정리 중 재진입, 겹친 정리, 세션 전환, 이탈 전 조회의 늦은 응답 포함)
+- `test/features/alarm/alarm_card_test.dart`

@@ -1,55 +1,43 @@
-name: Release - iOS App Store
+name: Manual - iOS TestFlight
 
-# main 에 push(머지)되면 release.yml 이 이 워크플로우를 호출해 App Store 심사에 자동 제출한다.
-# (Discord 배포 알림은 release.yml 이 iOS·Android 결과를 모아 한 번에 보낸다)
-# - 마케팅 버전은 pubspec.yaml 의 version (Android 와 동일 출처)
-#   ASC 최고 버전 이하면 archive 전에 실패한다 (Fastfile assert_appstore_version_available)
-# - 릴리스 노트는 머지 커밋 메시지(PR 제목)에서 가져옴, 없으면 기본 문구
-# TestFlight 배포는 cd-ios.yml 이 따로 담당(같은 main push 로 동시 동작).
-# ⚠️ Apple 은 한 번에 버전 1개만 심사 → main 은 릴리스용으로 사용 권장.
 on:
-  workflow_call:
-    inputs:
-      dry_run:
-        type: boolean
-        default: false
-    outputs:
-      result:
-        description: "Fastfile CD_RESULT (JSON)"
-        value: ${{ jobs.release.outputs.result }}
-  # 수동 실행(테스트용, 알림 없음). dry_run=true 면 빌드/서명(archive)까지만 하고 App Store 업로드는 건너뛴다.
   workflow_dispatch:
     inputs:
-      dry_run:
-        description: "빌드/서명까지만 하고 App Store 업로드는 건너뜀 (테스트용)"
-        type: boolean
-        default: true
+      changelog:
+        description: TestFlight test notes
+        required: false
+        default: "iOS TestFlight test build"
 
-# release.yml 에서 호출되면 github.workflow 가 호출한 쪽 이름이 되므로 그룹 이름을 고정한다.
+permissions:
+  contents: read
+
 concurrency:
-  group: release-ios-${{ github.ref }}
+  group: manual-ios-testflight-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  release:
-    name: Build & Submit to App Store
+  upload-testflight:
+    name: Build & Upload to TestFlight
     runs-on: macos-latest
-    outputs:
-      result: ${{ steps.fastlane.outputs.result }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Checkout selected branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          fetch-depth: 0 # annotated 태그 메시지를 읽기 위해 전체 히스토리/태그 fetch
+          fetch-depth: 0
+
+      - name: Show selected revision
+        run: |
+          echo "Branch: $GITHUB_REF_NAME"
+          echo "Commit: $GITHUB_SHA"
 
       - name: Set up Xcode
-        uses: maxim-lobanov/setup-xcode@v1
+        uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1
         with:
           xcode-version: latest-stable
 
       - name: Set up Dart
-        uses: dart-lang/setup-dart@v1
+        uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1
 
       - name: Install FVM
         run: |
@@ -62,7 +50,7 @@ jobs:
           fvm use --force
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@e8944e80fb94b20106697132f8c20c665fab29e9 # v1
         with:
           ruby-version: '3.3'
           bundler-cache: true
@@ -70,7 +58,7 @@ jobs:
       - name: Export CocoaPods bin to PATH
         run: |
           bundle binstubs cocoapods
-          echo "$GITHUB_WORKSPACE/bin" >> $GITHUB_PATH
+          echo "$GITHUB_WORKSPACE/bin" >> "$GITHUB_PATH"
 
       - name: Flutter pub get
         run: fvm flutter pub get
@@ -117,16 +105,13 @@ jobs:
           security create-keychain -p "$IOS_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
           security unlock-keychain -p "$IOS_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security import "$CERTIFICATE_PATH" -P "$IOS_P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH" || {
-            echo "::error::Failed to import certificate into keychain."
-            exit 1
-          }
+          security import "$CERTIFICATE_PATH" -P "$IOS_P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
           security list-keychain -d user -s "$KEYCHAIN_PATH" $(security list-keychain -d user | tr -d '"')
           security set-key-partition-list -S apple-tool:,apple: -k "$IOS_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
 
           CERT_OUTPUT=$(security find-identity -v -p codesigning "$KEYCHAIN_PATH")
           echo "$CERT_OUTPUT"
-          if echo "$CERT_OUTPUT" | grep -qE "^\s+0 valid identities found"; then
+          if echo "$CERT_OUTPUT" | grep -qE "^[[:space:]]*0 valid identities found"; then
             echo "::error::No valid signing certificate found in keychain."
             exit 1
           fi
@@ -139,65 +124,52 @@ jobs:
             echo "::error::Failed to extract UUID from provisioning profile."
             exit 1
           fi
-          if [ ! -f "$HOME/Library/MobileDevice/Provisioning Profiles/build_pp.mobileprovision" ]; then
-            echo "::error::Provisioning profile not found in Provisioning Profiles directory."
-            exit 1
-          fi
           echo "IOS_PROVISIONING_PROFILE_UUID=$PROFILE_UUID" >> "$GITHUB_ENV"
 
       - name: Resolve iOS version metadata
         run: |
-          # 마케팅 버전은 Android 와 동일하게 pubspec.yaml 을 단일 출처로 쓴다.
           VERSION_LINE="$(grep '^version:' pubspec.yaml | head -n 1 | awk '{print $2}')"
           VERSION_NAME="${VERSION_LINE%%+*}"
+          BASE_BUILD_NUMBER="${VERSION_LINE#*+}"
 
-          if [ -z "$VERSION_NAME" ]; then
-            echo "::error::Unable to parse version from pubspec.yaml"
+          if [ -z "$VERSION_NAME" ] || [ -z "$BASE_BUILD_NUMBER" ] || \
+             [ "$BASE_BUILD_NUMBER" = "$VERSION_LINE" ]; then
+            echo "::error::Unable to parse version and build number from pubspec.yaml"
             exit 1
           fi
+
+          BUILD_NUMBER="${BASE_BUILD_NUMBER}.${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}"
 
           echo "IOS_VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
-          # 빌드번호는 run number 로 고정(App Store 빌드 중복 방지).
-          echo "IOS_BUILD_NUMBER=${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+          echo "IOS_BUILD_NUMBER=$BUILD_NUMBER" >> "$GITHUB_ENV"
 
-      - name: Verify release notes
-        run: |
-          # What's New 는 레포에 커밋된 이 파일이 단일 출처다. (Android/supply 도 같은 파일을 씀)
-          # 과거엔 없으면 커밋 메시지로 자동 생성했지만, 그러면 Android 와 내용이 갈리고
-          # 빈약한 노트로 심사 반려될 수 있어 없으면 실패시킨다.
-          # (main 으로 가는 PR 은 flutter-ci.yaml 의 release_metadata_check 가 미리 검증)
-          NOTES_PATH="fastlane/metadata/ko/release_notes.txt"
-          if [ ! -s "$NOTES_PATH" ] || [ -z "$(tr -d '[:space:]' < "$NOTES_PATH")" ]; then
-            echo "::error file=$NOTES_PATH::What's New 가 비어 있습니다. 이번 릴리스 내용을 작성해주세요."
-            exit 1
-          fi
-          echo "----- release_notes (ko) -----"
-          cat "$NOTES_PATH"
-
-      - name: Verify signing prerequisites
-        run: |
-          if [ -z "$IOS_PROVISIONING_PROFILE_UUID" ]; then
-            echo "::error::IOS_PROVISIONING_PROFILE_UUID is empty."
-            exit 1
-          fi
-          if [ -z "$IOS_BUILD_NUMBER" ]; then
-            echo "::error::IOS_BUILD_NUMBER is empty."
-            exit 1
-          fi
-          echo "Build number: $IOS_BUILD_NUMBER"
-          echo "Profile UUID: $IOS_PROVISIONING_PROFILE_UUID"
-
-      - name: Build & Submit to App Store
-        id: fastlane
+      - name: Verify upload prerequisites
         env:
           APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          # dry_run 입력 전달 (main push 로 호출되면 false → 실제 심사 제출)
-          DRY_RUN: ${{ inputs.dry_run }}
-        run: bundle exec fastlane ios release_appstore
+        run: |
+          if [ -z "$IOS_PROVISIONING_PROFILE_UUID" ] || [ -z "$IOS_VERSION_NAME" ] || \
+             [ -z "$IOS_BUILD_NUMBER" ]; then
+            echo "::error::iOS build metadata is missing."
+            exit 1
+          fi
+          if [ -z "$APP_STORE_CONNECT_API_KEY" ] || [ -z "$APP_STORE_CONNECT_KEY_ID" ] || \
+             [ -z "$APP_STORE_CONNECT_ISSUER_ID" ]; then
+            echo "::error::App Store Connect secrets are missing."
+            exit 1
+          fi
+          echo "Version: $IOS_VERSION_NAME ($IOS_BUILD_NUMBER)"
 
-      - name: Clean up keychain and provisioning profile
+      - name: Build and upload to TestFlight
+        env:
+          APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          TESTFLIGHT_CHANGELOG: ${{ inputs.changelog }}
+        run: bundle exec fastlane ios upload_testflight
+
+      - name: Clean up signing files
         if: always()
         run: |
           security delete-keychain "$RUNNER_TEMP/app-signing.keychain-db" || true

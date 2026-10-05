@@ -7,11 +7,55 @@ RELEASE_NOTES_PATH = "fastlane/metadata/ko/release_notes.txt"
 PLAY_CHANGELOG_LOCALE = "ko-KR"
 PLAY_CHANGELOG_LIMIT = 500
 
+require "json"
+
+# 이번 배포 결과. lane 이 채우고 after_all/error 블록이 step output(result)으로 넘긴다.
+# Discord 알림은 release.yml 의 notify 잡이 iOS·Android 결과를 모아 배포당 한 번만 보낸다.
+# status: success | dry_run | skipped | failure
+CD_RESULT = { warnings: [] }
+
+def record_cd_result(status:, summary:)
+  CD_RESULT[:status] = status
+  CD_RESULT[:summary] = summary
+end
+
+# 배포는 계속 진행되지만 알림에 같이 실어야 하는 문제 (예: dSYM 업로드 실패)
+def add_cd_warning(title:, cause:)
+  CD_RESULT[:warnings] << { title: title, cause: cause.to_s[0, 300] }
+end
+
+# 실패한 lane 과 마지막으로 실행된 action 을 기록한다.
+# (lane 본문에서 직접 난 오류일 수도 있어 action 을 단정하지 않고 "마지막 작업"으로 표시)
+def record_cd_failure(lane:, exception:)
+  last_action = Fastlane::Actions.executed_actions.last
+  # private_lane 호출은 "Switch to ios <lane> lane" 으로 기록되므로 lane 이름만 남긴다.
+  last_name = last_action.is_a?(Hash) ? last_action[:name].to_s.sub(/\ASwitch to \w+ (\w+) lane\z/, '\1')[0, 80] : ""
+  failed_step = last_name.empty? ? lane.to_s : "#{lane} (마지막 작업: #{last_name})"
+  CD_RESULT.merge!(status: "failure", failed_step: failed_step, cause: exception.message.to_s[0, 300])
+end
+
+# GitHub Actions 의 step output 으로 기록한다. to_json 은 한 줄이라 `key=value` 형식 그대로 쓸 수 있다.
+def write_cd_result
+  output = ENV["GITHUB_OUTPUT"].to_s
+  return if output.empty?
+
+  File.open(output, "a") { |f| f.puts("result=#{CD_RESULT.to_json}") }
+end
+
 default_platform(:ios)
 
 platform :ios do
   TEAM_ID = "UB2797YAAH"
   BUNDLE_ID = "com.washer.v2"
+
+  after_all do |_lane|
+    write_cd_result
+  end
+
+  error do |lane, exception|
+    record_cd_failure(lane: lane, exception: exception)
+    write_cd_result
+  end
 
   desc "Build the iOS app and upload it to TestFlight without submitting for review (main 머지마다)"
   lane :upload_testflight do
@@ -28,6 +72,7 @@ platform :ios do
 
     if skip_upload
       UI.success("SKIP_TESTFLIGHT_UPLOAD=true — archive 검증 완료, TestFlight 업로드는 건너뜀")
+      record_cd_result(status: "dry_run", summary: "archive 검증 완료 (TestFlight 업로드 건너뜀)")
       next
     end
 
@@ -38,6 +83,7 @@ platform :ios do
       notify_external_testers: false,
       changelog: ENV["TESTFLIGHT_CHANGELOG"]
     )
+    record_cd_result(status: "success", summary: "TestFlight 업로드 (#{ENV['IOS_BUILD_NUMBER']})")
   end
 
   desc "Build the iOS app and submit it to App Store review (main 머지마다)"
@@ -66,6 +112,9 @@ platform :ios do
         end
         UI.important(msg)
         puts "::warning::#{msg}"
+        skip_reason = "#{blocking.version_string} 이 #{blocking.app_store_state} 상태"
+        skip_reason += " — App Store Connect 에서 '출시' 필요" if blocking.app_store_state == "PENDING_DEVELOPER_RELEASE"
+        record_cd_result(status: "skipped", summary: skip_reason)
         next
       end
     end
@@ -85,6 +134,7 @@ platform :ios do
 
     if dry_run
       UI.success("DRY_RUN=true — iOS 빌드/서명(archive) 완료, App Store 업로드는 건너뜀")
+      record_cd_result(status: "dry_run", summary: "빌드/서명 완료 (App Store 업로드 건너뜀)")
       next
     end
 
@@ -114,6 +164,7 @@ platform :ios do
         add_id_info_uses_idfa: false
       }
     )
+    record_cd_result(status: "success", summary: "App Store 심사 제출 (#{ENV['IOS_BUILD_NUMBER']})")
   end
 
   # App Store Connect API 키를 만들어 Hash 로 반환한다.
@@ -254,10 +305,50 @@ platform :ios do
       output_directory: File.join(WORKSPACE, "build", "ios", "ipa"),
       clean: true
     )
+
+    upload_crashlytics_dsym
+  end
+
+  # Crashlytics 가 iOS 크래시 스택 트레이스를 심볼화할 수 있도록 build_app 이 만든 dSYM 을 업로드한다.
+  # 업로드가 실패해도 배포까지 막지는 않는다. 대신 job 이 성공으로 끝나 묻히지 않도록
+  # Actions 경고를 남기고, 배포 결과 알림(CD_RESULT warnings)에 원인을 함께 싣는다.
+  # (dSYM 이 빠진 버전은 콘솔의 "누락된 dSYM" 안내를 보고 수동 업로드하면 된다)
+  private_lane :upload_crashlytics_dsym do
+    dsym_path = lane_context[SharedValues::DSYM_OUTPUT_PATH]
+    begin
+      UI.user_error!("build_app 이 dSYM 경로를 남기지 않았습니다") if dsym_path.to_s.empty?
+
+      # GoogleService-Info.plist 는 gitignore 대상이라 CI 에 없으므로 appId 를 직접 넘긴다.
+      # upload-symbols 는 없는 appId 로 보내도 성공으로 끝나 CI 에서 잡을 수 없으니, 직접 적지 않고
+      # flutterfire configure 가 만든 firebase.json(앱의 lib/firebase_options.dart 와 같은 출처)에서 읽는다.
+      firebase_config = JSON.parse(File.read(File.join(WORKSPACE, "firebase.json")))
+      app_id = firebase_config.dig("flutter", "platforms", "dart", "lib/firebase_options.dart", "configurations", "ios").to_s
+      UI.user_error!("firebase.json 에서 iOS appId 를 찾지 못했습니다") if app_id.empty?
+
+      upload_symbols_to_crashlytics(
+        dsym_path: dsym_path,
+        app_id: app_id,
+        binary_path: File.join(WORKSPACE, "ios", "Pods", "FirebaseCrashlytics", "upload-symbols")
+      )
+    rescue => e
+      msg = "Crashlytics dSYM 업로드 실패 — #{e.message}"
+      UI.important(msg)
+      puts "::warning::#{msg}"
+      add_cd_warning(title: "dSYM 업로드 실패 (콘솔에서 수동 업로드 필요)", cause: e.message)
+    end
   end
 end
 
 platform :android do
+  after_all do |_lane|
+    write_cd_result
+  end
+
+  error do |lane, exception|
+    record_cd_failure(lane: lane, exception: exception)
+    write_cd_result
+  end
+
   desc "Build the Android app and upload it to Google Play Store (internal track, main 머지마다)"
   lane :upload_play_store do
     upload_play_store_track(track: "internal")
@@ -300,6 +391,7 @@ platform :android do
 
     if dry_run
       UI.success("DRY_RUN=true — Android AAB 빌드 완료(#{aab_path}), Play Store 업로드는 건너뜀")
+      record_cd_result(status: "dry_run", summary: "AAB 빌드 완료 (Play Store 업로드 건너뜀)")
       next
     end
 
@@ -320,6 +412,7 @@ platform :android do
     play_store_params[:release_status] = release_status unless release_status.nil?
 
     upload_to_play_store(**play_store_params)
+    record_cd_result(status: "success", summary: "Play Store #{track} (#{build_number})")
   end
 
   # iOS 와 공유하는 What's New 원본(fastlane/metadata/ko/release_notes.txt)을

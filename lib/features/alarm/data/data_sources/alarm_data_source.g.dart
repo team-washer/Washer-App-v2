@@ -61,13 +61,15 @@ class _AlarmApiService implements AlarmApiService {
   }
 
   @override
-  Future<void> registerFcmToken(Map<String, dynamic> payload) async {
+  Future<HttpResponse<dynamic>> registerFcmToken(
+    Map<String, dynamic> payload,
+  ) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};
     final _data = <String, dynamic>{};
     _data.addAll(payload);
-    final _options = _setStreamType<void>(
+    final _options = _setStreamType<HttpResponse<dynamic>>(
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
@@ -77,7 +79,10 @@ class _AlarmApiService implements AlarmApiService {
           )
           .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
     );
-    await _dio.fetch<void>(_options);
+    final _result = await _dio.fetch(_options);
+    final _value = _result.data;
+    final httpResponse = HttpResponse(_value, _result);
+    return httpResponse;
   }
 
   @override

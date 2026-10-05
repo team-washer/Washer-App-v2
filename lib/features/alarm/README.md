@@ -89,9 +89,11 @@ AlarmList.dispose
 
 - 알림 화면은 탭마다 하위 경로(`/home/alarm`, `/washer/alarm`, `/dryer/alarm`)로 열립니다. `RoutePaths.alarmSubRoute` 참고
 - 서버가 새 알림 타입을 추가해도 목록이 깨지지 않도록 `AlarmType.unknown`으로 폴백합니다. 새 타입을 지원하려면 `alarm_type.dart`와 `AlarmCard._titleFor`를 함께 수정합니다.
+- 서버는 세탁기·건조기에 같은 `COMPLETION`·`MALFUNCTION` 타입을 쓰고 기기 종류를 내려주지 않습니다. 그래서 두 타입의 카드 제목은 `이용 완료`·`기기 이상`처럼 기기 종류와 무관한 문구로 표시합니다.
 - `dispose`에서는 `ref`를 쓸 수 없어서 `initState`에서 notifier를 미리 캡처해 둡니다.
 
 ## 테스트
 
 - `test/features/alarm/alarm_type_test.dart`
 - `test/features/alarm/alarm_provider_test.dart` (화면 이탈 후 재진입 조회. 빈 목록, 정리 중 재진입, 겹친 정리, 세션 전환, 이탈 전 조회의 늦은 응답 포함)
+- `test/features/alarm/alarm_card_test.dart`

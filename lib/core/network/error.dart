@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
+import 'package:washer/core/network/server_error_code.dart';
 import 'package:washer/core/utils/app_logger.dart';
+import 'package:washer/shared/theme/washer_error_message.dart';
 
 /// 사용자에게 그대로 보여줄 메시지를 가진 예외.
 abstract interface class UserFacingException implements Exception {
@@ -9,18 +11,17 @@ abstract interface class UserFacingException implements Exception {
 /// 다양한 예외를 사용자용 메시지로 정규화한 앱 공통 예외.
 ///
 /// 서버 오류 응답은 공통 wrapper(`message`, `data.errorCode`, `data.fieldErrors`,
-/// `data.traceId`)를 사용한다. 상태 코드별 계약은 다음과 같다.
-/// 400 요청 검증 오류 · 401 인증 실패 · 403 권한 부족 · 404 사용자/예약/기기 없음 ·
-/// 409 이미 사용이 시작된 예약 취소 등 상태 충돌 · 451 이용 대상이 아닌 사용자 ·
-/// 502 SmartThings 상태/명령 실패 · 503 Redis/외부 서비스 일시 장애.
+/// `data.traceId`)를 사용한다. 원인은 `data.errorCode`([ServerErrorCode])로 구분하고,
+/// 상태 코드는 원인별 코드가 없을 때(구버전 서버, 상태 이름 코드)의 보조 기준이다.
+/// 400 요청 검증·예약 거부 · 401 인증 실패 · 403 권한 부족·이용 제한 ·
+/// 404 사용자/예약/기기 없음 · 409 기기 점유·취소 충돌·동시 요청 충돌 ·
+/// 451 이용 대상이 아닌 사용자 · 502 SmartThings 상태/명령 실패 · 503 일시 장애.
 ///
-/// 화면에는 서버가 내려준 `message` 대신 [_statusMessages]의 고정 문구를 보여준다.
-/// 서버 문구는 상태 코드마다 일관되지 않거나 기술적일 수 있어, 토스트 디자인에서
-/// 정의한 문구로 통일한다. 원인 추적은 [errorCode]/[traceId]로 한다.
-///
-/// 404는 사용자/예약/기기 없음을 구분하지 않는다. 세 경우 모두 서버가
-/// `data.errorCode: "NOT_FOUND"`로 동일하게 내려주므로 앱에서 구분할 수 없다.
-/// 백엔드가 사례별 errorCode를 내려주게 되면 그때 분기한다.
+/// 화면 문구는 [_errorCodeMessages] → [_statusMessages] → 서버 `message`(4xx만)
+/// 순으로 고른다. 서버 문구는 기술적이거나 톤이 달라 고정 문구를 우선하되,
+/// 이용 제한처럼 서버 문구에만 제한 대상·해제 시각이 담긴 코드는
+/// [_serverMessageCodes]로 서버 문구를 그대로 보여준다.
+/// 원인 추적은 [errorCode]/[traceId]로 한다.
 class AppException {
   AppException({
     required this.message,
@@ -29,13 +30,15 @@ class AppException {
     this.errorCode,
     this.traceId,
     this.fieldErrors,
+    this.serverMessage,
+    this.isCancelled = false,
   });
 
   final String message;
   final int? statusCode;
   final String? debugMessage;
 
-  /// 서버가 내려준 오류 코드(`data.errorCode`). 없으면 null.
+  /// 서버가 내려준 오류 코드(`data.errorCode`, [ServerErrorCode]). 없으면 null.
   final String? errorCode;
 
   /// 서버 로그와 대조할 수 있는 추적 ID(`data.traceId`). 없으면 null.
@@ -44,19 +47,105 @@ class AppException {
   /// 요청 검증 오류의 필드별 상세(`data.fieldErrors`). 서버 형태 그대로 보관한다.
   final Object? fieldErrors;
 
-  /// 상태 코드별 사용자용 고정 문구. 서버 `message`보다 항상 우선한다.
-  static const Map<int, String> _statusMessages = {
-    400: '입력한 정보를 다시 확인해주세요.',
-    401: '로그인이 필요해요. 다시 로그인해주세요.',
-    403: '이 기능을 이용할 수 없어요.',
-    404: '예약 정보를 찾을 수 없어요.\n다시 확인해주세요.',
-    409: '이미 사용이 시작된 예약은 취소할 수 없어요.',
-    451: '현재 예약 서비스를 이용할 수 없는 사용자예요.',
-    502: '기기와 연결할 수 없어요.\n잠시 후 다시 시도해주세요.',
-    503: '서비스가 잠시 불안정해요.\n잠시 후 다시 시도해주세요.',
+  /// 서버가 내려준 원문 `message`. 분기에는 쓰지 않는다. 없으면 null.
+  final String? serverMessage;
+
+  /// 앱이 요청을 스스로 취소한 경우(예: 토큰 갱신 실패로 로그아웃되며 중단).
+  /// 사용자가 조치할 오류가 아니므로 화면에 안내하지 않는다.
+  final bool isCancelled;
+
+  /// 서버 입력 검증 오류인지 여부.
+  bool get isValidationError => ServerErrorCode.validation.contains(errorCode);
+
+  /// [fieldErrors]를 사용자에게 보여줄 문구 목록으로 바꾼다.
+  ///
+  /// 서버 형태는 `[{field, message}]`다. 필드 이름은 [fieldLabel]로 사용자용 이름을
+  /// 찾을 수 있을 때만 앞에 붙이고, 모르는 필드는 개발용 이름을 노출하지 않도록
+  /// 문구만 보여준다.
+  List<String> get fieldErrorMessages {
+    final errors = fieldErrors;
+    if (errors is! List) {
+      return const [];
+    }
+
+    final messages = <String>[];
+    for (final error in errors) {
+      if (error is! Map) continue;
+      final message = error['message'];
+      if (message is! String || message.trim().isEmpty) continue;
+
+      final field = error['field'];
+      final label = field is String ? fieldLabel(field) : null;
+      messages.add(
+        label == null ? message.trim() : '$label: ${message.trim()}',
+      );
+    }
+    return messages;
+  }
+
+  /// 서버 필드 이름의 사용자용 이름. 기능별 예외가 재정의한다.
+  String? fieldLabel(String field) => null;
+
+  /// 원인별 코드의 사용자용 문구. [_statusMessages]보다 우선한다.
+  /// 문구 자체는 디자인 시스템([WasherErrorMessage])에서 관리한다.
+  static const Map<String, String> _errorCodeMessages = {
+    ServerErrorCode.validationFailed: WasherErrorMessage.validation,
+    ServerErrorCode.invalidRequestBody: WasherErrorMessage.validation,
+    ServerErrorCode.typeMismatch: WasherErrorMessage.validation,
+    ServerErrorCode.missingParameter: WasherErrorMessage.validation,
+    ServerErrorCode.withdrawnRejoinRestricted:
+        WasherErrorMessage.withdrawnRejoinRestricted,
+    ServerErrorCode.userFloorRestricted: WasherErrorMessage.userFloorRestricted,
+    ServerErrorCode.userNotFound: WasherErrorMessage.userNotFound,
+    ServerErrorCode.reservationNotFound: WasherErrorMessage.reservationNotFound,
+    ServerErrorCode.machineNotFound: WasherErrorMessage.machineNotFound,
+    ServerErrorCode.roomNotFound: WasherErrorMessage.roomNotFound,
+    ServerErrorCode.roomWashingBanned: WasherErrorMessage.roomWashingBanned,
+    ServerErrorCode.userPenaltyActive: WasherErrorMessage.userPenaltyActive,
+    ServerErrorCode.reservationCooldownActive:
+        WasherErrorMessage.reservationCooldownActive,
+    ServerErrorCode.roomReservationRestricted:
+        WasherErrorMessage.roomReservationRestricted,
+    ServerErrorCode.reservationTimeRestricted:
+        WasherErrorMessage.reservationTimeRestricted,
+    ServerErrorCode.userActiveReservation:
+        WasherErrorMessage.userActiveReservation,
+    ServerErrorCode.roomMachineTypeReserved:
+        WasherErrorMessage.roomMachineTypeReserved,
+    ServerErrorCode.machineUnavailable: WasherErrorMessage.machineUnavailable,
+    ServerErrorCode.machineAlreadyReserved: WasherErrorMessage.machineTaken,
+    ServerErrorCode.machineInUse: WasherErrorMessage.machineTaken,
+    ServerErrorCode.machineShutdownInProgress:
+        WasherErrorMessage.machineShuttingDown,
+    ServerErrorCode.reservationCancellationConflict:
+        WasherErrorMessage.reservationAlreadyStarted,
+    ServerErrorCode.reservationStateInvalid:
+        WasherErrorMessage.reservationStateChanged,
+    ServerErrorCode.reservationAccessDenied:
+        WasherErrorMessage.reservationAccessDenied,
+    ServerErrorCode.conflict: WasherErrorMessage.conflict,
   };
 
-  static const String _genericServerMessage = '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+  /// 서버 문구에만 제한 대상·해제 시각(남은 분, 예약 가능 시각)이 담긴 코드.
+  /// 서버 문구가 있으면 그대로 보여주고, 없으면 [_errorCodeMessages]를 쓴다.
+  static const Set<String> _serverMessageCodes = {
+    ServerErrorCode.userPenaltyActive,
+    ServerErrorCode.reservationCooldownActive,
+    ServerErrorCode.roomReservationRestricted,
+    ServerErrorCode.reservationTimeRestricted,
+  };
+
+  /// 원인별 코드가 없을 때의 상태 코드별 문구.
+  static const Map<int, String> _statusMessages = {
+    400: WasherErrorMessage.validation,
+    401: WasherErrorMessage.loginRequired,
+    403: WasherErrorMessage.forbidden,
+    404: WasherErrorMessage.reservationNotFound,
+    409: WasherErrorMessage.conflict,
+    451: WasherErrorMessage.userNotEligible,
+    502: WasherErrorMessage.deviceConnection,
+    503: WasherErrorMessage.serviceUnavailable,
+  };
 
   /// 임의의 에러를 종류별로 분류해 [AppException]으로 변환한다.
   ///
@@ -70,15 +159,15 @@ class AppException {
     ),
     DioException e => AppException._fromDioException(e),
     FormatException e => AppException(
-      message: '데이터를 불러오는 중 오류가 발생했습니다.',
+      message: WasherErrorMessage.dataParsing,
       debugMessage: e.message,
     ),
     TypeError e => AppException(
-      message: '데이터를 불러오는 중 오류가 발생했습니다.',
+      message: WasherErrorMessage.dataParsing,
       debugMessage: e.toString(),
     ),
     _ => AppException(
-      message: '알 수 없는 오류가 발생했습니다.',
+      message: WasherErrorMessage.unknown,
       debugMessage: error?.toString(),
     ),
   };
@@ -87,13 +176,22 @@ class AppException {
     final statusCode = exception.response?.statusCode;
     final type = exception.type;
 
+    // 로그아웃 흐름이 화면 전환을 처리하므로 "네트워크 오류"로 오안내하지 않는다.
+    if (type == DioExceptionType.cancel) {
+      return AppException(
+        message: WasherErrorMessage.cancelled,
+        debugMessage: exception.error?.toString() ?? exception.message,
+        isCancelled: true,
+      );
+    }
+
     if (type == DioExceptionType.connectionError ||
         type == DioExceptionType.receiveTimeout ||
         type == DioExceptionType.sendTimeout ||
         type == DioExceptionType.connectionTimeout ||
         exception.response == null) {
       return AppException(
-        message: '네트워크 연결을 확인해주세요.',
+        message: WasherErrorMessage.network,
         statusCode: statusCode,
         debugMessage: exception.message,
       );
@@ -102,6 +200,9 @@ class AppException {
     final body = exception.response?.data;
     final detail = _errorDetailFrom(body);
     final debugMessage = _debugMessage(exception.message, detail);
+    // 5xx의 서버 메시지는 스택/예외명 같은 기술적 내용일 수 있어 노출하지 않는다.
+    final isServerFault = statusCode != null && statusCode >= 500;
+    final serverMessage = isServerFault ? null : _serverMessageFrom(body);
 
     AppException build(String message) => AppException(
       message: message,
@@ -110,19 +211,29 @@ class AppException {
       errorCode: detail.errorCode,
       traceId: detail.traceId,
       fieldErrors: detail.fieldErrors,
+      serverMessage: serverMessage,
     );
+
+    final errorCode = detail.errorCode;
+    if (serverMessage != null && _serverMessageCodes.contains(errorCode)) {
+      return build(serverMessage);
+    }
+
+    final codeMessage = _errorCodeMessages[errorCode];
+    if (codeMessage != null) {
+      return build(codeMessage);
+    }
 
     final fixedMessage = _statusMessages[statusCode];
     if (fixedMessage != null) {
       return build(fixedMessage);
     }
 
-    final serverMessage = _serverMessageFrom(body);
     if (serverMessage != null) {
       return build(serverMessage);
     }
 
-    return build(_genericServerMessage);
+    return build(WasherErrorMessage.serverError);
   }
 
   static String? _serverMessageFrom(Object? data) {

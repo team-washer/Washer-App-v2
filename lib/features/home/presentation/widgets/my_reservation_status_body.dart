@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
 import 'package:washer/core/enums/laundry_status.dart';
 import 'package:washer/core/utils/date_time_formatter.dart';
-import 'package:washer/features/home/presentation/widgets/in_use_countdown_text.dart';
-import 'package:washer/features/home/presentation/widgets/reservation_expiry_text.dart';
 import 'package:washer/shared/theme/app_spacing.dart';
 import 'package:washer/shared/theme/washer_color.dart';
 import 'package:washer/shared/theme/washer_typography.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
+import 'package:washer/core/constants/reservation_durations.dart';
 
 /// 예약 카드 본문 — 예약 상태(laundryStatus)별로 다른 안내 문구를 표시
 class MyReservationStatusBody extends StatelessWidget {
@@ -52,7 +53,7 @@ class MyReservationStatusBody extends StatelessWidget {
             style: WasherTypography.body2(WasherColor.baseGray500),
           ),
           AppGap.v4,
-          ReservationExpiryText(
+          _ReservationExpiryText(
             reservedAt: reservedAt,
             remainDuration: remainDuration,
           ),
@@ -83,7 +84,7 @@ class MyReservationStatusBody extends StatelessWidget {
         ),
         if (hasFinishedAt) ...[
           AppGap.v4,
-          InUseCountdownText(
+          _InUseCountdownText(
             laundryMachineType: laundryMachineType,
             finishedAt: finishedAt,
           ),
@@ -119,4 +120,77 @@ class MyReservationStatusBody extends StatelessWidget {
       ],
     );
   }
+}
+
+/// "남은 세탁/건조 시간: ..." 문구 — clockProvider 틱마다 갱신된다.
+class _InUseCountdownText extends ConsumerWidget {
+  const _InUseCountdownText({
+    required this.laundryMachineType,
+    required this.finishedAt,
+  });
+
+  final LaundryMachineType laundryMachineType;
+  final String? finishedAt;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final now = ref.watch(clockProvider).asData?.value ?? DateTime.now();
+    final countdown = DateTimeFormatter.formatRemainingTimeToKorean(
+      finishedAt,
+      now: now,
+      expiredText: '완료 예정',
+      includeHours: true,
+    );
+
+    return Text(
+      '남은 ${laundryMachineType == LaundryMachineType.washer ? '세탁' : '건조'} 시간: $countdown',
+      style: WasherTypography.body2(WasherColor.baseGray500),
+    );
+  }
+}
+
+/// "예약 만료까지: n분 n초" 문구 — clockProvider 틱마다 갱신된다.
+class _ReservationExpiryText extends ConsumerWidget {
+  const _ReservationExpiryText({
+    required this.reservedAt,
+    required this.remainDuration,
+  });
+
+  final String? reservedAt;
+  final String? remainDuration;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final now = ref.watch(clockProvider).asData?.value ?? DateTime.now();
+    var countdown = remainDuration ?? '만료됨';
+
+    final reservedTime = DateTimeFormatter.parseServerDateTime(reservedAt);
+    if (reservedTime != null) {
+      countdown = _formatDuration(
+        reservedTime.add(reservationExpiryDuration).difference(now),
+        expiredText: '만료됨',
+      );
+    }
+
+    return Text(
+      '예약 만료까지: $countdown',
+      style: WasherTypography.body2(WasherColor.errorColor),
+    );
+  }
+}
+
+/// 남은 시간이 음수면 [expiredText], 아니면 "n시간 n분 n초" 형태로 변환한다.
+String _formatDuration(
+  Duration duration, {
+  required String expiredText,
+  bool includeHours = true,
+}) {
+  if (duration.isNegative) {
+    return expiredText;
+  }
+
+  return DateTimeFormatter.formatDurationParts(
+    duration,
+    includeHours: includeHours,
+  );
 }

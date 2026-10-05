@@ -6,6 +6,14 @@ import 'package:flutter/foundation.dart';
 class AppLogger {
   const AppLogger._();
 
+  /// 릴리즈 빌드에서도 기기 진단에 필요한 흐름을 남긴다.
+  static void info(
+    String message, {
+    String name = 'App',
+  }) {
+    developer.log(message, name: name, level: 800);
+  }
+
   static void debug(
     String message, {
     String name = 'App',

@@ -16,6 +16,16 @@ class AppEnvironment {
     required this.allowBadCertificates,
   });
 
+  /// 테스트에서 환경 파일 없이 값을 지정해 만든다.
+  @visibleForTesting
+  AppEnvironment.test({
+    this.apiBaseUrl = 'https://example.test/api/v2/',
+    this.refreshTokenEndpoint = 'auth/refresh',
+  }) : flavor = AppFlavor.development,
+       oauthBaseUrl = '',
+       oauthClientId = '',
+       allowBadCertificates = false;
+
   static late final AppEnvironment instance;
 
   final AppFlavor flavor;
@@ -59,19 +69,34 @@ class AppEnvironment {
   }
 
   static bool _resolveAllowBadCertificates(AppFlavor flavor) {
-    if (flavor == AppFlavor.production) {
+    return resolveAllowBadCertificates(
+      flavor: flavor,
+      rawValue: dotenv.env['ALLOW_BAD_CERTIFICATES'],
+    );
+  }
+
+  /// 인증서 검증 우회 허용 여부. release 빌드는 flavor와 관계없이 항상 거부한다(#321).
+  ///
+  /// debug·profile의 development flavor에서 `ALLOW_BAD_CERTIFICATES`가 명시적으로
+  /// 켜진 경우에만 로컬·자체 서명 인증서를 허용한다.
+  @visibleForTesting
+  static bool resolveAllowBadCertificates({
+    required AppFlavor flavor,
+    required String? rawValue,
+    bool isReleaseMode = kReleaseMode,
+  }) {
+    if (isReleaseMode || flavor == AppFlavor.production) {
       return false;
     }
 
-    final rawValue =
-        dotenv.env['ALLOW_BAD_CERTIFICATES']?.trim().toLowerCase() ?? '';
+    final value = rawValue?.trim().toLowerCase() ?? '';
 
-    return rawValue == 'true' || rawValue == '1' || rawValue == 'yes';
+    return value == 'true' || value == '1' || value == 'yes';
   }
 
   static String _resolveUrl(String key, AppFlavor flavor) {
     final value = dotenv.get(key);
-    _ensureProductionHttps(key, value, flavor);
+    ensureHttpsPolicy(key, value, flavor);
     return value;
   }
 
@@ -81,22 +106,28 @@ class AppEnvironment {
       return value;
     }
 
-    _ensureProductionHttps(key, value, flavor);
+    ensureHttpsPolicy(key, value, flavor);
     return value;
   }
 
-  static void _ensureProductionHttps(
+  /// production flavor와 release 빌드에서는 host가 있는 HTTPS URL만 허용한다(#321).
+  @visibleForTesting
+  static void ensureHttpsPolicy(
     String key,
     String value,
-    AppFlavor flavor,
-  ) {
-    if (flavor != AppFlavor.production) {
+    AppFlavor flavor, {
+    bool isReleaseMode = kReleaseMode,
+  }) {
+    if (!isReleaseMode && flavor != AppFlavor.production) {
       return;
     }
 
     final uri = Uri.tryParse(value);
-    if (uri == null || uri.scheme.toLowerCase() != 'https') {
-      throw StateError('$key must use HTTPS in production.');
+    if (uri == null ||
+        uri.scheme.toLowerCase() != 'https' ||
+        !uri.hasAuthority ||
+        uri.host.isEmpty) {
+      throw StateError('$key must use HTTPS in production or release builds.');
     }
   }
 }

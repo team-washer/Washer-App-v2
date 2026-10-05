@@ -87,10 +87,12 @@ void main() {
       expect(message, isNot(contains('Redis')));
     });
 
-    test('그 밖의 5xx는 상태 코드를 함께 보여준다', () async {
+    test('그 밖의 5xx는 서버 메시지 대신 일반 서버 오류 문구를 보여준다', () async {
       expect(
-        await _pollingMessageFor(_serverError(500)),
-        '서버 오류가 발생했습니다. (500)',
+        await _pollingMessageFor(
+          _serverError(500, message: 'NullPointerException'),
+        ),
+        '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
       );
     });
 
@@ -108,10 +110,10 @@ void main() {
       );
     });
 
-    test('409는 서버 메시지와 무관하게 고정 문구를 안내한다', () async {
+    test('409는 취소 전용 문구가 아닌 일반 충돌 문구를 안내한다', () async {
       expect(
         await _pollingMessageFor(_serverError(409)),
-        '이미 사용이 시작된 예약은 취소할 수 없어요.',
+        '다른 요청과 겹쳤어요.\n최신 상태를 확인한 뒤 다시 시도해주세요.',
       );
     });
 
@@ -130,7 +132,7 @@ void main() {
       );
     });
 
-    test('응답이 없는 네트워크 오류는 기존 안내를 유지한다', () async {
+    test('응답이 없는 네트워크 오류는 앱 공통 연결 확인 문구를 보여준다', () async {
       final options = RequestOptions(path: '/machines/status');
 
       expect(
@@ -140,7 +142,7 @@ void main() {
             type: DioExceptionType.connectionTimeout,
           ),
         ),
-        '서버 응답 시간이 초과되었습니다.',
+        '네트워크 연결을 확인해주세요.',
       );
     });
   });

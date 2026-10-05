@@ -1,7 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:washer/core/network/dio_client.dart';
 import 'package:washer/core/network/token_utils.dart';
@@ -81,7 +80,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     }
 
     if (myUserFuture == null) {
-      await _goToLogin(storage);
+      await _goToLogin();
       return;
     }
 
@@ -99,7 +98,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
           error: e,
           stackTrace: e.stackTrace,
         );
-        await _goToLogin(storage);
+        await _goToLogin();
         return;
       }
 
@@ -125,10 +124,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     }
   }
 
-  /// 저장된 토큰과 사용자 상태를 지우고 로그인 화면으로 이동한다.
-  Future<void> _goToLogin(FlutterSecureStorage storage) async {
-    await storage.delete(key: 'access_token');
-    await storage.delete(key: 'refresh_token');
+  /// 토큰 저장소·인증 캐시와 사용자 상태를 지우고 로그인 화면으로 이동한다.
+  Future<void> _goToLogin() async {
+    await ref.read(dioClientProvider).clearAuthCache();
     ref.read(myUserProvider.notifier).clear();
     if (!mounted) return;
     context.go(RoutePaths.login);

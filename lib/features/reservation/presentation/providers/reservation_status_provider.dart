@@ -1,11 +1,11 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:washer/core/network/error.dart';
+import 'package:washer/core/network/session_generation_provider.dart';
 import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/data/models/local/machine_model.dart';
@@ -17,8 +17,11 @@ final clockProvider = StreamProvider<DateTime>((ref) {
   return Stream.periodic(const Duration(seconds: 1), (_) => DateTime.now());
 });
 
-/// polling/조회 실패 시 사용자에게 보여줄 오류. 없으면 null.
-final pollingErrorProvider = StateProvider<AppException?>((ref) => null);
+/// polling/조회 실패 시 사용자에게 보여줄 오류. 없으면 null. 세션이 바뀌면 비운다.
+final pollingErrorProvider = StateProvider<AppException?>((ref) {
+  ref.watch(sessionGenerationProvider);
+  return null;
+});
 
 /// 기기 상태와 활성 예약을 함께 새로고침한다(Provider 내부에서 사용).
 Future<void> refreshReservationStatusProviders(Ref ref) {
@@ -36,52 +39,19 @@ Future<void> refreshReservationStatusWidgets(WidgetRef ref) {
   ]);
 }
 
-/// Dio 오류를 사용자용 문구로 변환한다. 안내할 필요가 없는 오류면 null.
+/// 조회 실패를 [pollingErrorProvider]로 사용자에게 알린다.
 ///
-/// 상태 코드별 문구는 서버 오류 응답 계약을 따른다(자세한 계약은 [AppException] 참고).
-AppException? _pollingErrorFor(DioException error) {
-  // 인증 갱신에 실패해 요청 자체가 취소된 경우다. 로그아웃 흐름이 처리하므로
-  // 여기서 "네트워크 오류" 같은 잘못된 안내를 띄우지 않는다.
-  if (error.type == DioExceptionType.cancel) {
-    return null;
+/// 문구는 앱 공통 규칙([AppException.from])을 그대로 따른다. 서버 통신 오류(Dio)만
+/// 알리며, 앱이 스스로 취소한 요청([AppException.isCancelled])은 알리지 않는다.
+void _reportPollingError(Ref ref, Object error) {
+  if (error is! DioException) {
+    return;
   }
-
-  final statusCode = error.response?.statusCode;
-  if (statusCode != null && statusCode >= 500) {
-    // 502(기기 서비스 실패)/503(일시 장애)은 원인별 문구를, 그 외 5xx는 코드를 보여준다.
-    if (statusCode == 502 || statusCode == 503) {
-      return AppException.from(error);
-    }
-    return AppException(
-      message: '서버 오류가 발생했습니다. ($statusCode)',
-      statusCode: statusCode,
-    );
+  final appException = AppException.from(error);
+  if (appException.isCancelled) {
+    return;
   }
-
-  if (error.type == DioExceptionType.connectionTimeout ||
-      error.type == DioExceptionType.sendTimeout ||
-      error.type == DioExceptionType.receiveTimeout) {
-    return AppException(message: '서버 응답 시간이 초과되었습니다.');
-  }
-
-  if (error.type == DioExceptionType.connectionError) {
-    final rawError = error.error;
-    if (rawError is SocketException) {
-      if (rawError.message.contains('Connection refused')) {
-        return AppException(message: '서버 연결이 거부되었습니다. 서버 상태를 확인해주세요.');
-      }
-      return AppException(message: '네트워크 연결에 실패했습니다. 인터넷 또는 서버 상태를 확인해주세요.');
-    }
-
-    return AppException(message: '네트워크 연결에 실패했습니다.');
-  }
-
-  if (error.response == null) {
-    return AppException(message: '네트워크 오류가 발생했습니다.');
-  }
-
-  // 4xx(400 검증, 401 인증, 403 권한, 404 없음, 409 충돌 등)는 상태 코드별 고정 문구를 쓴다.
-  return AppException.from(error);
+  ref.read(pollingErrorProvider.notifier).state = appException;
 }
 
 /// 전체 기기 상태 provider.
@@ -92,56 +62,92 @@ final machineStatusProvider =
 
 /// 서버의 기기 상태를 불러오고 새로고침한다. keepAlive로 화면 이동 시에도 유지된다.
 class MachineStatusNotifier extends AsyncNotifier<MachineStatusResponse> {
+  int _requestSeq = 0;
+  Future<MachineStatusResponse>? _latestRequest;
+
   Future<MachineStatusResponse> _load() async {
     return ref
         .read(reservationStatusRemoteDataSourceProvider)
         .getMachineStatus();
   }
 
+  ({int id, Future<MachineStatusResponse> future}) _startRequest() {
+    final id = ++_requestSeq;
+    final future = _load();
+    _latestRequest = future;
+    return (id: id, future: future);
+  }
+
+  bool _isLatestRequest(int requestId) => requestId == _requestSeq;
+
+  Future<MachineStatusResponse> _waitForLatestRequest() async {
+    while (true) {
+      final requestId = _requestSeq;
+      final request = _latestRequest;
+      if (request == null) {
+        throw StateError('기기 상태 요청이 시작되지 않았습니다.');
+      }
+
+      try {
+        final result = await request;
+        if (_isLatestRequest(requestId)) {
+          return result;
+        }
+      } catch (error, stackTrace) {
+        if (_isLatestRequest(requestId)) {
+          Error.throwWithStackTrace(error, stackTrace);
+        }
+      }
+    }
+  }
+
   @override
   Future<MachineStatusResponse> build() async {
     ref.keepAlive();
+    final request = _startRequest();
+    final MachineStatusResponse machineStatus;
     try {
-      return await _load();
-    } on DioException catch (e, st) {
+      machineStatus = await request.future;
+    } catch (e, st) {
+      if (!_isLatestRequest(request.id)) {
+        return _waitForLatestRequest();
+      }
       AppLogger.error(
         '기기 상태를 불러오는 중 오류가 발생했습니다.',
         name: 'MachineStatusNotifier',
         error: e,
         stackTrace: st,
       );
-      final pollingError = _pollingErrorFor(e);
-      if (pollingError != null) {
-        ref.read(pollingErrorProvider.notifier).state = pollingError;
-      }
+      _reportPollingError(ref, e);
       rethrow;
     }
+
+    if (!_isLatestRequest(request.id)) {
+      return _waitForLatestRequest();
+    }
+    return machineStatus;
   }
 
   Future<void> refresh() async {
+    final request = _startRequest();
     state = const AsyncLoading();
     try {
-      final machineStatus = await _load();
-      state = AsyncData(machineStatus);
-    } on DioException catch (e, st) {
-      AppLogger.error(
-        '기기 상태를 새로고침하는 중 오류가 발생했습니다.',
-        name: 'MachineStatusNotifier',
-        error: e,
-        stackTrace: st,
-      );
-      final pollingError = _pollingErrorFor(e);
-      if (pollingError != null) {
-        ref.read(pollingErrorProvider.notifier).state = pollingError;
+      final machineStatus = await request.future;
+      if (!_isLatestRequest(request.id)) {
+        return;
       }
-      state = AsyncError(e, st);
+      state = AsyncData(machineStatus);
     } catch (e, st) {
+      if (!_isLatestRequest(request.id)) {
+        return;
+      }
       AppLogger.error(
         '기기 상태를 새로고침하는 중 오류가 발생했습니다.',
         name: 'MachineStatusNotifier',
         error: e,
         stackTrace: st,
       );
+      _reportPollingError(ref, e);
       state = AsyncError(e, st);
     }
   }
@@ -165,6 +171,7 @@ final activeReservationProvider =
 /// - 호실 스냅샷: 이미 반영된 것보다 먼저 시작한 요청의 응답은 버린다.
 /// - 내 예약(polling): 이미 반영된 것보다 먼저 시작한 응답은 버린다. 호실 목록 응답을
 ///   기다리는 중이면 결과만 기록해 두고, 스냅샷이 도착할 때 그 위에 겹쳐 쓴다.
+/// - 세션이 바뀌면 목록과 로드 플래그를 비우고, 그 전에 시작한 요청의 응답·오류는 모두 버린다.
 class ActiveReservationNotifier
     extends AsyncNotifier<List<ActiveReservationModel>> {
   bool _hasFetched = false;
@@ -187,12 +194,16 @@ class ActiveReservationNotifier
   /// 마지막으로 반영한 호실 목록.
   List<ActiveReservationModel> _latestList = const [];
 
+  /// 마지막 세션 경계에서 발급한 요청 id. 이 값 이하의 요청은 이전 세션의 요청이다.
+  int _sessionBoundaryRequestId = 0;
+
   /// 요청을 시작할 때 부른다. 시작 순서를 나타내는 요청 id를 돌려준다.
   int beginRequest() => ++_requestSeq;
 
   @override
   Future<List<ActiveReservationModel>> build() async {
     ref.keepAlive();
+    ref.listen(sessionGenerationProvider, (_, _) => _resetForNewSession());
     final requestId = beginRequest();
     _roomRequestsInFlight += 1;
     try {
@@ -202,17 +213,17 @@ class ActiveReservationNotifier
           .getActiveReservations();
       // 더 늦게 시작한 새로고침이 먼저 반영됐다면 그 목록을 유지한다.
       return _resolveRoomSnapshot(requestId, snapshot) ?? _latestList;
-    } on DioException catch (e, st) {
+    } catch (e, st) {
+      if (_isFromPreviousSession(requestId)) {
+        return _latestList;
+      }
       AppLogger.error(
         '활성 예약을 불러오는 중 오류가 발생했습니다.',
         name: 'ActiveReservationNotifier',
         error: e,
         stackTrace: st,
       );
-      final pollingError = _pollingErrorFor(e);
-      if (pollingError != null) {
-        ref.read(pollingErrorProvider.notifier).state = pollingError;
-      }
+      _reportPollingError(ref, e);
       rethrow;
     } finally {
       _roomRequestsInFlight -= 1;
@@ -242,25 +253,17 @@ class ActiveReservationNotifier
       if (resolved != null) {
         state = AsyncData(resolved);
       }
-    } on DioException catch (e, st) {
-      AppLogger.error(
-        '활성 예약을 새로고침하는 중 오류가 발생했습니다.',
-        name: 'ActiveReservationNotifier',
-        error: e,
-        stackTrace: st,
-      );
-      final pollingError = _pollingErrorFor(e);
-      if (pollingError != null) {
-        ref.read(pollingErrorProvider.notifier).state = pollingError;
-      }
-      _setErrorIfLatest(requestId, e, st);
     } catch (e, st) {
+      if (_isFromPreviousSession(requestId)) {
+        return;
+      }
       AppLogger.error(
         '활성 예약을 새로고침하는 중 오류가 발생했습니다.',
         name: 'ActiveReservationNotifier',
         error: e,
         stackTrace: st,
       );
+      _reportPollingError(ref, e);
       _setErrorIfLatest(requestId, e, st);
     } finally {
       _roomRequestsInFlight -= 1;
@@ -298,6 +301,21 @@ class ActiveReservationNotifier
     }
   }
 
+  /// DELETE 성공을 최신 내 예약 업데이트로 기록하고 취소 대상만 즉시 제거한다.
+  /// 호실 조회가 진행 중이어도 서버가 확정한 취소는 그 응답을 기다리지 않는다.
+  void removeCancelledReservation(int reservationId) {
+    final update = MyReservationUpdate(
+      requestId: beginRequest(),
+      mine: null,
+      trackedId: reservationId,
+    );
+    _appliedMineRequestId = update.requestId;
+    _latestMyUpdate = update;
+    _latestList = update.applyTo(_latestList);
+    _hasFetched = true;
+    state = AsyncData(_latestList);
+  }
+
   /// polling으로 확인한 내 활성 예약 결과를 호실 목록에 반영한다.
   ///
   /// 이미 반영된 더 최근 결과(내 예약 polling 또는 호실 스냅샷)보다 먼저 시작한 요청의
@@ -325,6 +343,25 @@ class ActiveReservationNotifier
     }
     return MyReservationApplyResult(isStale: false, hasChanged: hasChanged);
   }
+
+  /// 이전 사용자의 목록과 로드 플래그를 비운다.
+  ///
+  /// 새 요청 id를 경계로 삼아 반영된 것으로 표시하므로, 경계 이전에 시작한 요청의
+  /// 응답은 기존 순번 비교에 의해 모두 버려진다. 로딩 상태로 두면 [ensureLoaded]가
+  /// 다시 조회하지 않으므로 빈 목록으로 둔다.
+  void _resetForNewSession() {
+    final boundary = beginRequest();
+    _sessionBoundaryRequestId = boundary;
+    _appliedRoomRequestId = boundary;
+    _appliedMineRequestId = boundary;
+    _latestMyUpdate = null;
+    _latestList = const [];
+    _hasFetched = false;
+    state = const AsyncData([]);
+  }
+
+  bool _isFromPreviousSession(int requestId) =>
+      requestId <= _sessionBoundaryRequestId;
 
   /// 호실 스냅샷을 반영할 목록으로 정리한다. 더 늦게 시작한 스냅샷이 이미 반영됐다면 null.
   ///

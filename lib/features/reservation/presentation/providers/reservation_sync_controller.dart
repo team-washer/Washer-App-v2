@@ -2,18 +2,27 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/network/error.dart';
+import 'package:washer/core/network/session_generation_provider.dart';
 import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/features/reservation/data/data_sources/remote/reservation_status_remote_data_source.dart';
 import 'package:washer/features/reservation/presentation/providers/my_reservation_update.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
 import 'package:washer/features/user/presentation/providers/my_user_provider.dart';
 
-/// [ReservationSyncController] provider. dispose 시 polling을 정리한다.
+/// [ReservationSyncController] provider. 세션이 바뀌거나 dispose 시 polling을 정리한다.
 final reservationSyncControllerProvider = Provider<ReservationSyncController>((
   ref,
 ) {
   final controller = ReservationSyncController(ref);
+  ref.listen(sessionGenerationProvider, (_, _) => controller.resetSession());
+  ref.listen(activeReservationProvider, (_, next) {
+    next.whenData((_) => controller.restorePollingFromCurrentState());
+  });
+  ref.listen(myUserProvider, (_, next) {
+    next.whenData((_) => controller.restorePollingFromCurrentState());
+  });
   ref.onDispose(controller.dispose);
+  controller.restorePollingFromCurrentState();
   return controller;
 });
 
@@ -42,6 +51,8 @@ class ReservationSyncController {
   final Ref _ref;
   Timer? _pollingTimer;
   int _consecutiveFailures = 0;
+  int _pollingRestoreSuspensions = 0;
+  bool _restartPollingWhenRestoreResumes = false;
 
   /// 호실 목록에서 "내 예약"을 가리키는 예약 ID.
   /// 서버가 내 예약이 없다고(null) 응답할 때 목록에서 무엇을 지울지 알기 위해 보관한다.
@@ -54,6 +65,56 @@ class ReservationSyncController {
   int _pollsSinceRoomSync = 0;
 
   bool get isPolling => _pollingTimer != null;
+
+  /// 서버 재조회로 발견한 내 활성 예약의 polling을 복구한다.
+  ///
+  /// 현재 사용자와 소유자가 일치하는 예약만 추적하며, 이미 polling 중이면 기존
+  /// 타이머를 유지한다. 필요한 상태가 아직 로드되지 않았거나 내 예약이 없으면
+  /// 시작하지 않는다.
+  bool restorePollingFromCurrentState() {
+    if (_pollingRestoreSuspensions > 0 || isPolling) {
+      return false;
+    }
+
+    final reservations = _ref.read(activeReservationProvider).value;
+    final userId = _currentUserId();
+    if (reservations == null || userId == null) {
+      return false;
+    }
+
+    for (final reservation in reservations) {
+      if (reservation.userId != userId) {
+        continue;
+      }
+      startPolling(reservationId: reservation.id, userId: userId);
+      return true;
+    }
+    return false;
+  }
+
+  /// 예약 취소처럼 의도적으로 polling을 멈춘 동안 자동 복구를 보류한다.
+  void suspendPollingRestore() {
+    _pollingRestoreSuspensions += 1;
+  }
+
+  /// 보류가 모두 끝난 뒤, 취소 실패 등 필요한 경우에만 polling을 다시 시작한다.
+  void resumePollingRestore({bool restartPolling = false}) {
+    if (_pollingRestoreSuspensions == 0) {
+      return;
+    }
+
+    _restartPollingWhenRestoreResumes |= restartPolling;
+    _pollingRestoreSuspensions -= 1;
+    if (_pollingRestoreSuspensions > 0) {
+      return;
+    }
+
+    final shouldRestart = _restartPollingWhenRestoreResumes;
+    _restartPollingWhenRestoreResumes = false;
+    if (shouldRestart && !isPolling) {
+      startPolling();
+    }
+  }
 
   /// polling을 (재)시작한다. 이미 돌고 있으면 정지 후 실패 카운터를 초기화해 다시 시작한다.
   ///
@@ -167,6 +228,18 @@ class ReservationSyncController {
       return _ref.read(myUserProvider).value?.id;
     }
     return null;
+  }
+
+  /// 세션이 바뀌면 polling을 멈추고 이전 사용자의 예약·사용자 식별 정보를 비운다.
+  /// 이미 보낸 요청의 응답은 [ActiveReservationNotifier]가 이전 세션 응답으로 버린다.
+  void resetSession() {
+    stopPolling();
+    _consecutiveFailures = 0;
+    _pollsSinceRoomSync = 0;
+    _trackedReservationId = null;
+    _myUserId = null;
+    _pollingRestoreSuspensions = 0;
+    _restartPollingWhenRestoreResumes = false;
   }
 
   /// polling 타이머를 정지한다.

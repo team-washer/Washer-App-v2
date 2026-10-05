@@ -8,13 +8,14 @@
 
 ## 1. 현재 CD 구조
 
-실제로 존재하는 워크플로우는 3개뿐입니다 (`.github/workflows/`).
+실제로 존재하는 워크플로우는 4개뿐입니다 (`.github/workflows/`).
 
 | 파일 | 트리거 | 하는 일 |
 |------|--------|---------|
 | `flutter-ci.yaml` | PR(main/develop), `[CI]` 포함한 main push | test / analyze / APK 빌드 + Discord 알림 |
-| `release-android.yml` | main push, 수동 | AAB 빌드·서명 → Google Play **production** 트랙 정식 출시 |
-| `release-ios.yml` | main push, 수동 | IPA 빌드·서명 → App Store **심사 자동 제출** |
+| `release.yml` | main push, 수동 | 아래 두 배포를 동시에 호출하고, 끝나면 결과를 모아 **Discord 배포 알림 1개** 전송 |
+| `release-android.yml` | `release.yml` 호출, 수동 | AAB 빌드·서명 → Google Play **production** 트랙 정식 출시 |
+| `release-ios.yml` | `release.yml` 호출, 수동 | IPA 빌드·서명 → App Store **심사 자동 제출** + Crashlytics dSYM 업로드 |
 
 iOS는 GitHub Actions 외에 **Xcode Cloud** 경로도 있습니다: `ios/ci_scripts/ci_post_clone.sh`가 `ENV_PRODUCTION`/`ENV_DEVELOPMENT` 환경변수로 `.env.*`를 만들고 Flutter/Pods를 세팅. Xcode Cloud를 쓴다면 거기에도 같은 env 값을 등록해야 합니다.
 
@@ -27,14 +28,23 @@ iOS는 GitHub Actions 외에 **Xcode Cloud** 경로도 있습니다: `ios/ci_scr
 ## 2. 지금 CD 돌리는 법
 
 ### 자동 (평상시)
-`main`에 push(=PR 머지)되면 `release-android.yml`·`release-ios.yml`이 자동 실행 → 그대로 **스토어에 실배포**됩니다.
+`main`에 push(=PR 머지)되면 `release.yml`이 `release-android.yml`·`release-ios.yml`을 동시에 실행 → 그대로 **스토어에 실배포**됩니다.
 - Android: Play production 트랙 즉시 정식 출시.
-- iOS: App Store 심사 자동 제출. 심사 승인 후 **출시는 수동**(`automatic_release: false`). 이미 심사 대기/진행 중 버전이 있으면 이번 제출은 자동 skip.
+- iOS: App Store 심사 자동 제출. 심사 승인 즉시 **자동 출시**(`automatic_release: true`). 이미 심사 대기/진행 중 버전이 있으면 이번 제출은 자동 skip.
 
 ### 수동 (테스트/재실행) — `workflow_dispatch`
 GitHub → **Actions** 탭 → 워크플로우 선택 → **Run workflow**.
 - `dry_run` 입력 (기본값 **true**): 빌드·서명까지만 하고 **스토어 업로드는 건너뜀**. 시크릿/서명 설정 검증용으로 안전.
 - 실제로 수동 배포하려면 `dry_run`을 **false**로 바꿔서 실행.
+- `release.yml`로 실행하면 양쪽을 같이 돌리고 Discord 알림까지 보냅니다. `release-ios.yml`·`release-android.yml`을 직접 실행하면 해당 플랫폼만 돌고 **알림은 없습니다.**
+
+### Discord 배포 알림
+`release.yml`의 notify 잡이 배포 1회당 메시지 1개를 GitHub 웹훅 봇 같은 embed 카드로 보냅니다 (`scripts/notify_cd.sh` · `notify_cd.jq`).
+- 색: 🟢 성공 / 🟡 성공했지만 확인 필요 / 🔴 실패. 제목을 누르면 실행 로그로 이동
+- 플랫폼별 결과: ✅ 성공 / ❌ 실패(실패한 작업·원인) / ⏸ 건너뜀(iOS 심사 중 등) / ⏭ 실행 안 됨(Play Store 키 미설정 등)
+- ⚠ 경고: 배포는 됐지만 확인이 필요한 문제 (예: dSYM 업로드 실패 → Crashlytics 콘솔에서 수동 업로드)
+- 결과는 Fastfile lane 이 남기는 `CD_RESULT`(step output `result`)를 씁니다. fastlane 실행 전 단계(서명·환경 준비)에서 실패하면 "배포 준비 단계" 실패로 표시됩니다.
+- dry run 은 실패하거나 경고가 있을 때만 알립니다.
 
 ### 버전 규칙
 - version name: **iOS·Android 모두** `pubspec.yaml`의 `version:` (예: `1.1.3+5` → `1.1.3`)에서 읽음. 여기가 단일 출처.
@@ -62,8 +72,9 @@ GitHub → **Actions** 탭 → 워크플로우 선택 → **Run workflow**.
 
 ### ⚠️ iOS 심사 스킵 시 What's New 누적 작성
 - iOS 제출이 스킵되면(이전 버전이 `WAITING_FOR_REVIEW`/`IN_REVIEW`/`PENDING_APPLE_RELEASE`/`PROCESSING_FOR_APP_STORE`) **그때 쓴 What's New는 App Store에 반영되지 않습니다.** 다음 릴리스 노트에 **이번 변경사항까지 누적**해서 쓰세요. 스킵되면 Actions 실행 요약에 어떤 버전·어떤 상태 때문인지 경고가 뜹니다.
-- 🚨 **가장 흔한 함정: `PENDING_DEVELOPER_RELEASE`** (심사 통과, 개발자가 출시 버튼 누르기 대기). `automatic_release: false`라 승인된 빌드는 항상 이 상태로 남습니다. **방치하면 이후 iOS 배포가 계속 막힙니다.** 승인 알림을 받으면 App Store Connect에서 **출시** 버튼을 눌러 상태를 비우세요.
-  - 실제로 2026-08-02·08-05 iOS 배포가 이 상태 때문에 연속 실패했습니다(guard 목록에 이 상태가 빠져 있어 그냥 통과한 뒤 Apple이 새 버전 생성을 거부: `You cannot create a new version of the App in the current state`).
+- `PENDING_DEVELOPER_RELEASE`(심사 통과, 개발자가 출시 버튼 누르기 대기)는 2026-08-15부터 자동 출시(`automatic_release: true`)로 바꿔 **새로 생기지 않습니다.** 다만 App Store Connect에서 수동으로 제출한 버전이 이 상태로 남아 있으면 이후 iOS 배포가 계속 막히므로, 그때는 **출시** 버튼을 눌러 상태를 비우세요.
+  - 수동 출시였던 2026-08-02·08-05에 iOS 배포가 이 상태 때문에 연속 실패했습니다(Apple이 새 버전 생성을 거부: `You cannot create a new version of the App in the current state`). 자동 출시로 바꾼 이유입니다.
+  - 출시 시점을 직접 고르려고 `automatic_release: false`로 되돌리면, 승인될 때마다 출시 버튼을 눌러야 다음 배포가 나갑니다.
 - guard에는 **시간이 지나면 저절로 풀리는 상태만** 담겨 있습니다. `REJECTED`·`INVALID_BINARY`처럼 사람이 손봐야 하는 상태는 일부러 제외해 빨갛게 실패시킵니다.
 
 ---
@@ -99,10 +110,10 @@ GitHub → **Actions** 탭 → 워크플로우 선택 → **Run workflow**.
 | `APP_STORE_CONNECT_KEY_ID` | 위 API 키의 Key ID | ASC |
 | `APP_STORE_CONNECT_ISSUER_ID` | ASC Issuer ID | ASC |
 
-**CI (`flutter-ci.yaml`)**
+**알림 (`flutter-ci.yaml`, `release.yml`)**
 | Secret | 내용 |
 |--------|------|
-| `DISCORD_WEBHOOK` | CI 결과 알림용 Discord 웹훅 URL (없으면 알림만 skip) |
+| `DISCORD_WEBHOOK` | CI·배포 결과 알림용 Discord 웹훅 URL (없으면 알림만 skip). 저장소 Settings → Webhooks 의 `.../github` 주소가 아니라 `/github` 를 뗀 일반 웹훅 주소여야 함 |
 
 ### 3-2. 로컬 시크릿 파일 — Infisical로 관리 (git에 없음)
 

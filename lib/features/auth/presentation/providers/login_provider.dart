@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:washer/core/env/app_environment.dart';
 import 'package:washer/core/network/error.dart';
+import 'package:washer/core/network/session_generation_provider.dart';
 import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/features/auth/data/repositories/auth_repository.dart';
 
@@ -89,6 +90,9 @@ class LoginNotifier extends AsyncNotifier<void> {
 
     switch (result) {
       case ResultSuccess():
+        // 로그아웃을 거치지 않고 세션이 끝난 경우(토큰 만료로 로그인 화면 이동 등)에도
+        // 이전 사용자의 상태가 새 세션에 남지 않도록 세션을 새로 시작한다.
+        ref.read(sessionGenerationProvider.notifier).advance();
         state = const AsyncData(null);
         return true;
       case ResultFailure(:final error):

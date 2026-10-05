@@ -76,12 +76,15 @@ class AlarmCard extends StatelessWidget {
   }
 
   /// 알람 종류에 대응하는 카드 제목
+  ///
+  /// 서버는 세탁기와 건조기에 같은 COMPLETION·MALFUNCTION 타입을 쓰고 기기 종류를
+  /// 내려주지 않으므로, 두 타입의 제목은 기기 종류와 무관한 문구로 표시한다.
   String _titleFor(AlarmType type) {
     switch (type) {
       case AlarmType.COMPLETION:
-        return '세탁 완료';
+        return '이용 완료';
       case AlarmType.MALFUNCTION:
-        return '세탁기 이상';
+        return '기기 이상';
       case AlarmType.WARNING:
         return '사용 경고';
       case AlarmType.INTERRUPTION:

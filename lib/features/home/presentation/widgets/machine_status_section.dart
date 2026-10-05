@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
 import 'package:washer/core/router/route_paths.dart';
-import 'package:washer/features/home/presentation/widgets/machine_section_header.dart';
 import 'package:washer/features/home/presentation/widgets/machine_status_tile.dart';
 import 'package:washer/features/reservation/data/models/local/machine_model.dart';
 import 'package:washer/shared/theme/washer_color.dart';
 import 'package:washer/shared/theme/app_spacing.dart';
 import 'package:washer/shared/theme/washer_typography.dart';
+import 'package:washer/shared/theme/washer_icon.dart';
 
 /// 기기를 층 -> 배치 번호 -> 좌/우 -> 이름 순으로 정렬한다. (null 값은 뒤로)
 List<MachineModel> _sortMachinesByPlacement(List<MachineModel> machines) {
@@ -82,7 +82,7 @@ class MachineStatusSection extends StatelessWidget {
     return SliverMainAxisGroup(
       slivers: [
         SliverToBoxAdapter(
-          child: MachineSectionHeader(
+          child: _MachineSectionHeader(
             title: _title,
             onViewAll: () {
               final route = machineType == LaundryMachineType.washer
@@ -119,6 +119,50 @@ class MachineStatusSection extends StatelessWidget {
               childAspectRatio: _itemRatio,
             ),
           ),
+      ],
+    );
+  }
+}
+
+/// 기기 섹션 제목(좌)과 "전체보기" 버튼(우)으로 구성된 헤더
+class _MachineSectionHeader extends StatelessWidget {
+  const _MachineSectionHeader({
+    required this.title,
+    this.onViewAll,
+  });
+
+  final String title;
+  final VoidCallback? onViewAll;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: WasherTypography.subTitle1(WasherColor.baseGray800),
+        ),
+        GestureDetector(
+          onTap: onViewAll,
+          behavior: HitTestBehavior.opaque,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '전체보기',
+                style: WasherTypography.body2(WasherColor.baseGray500),
+              ),
+              AppGap.h4,
+              const WasherIcon(
+                type: WasherIconType.back,
+                size: 16,
+                color: WasherColor.baseGray500,
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }

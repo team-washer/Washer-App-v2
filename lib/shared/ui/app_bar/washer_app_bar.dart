@@ -4,7 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:washer/core/network/auth_notifier.dart';
 import 'package:washer/core/router/route_paths.dart';
-import 'package:washer/shared/ui/error_toast.dart';
+import 'package:washer/shared/ui/washer_toast.dart';
 import 'package:washer/shared/theme/washer_color.dart';
 import 'package:washer/shared/theme/washer_icon.dart';
 import 'package:washer/shared/theme/app_spacing.dart';
@@ -43,7 +43,7 @@ class WasherAppBar extends ConsumerWidget implements PreferredSizeWidget {
             return Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                WasherIcon(
+                const WasherIcon(
                   type: WasherIconType.logo,
                   size: 40,
                 ),
@@ -89,8 +89,10 @@ class WasherAppBar extends ConsumerWidget implements PreferredSizeWidget {
                                   .withdraw();
                               if (!didWithdraw) {
                                 if (context.mounted) {
-                                  context.showErrorToast(
-                                    ref.read(withdrawProvider).error,
+                                  context.showToast(
+                                    WasherToast.error(
+                                      ref.read(withdrawProvider).error,
+                                    ),
                                   );
                                 }
                                 return;
@@ -118,7 +120,13 @@ class WasherAppBar extends ConsumerWidget implements PreferredSizeWidget {
                       onNotificationTap: () {
                         final location = GoRouterState.of(context).uri.path;
                         final baseRoute = _resolveAlarmBaseRoute(location);
-                        context.push('$baseRoute/${RoutePaths.alarmSubRoute}');
+                        final alarmRoute =
+                            '$baseRoute/${RoutePaths.alarmSubRoute}';
+                        // 이미 알림 화면이면 같은 화면을 다시 쌓지 않는다.
+                        if (location == alarmRoute) {
+                          return;
+                        }
+                        context.push(alarmRoute);
                       },
                     ),
                   ),

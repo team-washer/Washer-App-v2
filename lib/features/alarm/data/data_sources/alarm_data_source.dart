@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:retrofit/retrofit.dart';
 import 'package:washer/core/network/api_response_parser.dart';
 import 'package:washer/core/network/dio_client.dart';
+import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/features/alarm/data/models/response/alarm_list_response.dart';
 
 part 'alarm_data_source.g.dart';
@@ -11,7 +12,7 @@ part 'alarm_data_source.g.dart';
 abstract class AlarmDataSource {
   Future<AlarmListResponse> getAlarmList();
   Future<void> deleteAllNotifications();
-  Future<void> registerFcmToken(String token);
+  Future<int?> registerFcmToken(String token);
   Future<void> deleteFcmToken();
 }
 
@@ -27,7 +28,9 @@ abstract class AlarmApiService {
   Future<void> deleteAllNotifications();
 
   @POST('notifications/fcm-token')
-  Future<void> registerFcmToken(@Body() Map<String, dynamic> payload);
+  Future<HttpResponse<dynamic>> registerFcmToken(
+    @Body() Map<String, dynamic> payload,
+  );
 
   @DELETE('notifications/fcm-token')
   Future<void> deleteFcmToken();
@@ -59,8 +62,17 @@ class AlarmDataSourceImpl implements AlarmDataSource {
   }
 
   @override
-  Future<void> registerFcmToken(String token) {
-    return _api.registerFcmToken({'token': token});
+  Future<int?> registerFcmToken(String token) async {
+    AppLogger.info(
+      'FCM registration API request started. token=[REDACTED], length=${token.length}',
+      name: 'AlarmDataSource',
+    );
+    final response = await _api.registerFcmToken({'token': token});
+    AppLogger.info(
+      'FCM registration API succeeded. statusCode=${response.response.statusCode}',
+      name: 'AlarmDataSource',
+    );
+    return response.response.statusCode;
   }
 
   @override

@@ -1,7 +1,9 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
 import 'package:washer/core/network/auth_notifier.dart';
+import 'package:washer/core/network/dio_client.dart';
 import 'package:washer/core/network/token_utils.dart';
 import 'package:washer/shared/ui/layout/main_shell.dart';
 import 'package:washer/features/alarm/presentation/screens/alarm_screen.dart';
@@ -16,7 +18,7 @@ const _storage = FlutterSecureStorage();
 
 /// 토큰 상태와 목적지만으로 리다이렉트 대상을 정한다.
 ///
-/// 저장소 접근과 토큰 삭제는 [appRouter] 에 남기고 판단만 분리해서,
+/// 저장소 접근과 세션 정리는 [appRouter] 에 남기고 판단만 분리해서,
 /// 인증 게이트를 기기 없이 검증할 수 있게 한다.
 String? resolveAuthRedirect({
   required String location,
@@ -56,6 +58,8 @@ final appRouter = GoRouter(
   initialLocation: RoutePaths.splash,
   refreshListenable: authNotifier,
   redirect: (context, state) async {
+    // await 이후에 context를 쓰지 않도록 컨테이너를 먼저 잡아 둔다.
+    final container = ProviderScope.containerOf(context, listen: false);
     final accessToken = await _storage.read(key: 'access_token');
     final refreshToken = await _storage.read(key: 'refresh_token');
     final destination = resolveAuthRedirect(
@@ -64,9 +68,10 @@ final appRouter = GoRouter(
       refreshToken: refreshToken,
     );
 
+    // 저장소만 지우면 인증 캐시에 남은 토큰이 다음 로그인의 첫 요청에 쓰일 수 있어
+    // 세션 종료 API로 둘 다 정리한다.
     if (destination == RoutePaths.login) {
-      await _storage.delete(key: 'access_token');
-      await _storage.delete(key: 'refresh_token');
+      await container.read(dioClientProvider).clearAuthCache();
     }
 
     return destination;

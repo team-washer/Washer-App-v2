@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:washer/features/reservation/data/data_sources/remote/reservation_status_remote_data_source.dart';
@@ -15,6 +17,8 @@ class _FakeServer implements ReservationStatusRemoteDataSource {
   List<ActiveReservationModel> room = const [];
   ActiveReservationModel? mine;
   Object? roomError;
+  Object? mineError;
+  Future<List<ActiveReservationModel>>? pendingRoom;
   int roomRequestCount = 0;
 
   @override
@@ -24,11 +28,17 @@ class _FakeServer implements ReservationStatusRemoteDataSource {
     if (error != null) {
       throw error;
     }
-    return room;
+    return pendingRoom ?? room;
   }
 
   @override
-  Future<ActiveReservationModel?> getMyActiveReservation() async => mine;
+  Future<ActiveReservationModel?> getMyActiveReservation() async {
+    final error = mineError;
+    if (error != null) {
+      throw error;
+    }
+    return mine;
+  }
 
   @override
   Future<MachineStatusResponse> getMachineStatus() async =>
@@ -238,6 +248,168 @@ void main() {
         _mine,
         _roommate,
       ]);
+    });
+  });
+
+  group('기존 내 활성 예약 polling 복구 (#323)', () {
+    late _FakeServer server;
+
+    ProviderContainer makeContainer({required int loggedInUserId}) {
+      final container = ProviderContainer(
+        overrides: [
+          reservationStatusRemoteDataSourceProvider.overrideWith(
+            (ref) => server,
+          ),
+          myUserProvider.overrideWith(
+            () => _FakeMyUserNotifier(loggedInUserId),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      return container;
+    }
+
+    Future<ReservationSyncController> loadHome(
+      ProviderContainer container,
+    ) async {
+      final controller = container.read(reservationSyncControllerProvider);
+      await Future.wait([
+        container.read(myUserProvider.future),
+        container.read(activeReservationProvider.future),
+      ]);
+      await _settle();
+      return controller;
+    }
+
+    setUp(() {
+      server = _FakeServer();
+    });
+
+    test('기존 내 활성 예약을 조회하면 polling을 시작한다', () async {
+      server.room = [_mine, _roommate];
+      final container = makeContainer(loggedInUserId: 15);
+
+      final controller = await loadHome(container);
+
+      expect(controller.isPolling, isTrue);
+    });
+
+    test('연속 실패로 중단된 뒤 정상 재조회하면 polling을 다시 시작한다', () async {
+      server
+        ..room = [_mine]
+        ..mineError = Exception('일시적인 조회 실패');
+      final container = makeContainer(loggedInUserId: 15);
+      final controller = await loadHome(container);
+
+      for (var i = 0; i < 5; i++) {
+        await controller.syncActiveReservation();
+      }
+      expect(controller.isPolling, isFalse);
+
+      server.mineError = null;
+      await container.read(activeReservationProvider.notifier).refresh();
+      await _settle();
+
+      expect(controller.isPolling, isTrue);
+    });
+
+    test('활성 예약이 없으면 polling을 시작하지 않는다', () async {
+      server.room = const [];
+      final container = makeContainer(loggedInUserId: 15);
+
+      final controller = await loadHome(container);
+
+      expect(controller.isPolling, isFalse);
+    });
+
+    test('룸메이트 예약만 있으면 내 polling을 시작하지 않는다', () async {
+      server.room = [_roommate];
+      final container = makeContainer(loggedInUserId: 15);
+
+      final controller = await loadHome(container);
+
+      expect(controller.isPolling, isFalse);
+    });
+
+    test('이미 polling 중이면 재조회해도 새 polling을 시작하지 않는다', () async {
+      server.room = [_mine];
+      final container = makeContainer(loggedInUserId: 15);
+      final controller = await loadHome(container);
+
+      await container.read(activeReservationProvider.notifier).refresh();
+      await _settle();
+
+      expect(controller.isPolling, isTrue);
+      expect(controller.restorePollingFromCurrentState(), isFalse);
+    });
+  });
+
+  group('#326 취소 경계 이전 응답 무효화', () {
+    late _FakeServer server;
+    late ProviderContainer container;
+    late ActiveReservationNotifier notifier;
+
+    setUp(() async {
+      server = _FakeServer()..room = [_mine, _roommate];
+      container = ProviderContainer(
+        overrides: [
+          reservationStatusRemoteDataSourceProvider.overrideWith(
+            (ref) => server,
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      await container.read(activeReservationProvider.future);
+      notifier = container.read(activeReservationProvider.notifier);
+    });
+
+    test('취소 이전 requestId의 내 예약 업데이트는 stale이다', () {
+      final oldRequestId = notifier.beginRequest();
+      notifier.removeCancelledReservation(114);
+
+      final result = notifier.applyMyReservation(
+        MyReservationUpdate(
+          requestId: oldRequestId,
+          mine: _mine,
+          trackedId: 114,
+        ),
+      );
+
+      expect(result.isStale, isTrue);
+      expect(result.hasChanged, isFalse);
+      expect(container.read(activeReservationProvider).value, [_roommate]);
+    });
+
+    test('호실 조회가 진행 중이어도 취소 대상은 즉시 제거된다', () async {
+      final roomResponse = Completer<List<ActiveReservationModel>>();
+      server.pendingRoom = roomResponse.future;
+      final reload = notifier.reloadInBackground();
+
+      notifier.removeCancelledReservation(114);
+      expect(container.read(activeReservationProvider).value, [_roommate]);
+      roomResponse.complete([_mine, _roommate]);
+      await reload;
+
+      expect(container.read(activeReservationProvider).value, [_roommate]);
+    });
+
+    test('취소 이전의 보류된 polling 결과가 취소 경계를 덮지 않는다', () async {
+      final roomResponse = Completer<List<ActiveReservationModel>>();
+      server.pendingRoom = roomResponse.future;
+      final reload = notifier.reloadInBackground();
+      notifier.applyMyReservation(
+        MyReservationUpdate(
+          requestId: notifier.beginRequest(),
+          mine: _mine,
+          trackedId: 114,
+        ),
+      );
+
+      notifier.removeCancelledReservation(114);
+      roomResponse.completeError(Exception('호실 조회 실패'));
+      await reload;
+
+      expect(container.read(activeReservationProvider).value, [_roommate]);
     });
   });
 

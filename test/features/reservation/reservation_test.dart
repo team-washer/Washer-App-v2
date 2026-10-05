@@ -16,12 +16,15 @@ import 'package:washer/features/reservation/data/models/remote/reservation_avail
 import 'package:washer/features/reservation/presentation/providers/reservation_action_provider.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_exceptions.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_sync_controller.dart';
+import 'package:washer/features/user/data/models/my_user_model.dart';
+import 'package:washer/features/user/presentation/providers/my_user_provider.dart';
 
 class FakeReservationRemoteDataSource implements ReservationRemoteDataSource {
   FakeReservationRemoteDataSource({
     this.createdReservation = _reservedReservation,
     this.createdReservationBuilder,
     this.cancelError,
+    this.cancelFuture,
     this.cancelResponse = _noPenaltyCancel,
   });
 
@@ -31,6 +34,7 @@ class FakeReservationRemoteDataSource implements ReservationRemoteDataSource {
   final ActiveReservationModel Function(int machineId)?
   createdReservationBuilder;
   final Object? cancelError;
+  final Future<CancelReservationResponse>? cancelFuture;
   final CancelReservationResponse cancelResponse;
   int? lastMachineId;
   String? lastStartTime;
@@ -53,6 +57,10 @@ class FakeReservationRemoteDataSource implements ReservationRemoteDataSource {
   Future<CancelReservationResponse> cancelReservation({required int id}) async {
     cancelledId = id;
     cancelledIds.add(id);
+    final pendingCancel = cancelFuture;
+    if (pendingCancel != null) {
+      return pendingCancel;
+    }
     final nextError = cancelError;
     if (nextError != null) {
       throw nextError;
@@ -80,6 +88,21 @@ const _reservedReservation = ActiveReservationModel(
   expectedCompletionTime: null,
   status: 'RESERVED',
 );
+
+MachineStatusResponse _machineStatusResponse(int machineId) {
+  return MachineStatusResponse(
+    machines: [
+      MachineModel(
+        machineId: machineId,
+        name: 'Washer-3F-L$machineId',
+        type: 'WASHER',
+        status: 'NORMAL',
+        availability: 'AVAILABLE',
+      ),
+    ],
+    totalCount: 1,
+  );
+}
 
 class FakeReservationStatusRemoteDataSource
     implements ReservationStatusRemoteDataSource {
@@ -118,7 +141,132 @@ class FakeReservationStatusRemoteDataSource
   }
 }
 
+class _CancelTestUserNotifier extends MyUserNotifier {
+  @override
+  Future<MyUserModel?> build() async =>
+      const MyUserModel(id: 15, name: '나', roomNumber: '420');
+}
+
 void main() {
+  group('#326 취소 성공 경계', () {
+    final roommate = _reservedReservation.copyWith(id: 200, userId: 16);
+    late List<ActiveReservationModel> room;
+    late Object? roomError;
+    late Object? machineError;
+    late Completer<ActiveReservationModel?> pollingResponse;
+    late Completer<CancelReservationResponse> deleteResponse;
+    late ProviderContainer container;
+    late ReservationSyncController controller;
+
+    setUp(() async {
+      room = [_reservedReservation, roommate];
+      roomError = null;
+      machineError = null;
+      pollingResponse = Completer<ActiveReservationModel?>();
+      deleteResponse = Completer<CancelReservationResponse>();
+      container = ProviderContainer(
+        overrides: [
+          myUserProvider.overrideWith(_CancelTestUserNotifier.new),
+          reservationRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeReservationRemoteDataSource(
+              cancelFuture: deleteResponse.future,
+            ),
+          ),
+          reservationStatusRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeReservationStatusRemoteDataSource(
+              machineStatusLoader: () async {
+                if (machineError != null) throw machineError!;
+                return const MachineStatusResponse(machines: [], totalCount: 0);
+              },
+              activeReservationsLoader: () async {
+                if (roomError != null) throw roomError!;
+                return room;
+              },
+              myActiveReservationLoader: () => pollingResponse.future,
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      await Future.wait([
+        container.read(myUserProvider.future),
+        container.read(activeReservationProvider.future),
+        container.read(machineStatusProvider.future),
+        container.read(reservationActionProvider.future),
+      ]);
+      controller = container.read(reservationSyncControllerProvider);
+      expect(controller.isPolling, isTrue);
+    });
+
+    test('취소 성공 뒤 호실 조회가 실패해도 이전 polling이 예약을 되살리지 않는다', () async {
+      final polling = controller.syncActiveReservation();
+      roomError = Exception('취소 후 호실 조회 실패');
+      final cancellation = container
+          .read(reservationActionProvider.notifier)
+          .cancel(reservationId: 114);
+      deleteResponse.complete(_noPenaltyCancel);
+
+      expect(await cancellation, isTrue);
+      expect(
+        container.read(reservationActionProvider),
+        isA<AsyncData<ActiveReservationModel?>>(),
+      );
+      final afterCancellation = container.read(activeReservationProvider).value;
+      pollingResponse.complete(_reservedReservation);
+      await polling;
+
+      expect(afterCancellation, [roommate]);
+      expect(container.read(activeReservationProvider).value, [roommate]);
+      expect(controller.isPolling, isFalse);
+      expect(controller.restorePollingFromCurrentState(), isFalse);
+    });
+
+    test('DELETE 실패 시 예약을 유지하고 polling 복원 보류를 해제한다', () async {
+      final cancellation = container
+          .read(reservationActionProvider.notifier)
+          .cancel(reservationId: 114);
+      expect(controller.isPolling, isFalse);
+      deleteResponse.completeError(Exception('DELETE 실패'));
+
+      expect(await cancellation, isFalse);
+      expect(container.read(reservationActionProvider).hasError, isTrue);
+      expect(container.read(activeReservationProvider).value, room);
+      expect(controller.isPolling, isTrue);
+      controller.stopPolling();
+      expect(controller.restorePollingFromCurrentState(), isTrue);
+    });
+
+    test('정상 취소는 내 예약만 제거하고 polling을 중단한다', () async {
+      final polling = controller.syncActiveReservation();
+      final cancellation = container
+          .read(reservationActionProvider.notifier)
+          .cancel(reservationId: 114);
+      room = [roommate];
+      deleteResponse.complete(_noPenaltyCancel);
+
+      expect(await cancellation, isTrue);
+      pollingResponse.complete(_reservedReservation);
+      await polling;
+      expect(container.read(activeReservationProvider).value, [roommate]);
+      expect(controller.isPolling, isFalse);
+    });
+
+    test('취소 뒤 기기 조회 실패도 취소 실패로 처리하지 않는다', () async {
+      final cancellation = container
+          .read(reservationActionProvider.notifier)
+          .cancel(reservationId: 114);
+      room = [roommate];
+      machineError = Exception('취소 후 기기 조회 실패');
+      deleteResponse.complete(_noPenaltyCancel);
+
+      expect(await cancellation, isTrue);
+      expect(container.read(reservationActionProvider).hasError, isFalse);
+      expect(container.read(activeReservationProvider).value, [roommate]);
+      expect(container.read(machineStatusProvider).hasError, isTrue);
+      expect(controller.isPolling, isFalse);
+    });
+  });
+
   group('MachineModel placement', () {
     test('parses floor side and number from machine name', () {
       const model = MachineModel(
@@ -304,7 +452,7 @@ void main() {
       expect(state.error, isA<DioException>());
       expect(
         container.read(pollingErrorProvider)?.message,
-        '서버 연결이 거부되었습니다. 서버 상태를 확인해주세요.',
+        '네트워크 연결을 확인해주세요.',
       );
     });
 
@@ -353,6 +501,193 @@ void main() {
       await container.read(machineStatusProvider.notifier).refresh();
 
       expect(container.read(machineStatusProvider).value, secondResponse);
+    });
+
+    test('늦게 도착한 오래된 refresh 성공 응답은 최신 성공 상태를 덮지 않는다', () async {
+      final firstRefresh = Completer<MachineStatusResponse>();
+      final secondRefresh = Completer<MachineStatusResponse>();
+      final initial = _machineStatusResponse(1);
+      final stale = _machineStatusResponse(2);
+      final latest = _machineStatusResponse(3);
+      var callCount = 0;
+      final container = ProviderContainer(
+        overrides: [
+          reservationStatusRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeReservationStatusRemoteDataSource(
+              machineStatusLoader: () {
+                callCount += 1;
+                return switch (callCount) {
+                  1 => Future.value(initial),
+                  2 => firstRefresh.future,
+                  3 => secondRefresh.future,
+                  _ => throw StateError('예상하지 못한 기기 상태 요청입니다.'),
+                };
+              },
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      await container.read(machineStatusProvider.future);
+
+      final notifier = container.read(machineStatusProvider.notifier);
+      final staleRequest = notifier.refresh();
+      final latestRequest = notifier.refresh();
+      secondRefresh.complete(latest);
+      await latestRequest;
+      firstRefresh.complete(stale);
+      await staleRequest;
+
+      expect(container.read(machineStatusProvider).value, latest);
+    });
+
+    test('늦게 도착한 오래된 refresh 실패는 최신 성공 상태를 바꾸지 않는다', () async {
+      final firstRefresh = Completer<MachineStatusResponse>();
+      final secondRefresh = Completer<MachineStatusResponse>();
+      final initial = _machineStatusResponse(1);
+      final latest = _machineStatusResponse(3);
+      final staleError = DioException(
+        requestOptions: RequestOptions(path: '/machines'),
+        type: DioExceptionType.connectionError,
+      );
+      var callCount = 0;
+      final container = ProviderContainer(
+        overrides: [
+          reservationStatusRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeReservationStatusRemoteDataSource(
+              machineStatusLoader: () {
+                callCount += 1;
+                return switch (callCount) {
+                  1 => Future.value(initial),
+                  2 => firstRefresh.future,
+                  3 => secondRefresh.future,
+                  _ => throw StateError('예상하지 못한 기기 상태 요청입니다.'),
+                };
+              },
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      await container.read(machineStatusProvider.future);
+
+      final notifier = container.read(machineStatusProvider.notifier);
+      final staleRequest = notifier.refresh();
+      final latestRequest = notifier.refresh();
+      secondRefresh.complete(latest);
+      await latestRequest;
+      firstRefresh.completeError(staleError);
+      await staleRequest;
+
+      final state = container.read(machineStatusProvider);
+      expect(state.hasError, isFalse);
+      expect(state.value, latest);
+      expect(container.read(pollingErrorProvider), isNull);
+    });
+
+    test('가장 최신 refresh가 실패하면 기존처럼 오류 상태를 표시한다', () async {
+      final refreshCompleter = Completer<MachineStatusResponse>();
+      final error = DioException(
+        requestOptions: RequestOptions(path: '/machines'),
+        type: DioExceptionType.connectionError,
+      );
+      var callCount = 0;
+      final container = ProviderContainer(
+        overrides: [
+          reservationStatusRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeReservationStatusRemoteDataSource(
+              machineStatusLoader: () {
+                callCount += 1;
+                return callCount == 1
+                    ? Future.value(_machineStatusResponse(1))
+                    : refreshCompleter.future;
+              },
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      await container.read(machineStatusProvider.future);
+
+      final refresh = container.read(machineStatusProvider.notifier).refresh();
+      refreshCompleter.completeError(error);
+      await refresh;
+
+      final state = container.read(machineStatusProvider);
+      expect(state.hasError, isTrue);
+      expect(state.error, same(error));
+      expect(
+        container.read(pollingErrorProvider)?.message,
+        '네트워크 연결을 확인해주세요.',
+      );
+    });
+
+    test('build보다 늦게 시작한 refresh 결과를 오래된 build 응답이 덮지 않는다', () async {
+      final buildCompleter = Completer<MachineStatusResponse>();
+      final refreshCompleter = Completer<MachineStatusResponse>();
+      final stale = _machineStatusResponse(1);
+      final latest = _machineStatusResponse(2);
+      var callCount = 0;
+      final container = ProviderContainer(
+        overrides: [
+          reservationStatusRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeReservationStatusRemoteDataSource(
+              machineStatusLoader: () {
+                callCount += 1;
+                return callCount == 1
+                    ? buildCompleter.future
+                    : refreshCompleter.future;
+              },
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final build = container.read(machineStatusProvider.future);
+      final refresh = container.read(machineStatusProvider.notifier).refresh();
+      refreshCompleter.complete(latest);
+      await refresh;
+      buildCompleter.complete(stale);
+
+      expect(await build, latest);
+      expect(container.read(machineStatusProvider).value, latest);
+    });
+
+    test('build와 겹친 최신 refresh 실패를 오래된 build 성공이 덮지 않는다', () async {
+      final buildCompleter = Completer<MachineStatusResponse>();
+      final refreshCompleter = Completer<MachineStatusResponse>();
+      final error = DioException(
+        requestOptions: RequestOptions(path: '/machines'),
+        type: DioExceptionType.connectionError,
+      );
+      var callCount = 0;
+      final container = ProviderContainer(
+        overrides: [
+          reservationStatusRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeReservationStatusRemoteDataSource(
+              machineStatusLoader: () {
+                callCount += 1;
+                return callCount == 1
+                    ? buildCompleter.future
+                    : refreshCompleter.future;
+              },
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final build = container.read(machineStatusProvider.future);
+      final refresh = container.read(machineStatusProvider.notifier).refresh();
+      refreshCompleter.completeError(error);
+      await refresh;
+      buildCompleter.complete(_machineStatusResponse(1));
+
+      await expectLater(build, throwsA(same(error)));
+      final state = container.read(machineStatusProvider);
+      expect(state.hasError, isTrue);
+      expect(state.error, same(error));
     });
   });
 
@@ -472,6 +807,51 @@ void main() {
       ]);
 
       expect(reservationDataSource.cancelledIds, [114, 115]);
+    });
+
+    test('#323: 취소 요청 중 목록이 갱신돼도 polling을 다시 시작하지 않는다', () async {
+      final cancelCompleter = Completer<CancelReservationResponse>();
+      final reservationDataSource = FakeReservationRemoteDataSource(
+        cancelFuture: cancelCompleter.future,
+      );
+      final container = ProviderContainer(
+        overrides: [
+          reservationRemoteDataSourceProvider.overrideWith(
+            (ref) => reservationDataSource,
+          ),
+          reservationStatusRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeReservationStatusRemoteDataSource(
+              machineStatusLoader: () async =>
+                  const MachineStatusResponse(machines: [], totalCount: 0),
+              activeReservationsLoader: () async => const [
+                _reservedReservation,
+              ],
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(activeReservationProvider.future);
+      final controller = container.read(reservationSyncControllerProvider)
+        ..startPolling(reservationId: 114, userId: 15);
+      addTearDown(controller.stopPolling);
+
+      final cancellation = container
+          .read(reservationActionProvider.notifier)
+          .cancel(reservationId: 114);
+      expect(controller.isPolling, isFalse);
+
+      await container.read(activeReservationProvider.notifier).refresh();
+      expect(
+        controller.isPolling,
+        isFalse,
+        reason: '취소 중에는 기존 예약 재조회가 polling을 복구하면 안 된다',
+      );
+
+      cancelCompleter.complete(_noPenaltyCancel);
+      expect(await cancellation, isTrue);
+      expect(controller.isPolling, isFalse);
     });
 
     test('예약 전 조회 결과 이미 예약된 기기면 요청을 보내지 않고 예외를 담는다', () async {

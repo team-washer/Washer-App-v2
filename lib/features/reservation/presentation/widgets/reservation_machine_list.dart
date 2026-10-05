@@ -16,6 +16,7 @@ import 'package:washer/features/reservation/data/models/local/active_reservation
 import 'package:washer/features/reservation/data/models/local/machine_model.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_action_provider.dart';
+import 'package:washer/features/reservation/presentation/providers/reservation_sync_controller.dart';
 import 'package:washer/features/reservation/presentation/widgets/floor_selector_row.dart';
 import 'package:washer/features/reservation/presentation/widgets/laundry_layout_dialog.dart';
 import 'package:washer/features/reservation/presentation/widgets/machine_reservation_card.dart';
@@ -51,6 +52,7 @@ class _ReservationMachineListState
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      ref.read(reservationSyncControllerProvider);
       ref.read(activeReservationProvider.notifier).ensureLoaded();
     });
   }

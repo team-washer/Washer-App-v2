@@ -156,33 +156,51 @@ class ReservationActionNotifier extends AsyncNotifier<ActiveReservationModel?> {
 
     final sync = ref.read(reservationSyncControllerProvider);
     final wasPolling = sync.isPolling;
+    var restartPolling = false;
+    sync.suspendPollingRestore();
 
     try {
       // 취소하는 동안 polling 응답이 취소된 예약을 되살리지 않도록 잠시 멈춘다.
       sync.stopPolling();
 
-      await ref
-          .read(reservationRemoteDataSourceProvider)
-          .cancelReservation(id: reservationId);
-
-      await refreshReservationStatusProviders(ref);
-
-      state = const AsyncData(null);
-      return true;
-    } catch (error, stackTrace) {
-      AppLogger.error(
-        '예약 취소 중 오류가 발생했습니다.',
-        name: 'ReservationActionNotifier',
-        error: error,
-        stackTrace: stackTrace,
-      );
-      state = AsyncError(error, stackTrace);
-      // 취소가 실패했으면 예약은 그대로 유지된다(예: 이미 사용이 시작돼 409).
-      // 멈췄던 polling을 다시 켜야 완료·종료가 화면에 계속 반영된다.
-      if (wasPolling) {
-        sync.startPolling();
+      try {
+        await ref
+            .read(reservationRemoteDataSourceProvider)
+            .cancelReservation(id: reservationId);
+      } catch (error, stackTrace) {
+        AppLogger.error(
+          '예약 취소 중 오류가 발생했습니다.',
+          name: 'ReservationActionNotifier',
+          error: error,
+          stackTrace: stackTrace,
+        );
+        state = AsyncError(error, stackTrace);
+        // DELETE가 실패한 경우에만 기존 예약의 polling을 복원한다.
+        restartPolling = wasPolling;
+        return false;
       }
-      return false;
+
+      final activeReservations = ref.read(activeReservationProvider.notifier);
+      activeReservations.removeCancelledReservation(reservationId);
+      state = const AsyncData(null);
+
+      try {
+        // 조회가 실패해도 DELETE로 확정된 취소와 나머지 호실 예약은 유지한다.
+        await Future.wait([
+          ref.read(machineStatusProvider.notifier).refresh(),
+          activeReservations.reloadInBackground(),
+        ]);
+      } catch (error, stackTrace) {
+        AppLogger.error(
+          '예약 취소 후 상태 갱신 중 오류가 발생했습니다.',
+          name: 'ReservationActionNotifier',
+          error: error,
+          stackTrace: stackTrace,
+        );
+      }
+      return true;
+    } finally {
+      sync.resumePollingRestore(restartPolling: restartPolling);
     }
   }
 

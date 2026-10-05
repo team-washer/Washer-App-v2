@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:washer/core/network/error.dart';
 import 'package:washer/features/report/presentation/providers/report_dialog_actions.dart';
 import 'package:washer/shared/theme/washer_color.dart';
+import 'package:washer/shared/theme/washer_error_message.dart';
 import 'package:washer/shared/theme/app_spacing.dart';
 import 'package:washer/shared/theme/washer_typography.dart';
 import 'package:washer/shared/ui/indicators/status_dot.dart';
 import 'package:washer/shared/ui/dialog/dialog_action.dart';
 import 'package:washer/shared/ui/dialog/washer_dialog.dart';
+import 'package:washer/shared/ui/washer_toast.dart';
 
 /// 기기 고장 내용을 입력받아 신고하는 다이얼로그
 class ReportBrokenDialog extends ConsumerStatefulWidget {
@@ -54,8 +57,10 @@ class _ReportBrokenDialogState extends ConsumerState<ReportBrokenDialog> {
 
     if (description.isEmpty) {
       _focusNode.requestFocus();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('고장 내용을 입력해주세요.')),
+      context.showToast(
+        WasherToast.error(
+          AppException(message: WasherErrorMessage.reportDescriptionRequired),
+        ),
       );
       return;
     }

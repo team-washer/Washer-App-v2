@@ -7,6 +7,7 @@ import 'package:washer/features/reservation/data/data_sources/remote/reservation
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/data/models/local/machine_model.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_action_provider.dart';
+import 'package:washer/features/reservation/presentation/providers/reservation_error_mapper.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_exceptions.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_sync_controller.dart';
@@ -511,7 +512,10 @@ void main() {
 
       expect(cancelled, isFalse);
       expect(
-        AppException.from(s.me.reserveError).message,
+        reservationErrorToAppException(
+          s.me.reserveError,
+          action: ReservationAction.cancel,
+        ).message,
         '이미 사용이 시작된 예약은 취소할 수 없어요.',
       );
       expect(s.me.reservations.single.status, 'RUNNING');

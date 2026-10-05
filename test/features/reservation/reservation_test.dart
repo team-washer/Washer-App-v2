@@ -87,6 +87,21 @@ const _reservedReservation = ActiveReservationModel(
   status: 'RESERVED',
 );
 
+MachineStatusResponse _machineStatusResponse(int machineId) {
+  return MachineStatusResponse(
+    machines: [
+      MachineModel(
+        machineId: machineId,
+        name: 'Washer-3F-L$machineId',
+        type: 'WASHER',
+        status: 'NORMAL',
+        availability: 'AVAILABLE',
+      ),
+    ],
+    totalCount: 1,
+  );
+}
+
 class FakeReservationStatusRemoteDataSource
     implements ReservationStatusRemoteDataSource {
   FakeReservationStatusRemoteDataSource({
@@ -359,6 +374,193 @@ void main() {
       await container.read(machineStatusProvider.notifier).refresh();
 
       expect(container.read(machineStatusProvider).value, secondResponse);
+    });
+
+    test('늦게 도착한 오래된 refresh 성공 응답은 최신 성공 상태를 덮지 않는다', () async {
+      final firstRefresh = Completer<MachineStatusResponse>();
+      final secondRefresh = Completer<MachineStatusResponse>();
+      final initial = _machineStatusResponse(1);
+      final stale = _machineStatusResponse(2);
+      final latest = _machineStatusResponse(3);
+      var callCount = 0;
+      final container = ProviderContainer(
+        overrides: [
+          reservationStatusRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeReservationStatusRemoteDataSource(
+              machineStatusLoader: () {
+                callCount += 1;
+                return switch (callCount) {
+                  1 => Future.value(initial),
+                  2 => firstRefresh.future,
+                  3 => secondRefresh.future,
+                  _ => throw StateError('예상하지 못한 기기 상태 요청입니다.'),
+                };
+              },
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      await container.read(machineStatusProvider.future);
+
+      final notifier = container.read(machineStatusProvider.notifier);
+      final staleRequest = notifier.refresh();
+      final latestRequest = notifier.refresh();
+      secondRefresh.complete(latest);
+      await latestRequest;
+      firstRefresh.complete(stale);
+      await staleRequest;
+
+      expect(container.read(machineStatusProvider).value, latest);
+    });
+
+    test('늦게 도착한 오래된 refresh 실패는 최신 성공 상태를 바꾸지 않는다', () async {
+      final firstRefresh = Completer<MachineStatusResponse>();
+      final secondRefresh = Completer<MachineStatusResponse>();
+      final initial = _machineStatusResponse(1);
+      final latest = _machineStatusResponse(3);
+      final staleError = DioException(
+        requestOptions: RequestOptions(path: '/machines'),
+        type: DioExceptionType.connectionError,
+      );
+      var callCount = 0;
+      final container = ProviderContainer(
+        overrides: [
+          reservationStatusRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeReservationStatusRemoteDataSource(
+              machineStatusLoader: () {
+                callCount += 1;
+                return switch (callCount) {
+                  1 => Future.value(initial),
+                  2 => firstRefresh.future,
+                  3 => secondRefresh.future,
+                  _ => throw StateError('예상하지 못한 기기 상태 요청입니다.'),
+                };
+              },
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      await container.read(machineStatusProvider.future);
+
+      final notifier = container.read(machineStatusProvider.notifier);
+      final staleRequest = notifier.refresh();
+      final latestRequest = notifier.refresh();
+      secondRefresh.complete(latest);
+      await latestRequest;
+      firstRefresh.completeError(staleError);
+      await staleRequest;
+
+      final state = container.read(machineStatusProvider);
+      expect(state.hasError, isFalse);
+      expect(state.value, latest);
+      expect(container.read(pollingErrorProvider), isNull);
+    });
+
+    test('가장 최신 refresh가 실패하면 기존처럼 오류 상태를 표시한다', () async {
+      final refreshCompleter = Completer<MachineStatusResponse>();
+      final error = DioException(
+        requestOptions: RequestOptions(path: '/machines'),
+        type: DioExceptionType.connectionError,
+      );
+      var callCount = 0;
+      final container = ProviderContainer(
+        overrides: [
+          reservationStatusRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeReservationStatusRemoteDataSource(
+              machineStatusLoader: () {
+                callCount += 1;
+                return callCount == 1
+                    ? Future.value(_machineStatusResponse(1))
+                    : refreshCompleter.future;
+              },
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      await container.read(machineStatusProvider.future);
+
+      final refresh = container.read(machineStatusProvider.notifier).refresh();
+      refreshCompleter.completeError(error);
+      await refresh;
+
+      final state = container.read(machineStatusProvider);
+      expect(state.hasError, isTrue);
+      expect(state.error, same(error));
+      expect(
+        container.read(pollingErrorProvider)?.message,
+        '네트워크 연결을 확인해주세요.',
+      );
+    });
+
+    test('build보다 늦게 시작한 refresh 결과를 오래된 build 응답이 덮지 않는다', () async {
+      final buildCompleter = Completer<MachineStatusResponse>();
+      final refreshCompleter = Completer<MachineStatusResponse>();
+      final stale = _machineStatusResponse(1);
+      final latest = _machineStatusResponse(2);
+      var callCount = 0;
+      final container = ProviderContainer(
+        overrides: [
+          reservationStatusRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeReservationStatusRemoteDataSource(
+              machineStatusLoader: () {
+                callCount += 1;
+                return callCount == 1
+                    ? buildCompleter.future
+                    : refreshCompleter.future;
+              },
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final build = container.read(machineStatusProvider.future);
+      final refresh = container.read(machineStatusProvider.notifier).refresh();
+      refreshCompleter.complete(latest);
+      await refresh;
+      buildCompleter.complete(stale);
+
+      expect(await build, latest);
+      expect(container.read(machineStatusProvider).value, latest);
+    });
+
+    test('build와 겹친 최신 refresh 실패를 오래된 build 성공이 덮지 않는다', () async {
+      final buildCompleter = Completer<MachineStatusResponse>();
+      final refreshCompleter = Completer<MachineStatusResponse>();
+      final error = DioException(
+        requestOptions: RequestOptions(path: '/machines'),
+        type: DioExceptionType.connectionError,
+      );
+      var callCount = 0;
+      final container = ProviderContainer(
+        overrides: [
+          reservationStatusRemoteDataSourceProvider.overrideWith(
+            (ref) => FakeReservationStatusRemoteDataSource(
+              machineStatusLoader: () {
+                callCount += 1;
+                return callCount == 1
+                    ? buildCompleter.future
+                    : refreshCompleter.future;
+              },
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final build = container.read(machineStatusProvider.future);
+      final refresh = container.read(machineStatusProvider.notifier).refresh();
+      refreshCompleter.completeError(error);
+      await refresh;
+      buildCompleter.complete(_machineStatusResponse(1));
+
+      await expectLater(build, throwsA(same(error)));
+      final state = container.read(machineStatusProvider);
+      expect(state.hasError, isTrue);
+      expect(state.error, same(error));
     });
   });
 

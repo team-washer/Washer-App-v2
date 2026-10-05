@@ -74,7 +74,7 @@ feature: `alarm`, `auth`, `history`, `home`, `report`, `reservation`, `user`
   1. 다른 feature에서도 쓰는, 특정 feature에 묶이지 않는 UI → `lib/shared`(로직·유틸은 `lib/core`)
   2. 같은 feature 안에서 여러 위젯·화면이 쓰는 위젯 → feature 안의 별도 파일
   3. 한 위젯에서만 쓰는 위젯 → 그 위젯 파일의 private 위젯(`_Name`)
-  - 예외: 합쳐서 200줄을 넘으면 별도 파일로 둡니다. Screen(`presentation/screens/`)·`MainShell`·`SplashScreen`은 라우트 진입점이라 대상이 아닙니다. 테스트에서 직접 쓰는 위젯과 `shared`의 공용 디자인 컴포넌트는 public으로 둡니다.
+  - 예외: 합쳐서 200줄을 넘으면 별도 파일로 둡니다. Screen(`presentation/screens/`의 파일명과 같은 대표 위젯)·`MainShell`·`SplashScreen`은 라우트 진입점이라 대상이 아닙니다. Screen 파일 안의 다른 위젯은 규칙을 그대로 따릅니다. 테스트에서 직접 쓰는 위젯과 `shared`의 공용 디자인 컴포넌트는 public으로 둡니다.
   - 특정 feature의 provider에 묶인 위젯(예: `HistoryDialog`, `ReportBrokenDialog`)은 다른 feature가 써도 그 feature에 두고 import합니다(순환 금지).
 - 파일명은 public 위젯 클래스명의 snake_case입니다. 위젯은 200줄 이하로 유지합니다.
 

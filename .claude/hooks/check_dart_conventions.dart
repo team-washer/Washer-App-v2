@@ -288,17 +288,24 @@ class _LibIndex {
 /// - 같은 feature의 한 위젯에서만 쓰는 위젯 → 그 파일의 private 위젯으로 합치기를 권한다.
 ///   합쳐서 200줄을 넘거나 테스트에서 직접 쓰면 별도 파일이 맞으므로 알리지 않는다.
 /// - 어디서도(lib, test) 쓰지 않는 위젯 → 정리를 권한다.
-/// Screen·진입점·router는 대상이 아니다. 다른 feature가 쓰는 위젯은 그 feature의 provider에
-/// 묶여 있으면 제자리에 두므로 알리지 않는다.
+/// - Screen 파일 안의 보조 위젯을 다른 파일·테스트에서 쓰지 않으면 → private으로 바꾸거나 지우기를 권한다.
+/// 진입점·router와, Screen 파일에서는 파일명과 같은 대표 Screen 위젯만 대상이 아니다.
+/// 다른 feature가 쓰는 위젯은 그 feature의 provider에 묶여 있으면 제자리에 두므로 알리지 않는다.
 List<String> _placementAdvice(Iterable<String> widgets, _LibIndex index) {
   final advice = <String>[];
   for (final widget in widgets.toSet()) {
     final file = index.widgetFiles[widget];
-    if (file == null || _isPlacementExempt(file)) continue;
+    if (file == null || _isPlacementExempt(widget, file)) continue;
 
     final users = index.usersOf(widget);
     final usedByTest = index.testTokens.contains(widget);
 
+    // usersOf는 선언한 파일을 빼고 세므로, Screen 파일 안에서만 쓰는 보조 위젯도 여기에 걸린다.
+    if (users.isEmpty && !usedByTest && _isScreenFile(file)) {
+      advice.add('$widget($file)는 Screen 파일의 보조 위젯입니다. '
+          '이 파일에서만 쓰면 private 위젯(_$widget)으로 바꾸고, 쓰지 않으면 지우세요.');
+      continue;
+    }
     if (users.isEmpty && !usedByTest) {
       advice.add('$widget($file)를 쓰는 곳이 없습니다. 필요 없으면 지우세요.');
       continue;
@@ -322,10 +329,16 @@ String? _featureOf(String rel) {
   return segments.length > 2 && segments[1] == 'features' ? segments[2] : null;
 }
 
-bool _isPlacementExempt(String rel) =>
-    rel.contains('/presentation/screens/') ||
-    rel.startsWith('lib/core/router/') ||
-    rel.split('/').length == 2; // lib/main.dart, lib/splash_screen.dart
+bool _isPlacementExempt(String widget, String rel) {
+  if (rel.startsWith('lib/core/router/') || rel.split('/').length == 2) {
+    return true; // router, lib/main.dart, lib/splash_screen.dart
+  }
+  // Screen 파일은 파일명과 같은 대표 Screen 위젯만 뺀다(home_screen.dart → HomeScreen).
+  return _isScreenFile(rel) &&
+      widget == _pascal(rel.split('/').last.replaceAll('.dart', ''));
+}
+
+bool _isScreenFile(String rel) => rel.contains('/presentation/screens/');
 
 final _nonCode = RegExp(
   r"'''[\s\S]*?'''|" r'"""[\s\S]*?"""|' r"'(?:\\.|[^'\\\n])*'|"

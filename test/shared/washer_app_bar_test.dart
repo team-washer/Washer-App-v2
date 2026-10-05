@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:washer/core/router/route_paths.dart';
 import 'package:washer/shared/theme/washer_icon.dart';
+import 'package:washer/shared/ui/buttons/washer_icon_button.dart';
 import 'package:washer/shared/ui/layout/main_shell.dart';
 
 const _alarmText = '알림 화면';

@@ -4,11 +4,13 @@ import 'package:washer/core/enums/laundry_machine_type.dart';
 import 'package:washer/core/enums/reservation_state.dart';
 import 'package:washer/features/reservation/presentation/widgets/machine_card_footer.dart';
 import 'package:washer/features/reservation/presentation/widgets/machine_card_layout_helpers.dart';
-import 'package:washer/features/reservation/presentation/widgets/machine_history_icon_button.dart';
 import 'package:washer/shared/theme/washer_color.dart';
 import 'package:washer/shared/theme/app_spacing.dart';
 import 'package:washer/shared/theme/washer_typography.dart';
 import 'package:washer/shared/ui/indicators/status_badge.dart';
+import 'package:washer/features/history/presentation/widgets/history_dialog.dart';
+import 'package:washer/shared/theme/washer_icon.dart';
+import 'package:washer/shared/ui/buttons/washer_icon_button.dart';
 
 /// 기기 한 대의 예약 상태를 보여주는 카드. 상단에 기기명/상태 배지, 하단에 상태별 [MachineCardFooter]를 둔다.
 class MachineReservationCard extends StatelessWidget {
@@ -111,7 +113,7 @@ class MachineReservationCard extends StatelessWidget {
             // 히스토리 아이콘은 machineId가 유효할 때만(0이면 잘못된 조회 방지) 노출한다.
             // 각 하단 섹션이 자기 마지막 텍스트 줄 우측에 붙인다.
             trailing: machineId > 0
-                ? MachineHistoryIconButton(
+                ? _MachineHistoryIconButton(
                     machineId: machineId,
                     machineName: machineName,
                   )
@@ -119,6 +121,36 @@ class MachineReservationCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// 기기 사용 이력 다이얼로그를 여는 아이콘 버튼.
+class _MachineHistoryIconButton extends StatelessWidget {
+  const _MachineHistoryIconButton({
+    required this.machineId,
+    required this.machineName,
+  });
+
+  final int machineId;
+  final String machineName;
+
+  @override
+  Widget build(BuildContext context) {
+    return WasherIconButton(
+      type: WasherIconType.historyCircle,
+      color: WasherColor.baseGray300,
+      size: 33,
+      padding: EdgeInsets.zero,
+      onTap: () {
+        showDialog(
+          context: context,
+          builder: (context) => HistoryDialog(
+            machineId: machineId,
+            machineName: machineName,
+          ),
+        );
+      },
     );
   }
 }

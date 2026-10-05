@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:washer/core/enums/laundry_machine_type.dart';
 import 'package:washer/core/enums/reservation_state.dart';
 import 'package:washer/features/reservation/presentation/widgets/machine_card_available_footer.dart';
-import 'package:washer/features/reservation/presentation/widgets/machine_card_cleaning_footer.dart';
 import 'package:washer/features/reservation/presentation/widgets/machine_card_in_use_footer.dart';
 import 'package:washer/features/reservation/presentation/widgets/machine_card_reserved_by_me_footer.dart';
 import 'package:washer/features/reservation/presentation/widgets/machine_card_reserved_by_other_footer.dart';
-import 'package:washer/features/reservation/presentation/widgets/machine_card_unavailable_footer.dart';
+import 'package:washer/features/reservation/presentation/widgets/machine_card_layout_helpers.dart';
+import 'package:washer/shared/theme/washer_color.dart';
+import 'package:washer/shared/theme/washer_typography.dart';
 
 /// 예약 상태([ReservationState])에 맞는 카드 하단 위젯을 골라 보여준다.
 class MachineCardFooter extends StatelessWidget {
@@ -87,15 +88,59 @@ class MachineCardFooter extends StatelessWidget {
           trailing: trailing,
         );
       case ReservationState.unavailable:
-        return MachineCardUnavailableFooter(
+        return _MachineCardUnavailableFooter(
           laundryMachineType: laundryMachineType,
           trailing: trailing,
         );
       case ReservationState.cleaning:
-        return MachineCardCleaningFooter(
+        return _MachineCardCleaningFooter(
           laundryMachineType: laundryMachineType,
           trailing: trailing,
         );
     }
+  }
+}
+
+/// 자동 통세척 중이라 잠시 사용할 수 없는 기기의 카드 하단 안내.
+class _MachineCardCleaningFooter extends StatelessWidget {
+  const _MachineCardCleaningFooter({
+    required this.laundryMachineType,
+    this.trailing,
+  });
+
+  final LaundryMachineType laundryMachineType;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return withTrailing(
+      Text(
+        '${laundryMachineType.text} 자동 통세척 중이라 잠시 사용할 수 없습니다.',
+        style: WasherTypography.body2(WasherColor.baseGray500),
+      ),
+      trailing,
+    );
+  }
+}
+
+/// 고장 등으로 사용할 수 없는 기기의 카드 하단 안내.
+class _MachineCardUnavailableFooter extends StatelessWidget {
+  const _MachineCardUnavailableFooter({
+    required this.laundryMachineType,
+    this.trailing,
+  });
+
+  final LaundryMachineType laundryMachineType;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return withTrailing(
+      Text(
+        '${laundryMachineType.text} 기기 고장으로 인해 당분간 사용할 수 없습니다.',
+        style: WasherTypography.body2(WasherColor.errorColor),
+      ),
+      trailing,
+    );
   }
 }

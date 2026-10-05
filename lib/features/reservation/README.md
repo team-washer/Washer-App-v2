@@ -64,7 +64,7 @@ repository 없이 provider가 data source를 직접 사용합니다.
 | `machineStatusProvider` | `AsyncNotifier<MachineStatusResponse>` (keepAlive) | 기기 상태. `refresh()` |
 | `activeReservationProvider` | `AsyncNotifier<List<ActiveReservationModel>>` (keepAlive) | 호실 활성 예약. `ensureLoaded()`, `refresh()`, `reloadInBackground()`, `applyMyReservation()` |
 | `reservationActionProvider` | `AsyncNotifier<ActiveReservationModel?>` | `reserve()`, `cancel()`. 같은 대상의 중복 요청은 single-flight로 합침(#261) |
-| `reservationSyncControllerProvider` | `Provider<ReservationSyncController>` | `startPolling()`, `stopPolling()`, `syncActiveReservation()` |
+| `reservationSyncControllerProvider` | `Provider<ReservationSyncController>` | `startPolling()`, `stopPolling()`, `syncActiveReservation()`, 기존 예약 polling 복구 |
 | `clockProvider` | `StreamProvider<DateTime>` | 1초 시계. 카운트다운 텍스트만 구독 |
 | `pollingErrorProvider` | `StateProvider<AppException?>` | 조회·polling 실패 안내. home의 `_HomeBody`가 토스트로 띄움 |
 
@@ -74,7 +74,9 @@ repository 없이 provider가 data source를 직접 사용합니다.
 
 ```
 ReservationScreen → ReservationMachineList
-  → initState: activeReservationProvider.ensureLoaded()   # 한 번만 GET reservations/active/room
+  → initState: reservationSyncControllerProvider 초기화
+             + activeReservationProvider.ensureLoaded()   # 한 번만 GET reservations/active/room
+  → 활성 예약과 내 정보 조회 성공: 내 userId의 예약이 있고 polling 중이 아니면 polling 복구
   → build: machineStatusProvider + activeReservationProvider + myUserProvider 조합
       → _toReservationState(machine, reservations, myUserId)
          우선순위: unavailable → cleaning → 내 예약(inUse/reservedByMe) → available → inUse → reservedByOther
@@ -108,7 +110,7 @@ LaundryActionDialog(cancelReservation) → runDialogAction(LaundryDialogActions.
       → 실패 시 원래 polling 중이었다면 startPolling()으로 재개
 ```
 
-**polling** (`ReservationSyncController`, 예약 생성 뒤 시작)
+**polling** (`ReservationSyncController`, 예약 생성 또는 기존 내 예약 발견 뒤 시작)
 
 ```
 10초마다 syncActiveReservation()

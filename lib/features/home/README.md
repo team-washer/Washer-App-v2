@@ -39,6 +39,7 @@ home/
 ```
 _HomeBody (home_screen.dart)
   initState (첫 프레임 후)
+    → reservationSyncControllerProvider 초기화    # 기존 내 활성 예약 polling 복구
     → activeReservationProvider.ensureLoaded()     # 호실 활성 예약 최초 1회
     → alarmProvider.fetchAlarmList()               # 알림 뱃지
   build

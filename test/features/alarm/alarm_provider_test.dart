@@ -276,6 +276,63 @@ void main() {
       expect(container.read(alarmProvider).alarms, [_alarm('next')]);
     });
   });
+
+  group('AlarmNotifier 이탈 전에 시작한 조회의 늦은 응답', () {
+    test('진입 조회 응답 전에 빈 목록으로 떠나면 늦은 응답이 와도 재진입에서 다시 조회한다', () async {
+      final notifier = container.read(alarmProvider.notifier);
+      repository.serverAlarms = [_alarm('a')];
+
+      // 진입 조회 응답이 오기 전에 화면을 떠난다(아직 목록은 비어 있음).
+      final gate = Completer<void>();
+      repository.fetchGate = gate;
+      final enter = notifier.fetchAlarmList();
+      await _settle();
+      await notifier.clearAllOnLeave();
+      expect(repository.deleteCount, 0);
+
+      // 늦게 도착한 응답은 뱃지에 반영한다.
+      gate.complete();
+      await enter;
+      expect(container.read(alarmProvider).alarms, [_alarm('a')]);
+      expect(hasBadge(), isTrue);
+
+      // 그 사이 새 알림이 생기면 재진입에서 다시 조회해 보여준다.
+      repository.serverAlarms = [_alarm('a'), _alarm('new')];
+      await notifier.fetchAlarmList();
+
+      expect(repository.fetchCount, 2);
+      expect(container.read(alarmProvider).alarms, [
+        _alarm('a'),
+        _alarm('new'),
+      ]);
+    });
+
+    test('떠나기 전에 시작한 조회가 정리의 재조회보다 늦게 와도 삭제 전 목록으로 덮지 않는다', () async {
+      final notifier = container.read(alarmProvider.notifier);
+      repository.serverAlarms = [_alarm('old')];
+      await notifier.fetchAlarmList();
+
+      // 새로고침 응답이 늦어지는 동안 화면을 떠나 삭제 → 재조회가 끝난다.
+      final gate = Completer<void>();
+      repository.fetchGate = gate;
+      final refresh = notifier.fetchAlarmList(force: true);
+      await _settle();
+      await notifier.clearAllOnLeave();
+      expect(container.read(alarmProvider).alarms, isEmpty);
+
+      // 삭제 전 목록을 담은 늦은 응답은 버린다.
+      gate.complete();
+      await refresh;
+      expect(container.read(alarmProvider).alarms, isEmpty);
+      expect(hasBadge(), isFalse);
+
+      // 재진입에서는 다시 조회한다.
+      repository.serverAlarms = [_alarm('new')];
+      await notifier.fetchAlarmList();
+      expect(repository.fetchCount, 4);
+      expect(container.read(alarmProvider).alarms, [_alarm('new')]);
+    });
+  });
 }
 
 /// 대기 중인 비동기 작업이 진행될 기회를 준다.

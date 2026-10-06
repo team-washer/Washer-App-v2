@@ -120,6 +120,8 @@ LaundryActionDialog(cancelReservation) → runDialogAction(LaundryDialogActions.
   → requestId = activeReservationProvider.beginRequest()
   → GET reservations/active
   → applyMyReservation(MyReservationUpdate)     # 늦게 시작한 요청이 이김. 오래된 응답(isStale)은 버림
+      호실 조회 중이면 내 예약 결과 보류 → 성공 스냅샷에 병합
+      마지막 호실 요청 종료 시 아직 필요한 최신 결과를 현재 목록에 반영 (#325)
   → mine == null (완료·취소): polling 종료 + reloadInBackground() + 기기 상태 새로고침
   → mine != null: 6회(약 60초)마다 reloadInBackground()로 룸메이트 예약 반영
                   목록이 바뀌었으면 기기 상태 새로고침
@@ -143,6 +145,7 @@ LaundryActionDialog(cancelReservation) → runDialogAction(LaundryDialogActions.
   - 화면별로 판정 로직을 따로 만들지 않습니다.
 - 기기 위치(층·좌우·번호)는 이름 형식 `Washer-3F-L1`을 파싱해서 얻습니다(`MachineModel.placement`).
 - `activeReservationProvider`에는 호실 목록 요청과 polling이 동시에 씁니다. 요청 순번(`beginRequest`)을 받지 않고 상태를 직접 바꾸면 응답 순서가 뒤바뀔 때 상태가 과거로 돌아갑니다. `active_reservation_race_test.dart` 참고
+- 호실 조회 실패 시에도 마지막 요청이 끝나면 최신 보류된 내 예약을 내부 목록에 반영합니다. 백그라운드 조회는 목록이 달라질 때만 화면을 갱신하고, foreground `build`/`refresh`의 실패 Future·오류 상태는 유지합니다. 최신 성공 호실 스냅샷보다 오래된 보류 결과는 버립니다.
 - 예약 실패 문구는 `reservationErrorToAppException`이 정합니다.
   - 분류 순서: 도메인 예외 → 서버 `errorCode` → 400/409 상태 코드와 액션
   - UI는 문구 문자열이 아니라 `ReservationErrorCause`로 분기합니다.

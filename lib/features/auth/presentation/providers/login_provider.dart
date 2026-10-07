@@ -7,6 +7,7 @@ import 'package:washer/core/network/error.dart';
 import 'package:washer/core/network/session_generation_provider.dart';
 import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/features/auth/data/repositories/auth_repository.dart';
+import 'package:washer/features/auth/presentation/providers/oauth_transaction.dart';
 
 const _callbackScheme = 'com.washer.v2';
 const _redirectUri = '$_callbackScheme://auth/callback';
@@ -20,9 +21,24 @@ class _LoginUnavailableException implements UserFacingException {
   String get userMessage => '로그인에 실패했습니다. 다시 시도해주세요.';
 }
 
+/// 시스템 브라우저로 인가 URL을 열고 callback URL을 돌려받는 함수.
+typedef WebAuthenticator =
+    Future<String> Function({
+      required String url,
+      required String callbackUrlScheme,
+    });
+
+/// 인가 브라우저 실행. 테스트에서 override한다.
+final webAuthenticatorProvider = Provider<WebAuthenticator>(
+  (_) => FlutterWebAuth2.authenticate,
+);
+
 /// OAuth(DataGSM) 로그인 진행 상태를 관리하는 Notifier
 class LoginNotifier extends AsyncNotifier<void> {
   late final AuthRepository _authRepository;
+
+  /// 진행 중인 인가 트랜잭션. callback을 한 번 처리하면 비워 재사용할 수 없게 한다.
+  OAuthTransaction? _transaction;
 
   @override
   FutureOr<void> build() {
@@ -35,7 +51,7 @@ class LoginNotifier extends AsyncNotifier<void> {
   /// `ref.listen`으로 상태를 지켜보다 [AsyncError]가 되면 [AppException.from]으로
   /// 변환해 보여주면 된다. 사용자가 브라우저를 닫은 취소는 오류로 취급하지 않는다.
   Future<bool> login() async {
-    final environment = AppEnvironment.instance;
+    final environment = ref.read(appEnvironmentProvider);
     if (environment.oauthBaseUrl.isEmpty || environment.oauthClientId.isEmpty) {
       state = AsyncError(
         const _LoginUnavailableException(),
@@ -44,22 +60,29 @@ class LoginNotifier extends AsyncNotifier<void> {
       return false;
     }
 
+    // 이미 진행 중인 로그인이 있으면 새 트랜잭션으로 덮어쓰지 않는다.
+    if (_transaction != null) {
+      return false;
+    }
+    final transaction = OAuthTransaction.create();
+    _transaction = transaction;
+
     state = const AsyncLoading();
 
     final String callbackUrl;
     try {
-      callbackUrl = await FlutterWebAuth2.authenticate(
-        url: Uri.parse(environment.oauthBaseUrl)
-            .replace(
-              queryParameters: {
-                'redirect_uri': _redirectUri,
-                'client_id': environment.oauthClientId,
-              },
+      callbackUrl = await ref.read(webAuthenticatorProvider)(
+        url: transaction
+            .authorizationUri(
+              baseUrl: environment.oauthBaseUrl,
+              clientId: environment.oauthClientId,
+              redirectUri: _redirectUri,
             )
             .toString(),
         callbackUrlScheme: _callbackScheme,
       );
     } catch (error, stackTrace) {
+      _transaction = null;
       // 사용자가 브라우저를 닫은 경우도 예외로 전달된다. 오류로 알리지 않는다.
       AppLogger.error(
         '인증 브라우저가 종료되었습니다.',
@@ -71,8 +94,17 @@ class LoginNotifier extends AsyncNotifier<void> {
       return false;
     }
 
-    final authCode = Uri.tryParse(callbackUrl)?.queryParameters['code'];
-    if (authCode == null || authCode.isEmpty) {
+    // callback은 이 트랜잭션에서 한 번만 처리한다(종료된 트랜잭션의 callback 재사용 방지).
+    _transaction = null;
+    final authCode = transaction.authorizationCodeFrom(
+      callbackUrl,
+      redirectUri: _redirectUri,
+    );
+    if (authCode == null) {
+      AppLogger.error(
+        'OAuth callback 검증에 실패했습니다(경로·state·인가 코드).',
+        name: 'LoginNotifier',
+      );
       state = AsyncError(
         const _LoginUnavailableException(),
         StackTrace.current,
@@ -84,6 +116,7 @@ class LoginNotifier extends AsyncNotifier<void> {
       () => _authRepository.login(
         authCode: authCode,
         redirectUri: _redirectUri,
+        codeVerifier: transaction.codeVerifier,
       ),
       logName: 'LoginNotifier',
     );

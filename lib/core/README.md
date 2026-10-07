@@ -19,7 +19,8 @@ core/
     token_utils.dart                     # JWT exp 기반 만료 판단
     http_client_adapter_config.dart      # 개발용 자체 서명 인증서 허용
   notifications/
-    notification_service.dart            # FCM 권한·토큰 저장·갱신 구독
+    notification_service.dart            # FCM 권한·토큰 저장·갱신·Android foreground 수신
+    android_notification_display.dart    # Android foreground 알림 표시용 네이티브 채널
     notification_bootstrapper.dart       # 앱 시작 시 알림 초기화 위젯
   router/
     app_router.dart                      # GoRouter, 인증 redirect(resolveAuthRedirect)
@@ -43,6 +44,15 @@ appRouter (initialLocation: /splash)
       → 로그인 필요 / 401·403: 토큰 삭제 → /login
       → 그 외: myUserProvider.setUser → /home (조회 실패도 /home, 내 정보만 비움)
 ```
+
+## 푸시 알림
+
+- `NotificationService.initialize()`에서 Firebase 알림 권한을 요청합니다. Android 13 이상도 `FirebaseMessaging.requestPermission()`을 사용하며, 결과 상태만 로그에 남깁니다.
+- Android `MainActivity`는 시작 시 Manifest와 같은 `laundry_completion` 채널을 생성합니다. 동일 채널을 다시 생성해도 사용자의 기존 알림 설정은 유지됩니다.
+- Android foreground의 `onMessage`는 notification payload가 있을 때만 네이티브 채널로 알림을 표시합니다. 동일 messageId는 같은 알림을 갱신하고, data-only 메시지는 임의로 표시하지 않습니다.
+- background/terminated의 notification payload는 Firebase SDK가 표시합니다. background handler에서 다시 표시하지 않습니다. 알림 탭은 앱을 열며, 별도의 화면 라우팅은 추가하지 않습니다.
+- iOS presentation options와 APNs 처리, 로그인/app start/resume/token refresh의 FCM 서버 동기화 흐름은 유지됩니다. Android 표시 실패가 토큰 동기화를 차단하지 않습니다.
+- 알림 권한이나 채널을 사용자가 차단한 경우에는 표시할 수 없습니다. Android 강제 종료 후에는 앱을 다시 열어야 합니다.
 
 ## 라우팅
 

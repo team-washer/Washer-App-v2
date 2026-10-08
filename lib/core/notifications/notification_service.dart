@@ -8,7 +8,6 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:washer/core/network/dio_client.dart';
-import 'package:washer/core/notifications/android_notification_display.dart';
 import 'package:washer/core/notifications/apns_registration.dart';
 import 'package:washer/core/utils/app_logger.dart';
 import 'package:washer/firebase_options.dart';
@@ -36,22 +35,15 @@ class NotificationService {
     this._messaging,
     this._storage, [
     ApnsRegistration? apnsRegistration,
-    AndroidNotificationDisplay? androidNotifications,
-  ]) : _apnsRegistration = apnsRegistration ?? const ApnsRegistration(),
-       _androidNotifications =
-           androidNotifications ??
-           (Platform.isAndroid ? const AndroidNotificationDisplay() : null);
+  ]) : _apnsRegistration = apnsRegistration ?? const ApnsRegistration();
 
   final FirebaseMessaging _messaging;
   final FlutterSecureStorage _storage;
   final ApnsRegistration _apnsRegistration;
-  final AndroidNotificationDisplay? _androidNotifications;
 
   StreamSubscription<String>? _tokenRefreshSubscription;
-  StreamSubscription<RemoteMessage>? _foregroundMessageSubscription;
   Future<void>? _initializationFuture;
   bool _isInitialized = false;
-  bool _isDisposed = false;
 
   Stream<String> get onTokenRefresh => _messaging.onTokenRefresh;
 
@@ -95,7 +87,6 @@ class NotificationService {
       // FCM is required after login. Explicitly restore auto-init in case a
       // previous runtime setting persisted it as disabled.
       await _messaging.setAutoInitEnabled(true);
-      await _initializeAndroidNotifications();
       await _requestPermissions();
 
       _isInitialized = true;
@@ -136,52 +127,7 @@ class NotificationService {
   }
 
   void dispose() {
-    _isDisposed = true;
     _tokenRefreshSubscription?.cancel();
-    _foregroundMessageSubscription?.cancel();
-  }
-
-  Future<void> _initializeAndroidNotifications() async {
-    final display = _androidNotifications;
-    if (display == null || _isDisposed) return;
-
-    try {
-      await display.initialize();
-    } catch (error, stackTrace) {
-      // Display setup must not prevent permission requests or FCM token sync.
-      AppLogger.error(
-        'Failed to create the Android notification channel.',
-        name: 'NotificationService',
-        error: error,
-        stackTrace: stackTrace,
-      );
-    }
-
-    if (_isDisposed) return;
-    _foregroundMessageSubscription ??= FirebaseMessaging.onMessage.listen(
-      (message) => unawaited(_showAndroidNotification(message)),
-      onError: (Object error, StackTrace stackTrace) {
-        AppLogger.error(
-          'Foreground FCM message stream failed.',
-          name: 'NotificationService',
-          error: error,
-          stackTrace: stackTrace,
-        );
-      },
-    );
-  }
-
-  Future<void> _showAndroidNotification(RemoteMessage message) async {
-    try {
-      await _androidNotifications!.show(message);
-    } catch (error, stackTrace) {
-      AppLogger.error(
-        'Failed to display the Android foreground notification.',
-        name: 'NotificationService',
-        error: error,
-        stackTrace: stackTrace,
-      );
-    }
   }
 
   Future<NotificationSettings> _requestPermissions() async {
@@ -189,10 +135,6 @@ class NotificationService {
       alert: true,
       badge: true,
       sound: true,
-    );
-    AppLogger.info(
-      'Notification permission: ${settings.authorizationStatus.name}',
-      name: 'NotificationService',
     );
     await _messaging.setForegroundNotificationPresentationOptions(
       alert: true,

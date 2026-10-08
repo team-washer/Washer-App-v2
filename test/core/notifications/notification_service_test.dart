@@ -4,11 +4,11 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:washer/core/notifications/android_notification_display.dart';
 import 'package:washer/core/notifications/notification_service.dart';
 
 class _Settings extends Fake implements NotificationSettings {
   _Settings(this.authorizationStatus);
+
   @override
   final AuthorizationStatus authorizationStatus;
 }
@@ -19,10 +19,14 @@ class _Messaging extends Fake implements FirebaseMessaging {
   int presentationRequests = 0;
   int autoInitRequests = 0;
   int permissionFailures = 0;
+  int tokenRefreshSubscriptions = 0;
   AuthorizationStatus permission = AuthorizationStatus.authorized;
 
   @override
-  Stream<String> get onTokenRefresh => tokens.stream;
+  Stream<String> get onTokenRefresh {
+    tokenRefreshSubscriptions++;
+    return tokens.stream;
+  }
 
   @override
   Future<void> setAutoInitEnabled(bool enabled) async {
@@ -41,6 +45,7 @@ class _Messaging extends Fake implements FirebaseMessaging {
     bool sound = true,
     bool providesAppNotificationSettings = false,
   }) async {
+    expect([alert, badge, sound], everyElement(isTrue));
     permissionRequests++;
     if (permissionFailures > 0) {
       permissionFailures--;
@@ -65,87 +70,40 @@ class _Messaging extends Fake implements FirebaseMessaging {
 
 void main() {
   final binding = TestWidgetsFlutterBinding.ensureInitialized();
-  const displayChannel = MethodChannel('washer/android-notifications');
   const firebaseChannel = MethodChannel(
     'plugins.flutter.io/firebase_messaging',
   );
-  final displayCalls = <MethodCall>[];
   late _Messaging messaging;
   late NotificationService service;
-  bool displayFails = false;
-
-  Future<void> emitForeground() async {
-    final completed = Completer<void>();
-    binding.channelBuffers.push(
-      firebaseChannel.name,
-      const StandardMethodCodec().encodeMethodCall(
-        const MethodCall(
-          'Messaging#onMessage',
-          {
-            'messageId': 'message-1',
-            'notification': {'title': 'Laundry complete', 'body': 'Done'},
-          },
-        ),
-      ),
-      (_) => completed.complete(),
-    );
-    await completed.future;
-    await Future<void>.delayed(Duration.zero);
-  }
 
   setUp(() {
     messaging = _Messaging();
     FlutterSecureStorage.setMockInitialValues({});
-    displayCalls.clear();
-    displayFails = false;
     binding.defaultBinaryMessenger.setMockMethodCallHandler(
       firebaseChannel,
       (_) async => <String, dynamic>{},
     );
-    binding.defaultBinaryMessenger.setMockMethodCallHandler(displayChannel, (
-      call,
-    ) async {
-      displayCalls.add(call);
-      if (displayFails) throw PlatformException(code: 'display_failed');
-      return call.method == 'showNotification' ? true : null;
-    });
-    service = NotificationService(
-      messaging,
-      const FlutterSecureStorage(),
-      null,
-      const AndroidNotificationDisplay(),
-    );
+    service = NotificationService(messaging, const FlutterSecureStorage());
   });
 
   tearDown(() async {
     service.dispose();
     await messaging.tokens.close();
     binding.defaultBinaryMessenger.setMockMethodCallHandler(
-      displayChannel,
-      null,
-    );
-    binding.defaultBinaryMessenger.setMockMethodCallHandler(
       firebaseChannel,
       null,
     );
   });
 
-  test(
-    'concurrent/repeated initialization asks permission and creates channel once',
-    () async {
-      await Future.wait([service.initialize(), service.initialize()]);
-      await service.initialize();
-      expect(messaging.permissionRequests, 1);
-      expect(messaging.autoInitRequests, 1);
-      expect(messaging.presentationRequests, 1);
-      expect(displayCalls.single.method, 'createNotificationChannel');
-      await emitForeground();
-      expect(
-        displayCalls.where((call) => call.method == 'showNotification'),
-        hasLength(1),
-      );
-    },
-  );
+  test('concurrent/repeated initialization runs setup once', () async {
+    await Future.wait([service.initialize(), service.initialize()]);
+    await service.initialize();
+    expect(messaging.permissionRequests, 1);
+    expect(messaging.autoInitRequests, 1);
+    expect(messaging.presentationRequests, 1);
+    expect(messaging.tokenRefreshSubscriptions, 1);
+    expect(messaging.tokens.hasListener, isTrue);
+  });
 
   test('permission denial does not break FCM token acquisition', () async {
     messaging.permission = AuthorizationStatus.denied;
@@ -155,28 +113,7 @@ void main() {
   });
 
   test(
-    'channel setup failure does not block permission or token sync',
-    () async {
-      displayFails = true;
-      expect(await service.ensureFcmToken(), 'current-token');
-      expect(messaging.permissionRequests, 1);
-    },
-  );
-
-  test(
-    'foreground display failure is caught and token refresh storage survives',
-    () async {
-      await service.initialize();
-      displayFails = true;
-      await emitForeground();
-      messaging.tokens.add('refreshed-token');
-      await Future<void>.delayed(Duration.zero);
-      expect(await service.getStoredFcmToken(), 'refreshed-token');
-    },
-  );
-
-  test(
-    'failed initialization retry does not add another foreground listener',
+    'failed initialization retries without duplicating subscriptions',
     () async {
       messaging.permissionFailures = 1;
       await expectLater(
@@ -184,60 +121,44 @@ void main() {
         throwsA(isA<PlatformException>()),
       );
       await service.initialize();
-      await emitForeground();
-      expect(
-        displayCalls.where((call) => call.method == 'showNotification'),
-        hasLength(1),
-      );
+      expect(messaging.permissionRequests, 2);
+      expect(messaging.presentationRequests, 1);
+      expect(messaging.tokenRefreshSubscriptions, 1);
+      messaging.tokens.add('refreshed-token');
+      await Future<void>.delayed(Duration.zero);
+      expect(await service.getStoredFcmToken(), 'refreshed-token');
+      service.dispose();
+      expect(messaging.tokens.hasListener, isFalse);
     },
   );
 
-  test('dispose removes the foreground listener', () async {
+  test('token refresh updates secure storage', () async {
+    await service.initialize();
+    messaging.tokens.add('refreshed-token');
+    await Future<void>.delayed(Duration.zero);
+    expect(await service.getStoredFcmToken(), 'refreshed-token');
+  });
+
+  test('dispose cancels token refresh storage subscription', () async {
+    FlutterSecureStorage.setMockInitialValues({
+      fcmTokenStorageKey: 'old-token',
+    });
     await service.initialize();
     service.dispose();
-    await emitForeground();
-    expect(
-      displayCalls.where((call) => call.method == 'showNotification'),
-      isEmpty,
-    );
+    expect(messaging.tokens.hasListener, isFalse);
+    messaging.tokens.add('late-token');
+    await Future<void>.delayed(Duration.zero);
+    expect(await service.getStoredFcmToken(), 'old-token');
   });
 
   test(
-    'dispose during channel initialization does not leak a listener',
+    'ensureFcmToken replaces stale storage with the Firebase token',
     () async {
-      final channelReady = Completer<void>();
-      binding.defaultBinaryMessenger.setMockMethodCallHandler(displayChannel, (
-        call,
-      ) async {
-        displayCalls.add(call);
-        if (call.method == 'createNotificationChannel') {
-          await channelReady.future;
-        }
-        return null;
+      FlutterSecureStorage.setMockInitialValues({
+        fcmTokenStorageKey: 'old-token',
       });
-      final initialization = service.initialize();
-      await Future<void>.delayed(Duration.zero);
-      expect(displayCalls.single.method, 'createNotificationChannel');
-      service.dispose();
-      channelReady.complete();
-      await initialization;
-      await emitForeground();
-      expect(
-        displayCalls.where((call) => call.method == 'showNotification'),
-        isEmpty,
-      );
-    },
-  );
-
-  test(
-    'non-Android initialization keeps presentation options without Android display',
-    () async {
-      service.dispose();
-      service = NotificationService(messaging, const FlutterSecureStorage());
-      await service.initialize();
-      await emitForeground();
-      expect(displayCalls, isEmpty);
-      expect(messaging.presentationRequests, 1);
+      expect(await service.ensureFcmToken(), 'current-token');
+      expect(await service.getStoredFcmToken(), 'current-token');
     },
   );
 }

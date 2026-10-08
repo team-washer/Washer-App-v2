@@ -44,6 +44,15 @@ appRouter (initialLocation: /splash)
       → 그 외: myUserProvider.setUser → /home (조회 실패도 /home, 내 정보만 비움)
 ```
 
+## 푸시 알림
+
+- `NotificationService.initialize()`에서 Firebase 알림 권한을 요청합니다. Android 13 이상도 기존 `FirebaseMessaging.requestPermission()` 흐름을 유지합니다.
+- Android `MainActivity`는 시작 시 Manifest와 같은 `laundry_completion` 채널을 생성합니다. 동일 채널을 다시 생성해도 사용자의 기존 알림 설정은 유지됩니다.
+- Android background/일반 종료 상태의 notification payload는 Firebase SDK가 기본 채널과 알림 아이콘을 사용해 표시합니다. background handler는 Firebase 초기화만 수행하며 직접 알림을 표시하지 않습니다.
+- Android foreground에서는 기존 정책대로 시스템 알림을 직접 표시하지 않습니다. data-only 표시나 알림 탭의 별도 화면 라우팅도 추가하지 않습니다.
+- iOS presentation options와 APNs 처리, 로그인/app start/resume/token refresh의 FCM 서버 동기화 및 로그아웃 흐름은 변경하지 않습니다.
+- 알림 권한이나 채널을 사용자가 차단한 경우에는 표시할 수 없습니다. Android 강제 종료 후에는 앱을 다시 열어야 합니다.
+
 ## 라우팅
 
 ```

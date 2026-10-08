@@ -11,6 +11,9 @@ import 'package:washer/features/auth/presentation/providers/oauth_transaction.da
 class _RecordingAuthRepository implements AuthRepository {
   final logins = <({String authCode, String redirectUri, String? verifier})>[];
 
+  /// 설정하면 서버 로그인 응답을 테스트가 끝낼 때까지 미룬다.
+  Completer<void>? response;
+
   @override
   Future<void> login({
     required String authCode,
@@ -22,6 +25,7 @@ class _RecordingAuthRepository implements AuthRepository {
       redirectUri: redirectUri,
       verifier: codeVerifier,
     ));
+    await response?.future;
   }
 
   @override
@@ -161,6 +165,30 @@ void main() {
     expect(await login, isFalse);
     expect(container.read(loginProvider).hasError, isFalse);
 
+    unawaited(notifier().login());
+    await settle();
+    expect(browser.openedUrls, hasLength(2));
+  });
+
+  test('서버 로그인 응답을 기다리는 중에는 새 로그인을 시작하지 않는다', () async {
+    repository.response = Completer<void>();
+    final first = notifier().login();
+    await settle();
+    browser.pending.single.complete(
+      'com.washer.v2://auth/callback?code=abc&state=${browser.lastState}',
+    );
+    await settle();
+    expect(repository.logins, hasLength(1), reason: '서버 로그인 진행 중');
+
+    expect(await notifier().login(), isFalse);
+    expect(browser.openedUrls, hasLength(1), reason: '브라우저 인증을 다시 열지 않는다');
+
+    repository.response!.complete();
+    expect(await first, isTrue);
+    expect(container.read(loginProvider), isA<AsyncData<void>>());
+
+    // 끝난 뒤에는 다시 로그인할 수 있다.
+    repository.response = null;
     unawaited(notifier().login());
     await settle();
     expect(browser.openedUrls, hasLength(2));

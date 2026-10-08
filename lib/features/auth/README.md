@@ -44,11 +44,12 @@ _DgLoginButton 탭
   → LoginNotifier.login()
       1. AppEnvironment의 oauthBaseUrl/oauthClientId 확인 (비어 있으면 AsyncError)
       2. OAuthTransaction.create(): 일회용 state + PKCE code verifier
-         - 이미 진행 중인 로그인이 있으면 false (트랜잭션을 덮어쓰지 않음)
+         - 이미 진행 중인 로그인(브라우저 인증~서버 로그인 완료)이 있으면 false
       3. webAuthenticatorProvider(FlutterWebAuth2.authenticate)
            (redirect_uri=com.washer.v2://auth/callback, state, code_challenge, code_challenge_method=S256)
          - 사용자가 브라우저를 닫으면 오류가 아니라 AsyncData(null) + false
-      4. 트랜잭션을 비우고(재사용 불가) callback 검증: scheme·host·path, state 일치, code 존재 (실패 시 AsyncError)
+      4. callback 검증: scheme·host·path, state 일치, code 존재 (실패 시 AsyncError)
+         - 트랜잭션은 이 호출에서만 쓰여, 끝난 트랜잭션의 callback은 다음 로그인의 state와 맞지 않음
       5. guardApiCall(AuthRepository.login(codeVerifier))
            → POST auth/login {authCode, redirectUri, codeVerifier} → access_token/refresh_token 저장
            → AlarmRepository.registerCurrentFcmToken() (unawaited)

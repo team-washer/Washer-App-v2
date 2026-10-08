@@ -37,8 +37,9 @@ final webAuthenticatorProvider = Provider<WebAuthenticator>(
 class LoginNotifier extends AsyncNotifier<void> {
   late final AuthRepository _authRepository;
 
-  /// 진행 중인 인가 트랜잭션. callback을 한 번 처리하면 비워 재사용할 수 없게 한다.
-  OAuthTransaction? _transaction;
+  /// 로그인이 진행 중인지. 브라우저 인증부터 서버 로그인 완료까지 전체를 덮어,
+  /// 겹친 로그인이 서로의 결과(세션·상태)를 뒤늦게 덮어쓰지 않게 한다.
+  bool _isLoggingIn = false;
 
   @override
   FutureOr<void> build() {
@@ -60,12 +61,24 @@ class LoginNotifier extends AsyncNotifier<void> {
       return false;
     }
 
-    // 이미 진행 중인 로그인이 있으면 새 트랜잭션으로 덮어쓰지 않는다.
-    if (_transaction != null) {
+    // 이미 진행 중인 로그인이 있으면 새로 시작하지 않는다.
+    if (_isLoggingIn) {
       return false;
     }
+    _isLoggingIn = true;
+    try {
+      return await _loginWith(environment);
+    } finally {
+      _isLoggingIn = false;
+    }
+  }
+
+  /// 새 트랜잭션으로 인가 요청 → callback 검증 → 서버 로그인을 진행한다.
+  ///
+  /// 트랜잭션은 이 호출 안에서만 쓰이므로, 끝난 트랜잭션의 callback은 다음 로그인의
+  /// state와 맞지 않아 재사용할 수 없다.
+  Future<bool> _loginWith(AppEnvironment environment) async {
     final transaction = OAuthTransaction.create();
-    _transaction = transaction;
 
     state = const AsyncLoading();
 
@@ -82,7 +95,6 @@ class LoginNotifier extends AsyncNotifier<void> {
         callbackUrlScheme: _callbackScheme,
       );
     } catch (error, stackTrace) {
-      _transaction = null;
       // 사용자가 브라우저를 닫은 경우도 예외로 전달된다. 오류로 알리지 않는다.
       AppLogger.error(
         '인증 브라우저가 종료되었습니다.',
@@ -94,8 +106,6 @@ class LoginNotifier extends AsyncNotifier<void> {
       return false;
     }
 
-    // callback은 이 트랜잭션에서 한 번만 처리한다(종료된 트랜잭션의 callback 재사용 방지).
-    _transaction = null;
     final authCode = transaction.authorizationCodeFrom(
       callbackUrl,
       redirectUri: _redirectUri,

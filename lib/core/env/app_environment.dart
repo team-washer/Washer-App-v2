@@ -21,9 +21,9 @@ class AppEnvironment {
   AppEnvironment.test({
     this.apiBaseUrl = 'https://example.test/api/v2/',
     this.refreshTokenEndpoint = 'auth/refresh',
+    this.oauthBaseUrl = '',
+    this.oauthClientId = '',
   }) : flavor = AppFlavor.development,
-       oauthBaseUrl = '',
-       oauthClientId = '',
        allowBadCertificates = false;
 
   static late final AppEnvironment instance;

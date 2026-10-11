@@ -90,7 +90,8 @@ final dioProvider = Provider<Dio>((ref) {
   return ref.watch(dioClientProvider).dio;
 });
 
-/// Dio 디버그 로그에 인증/FCM 토큰 원문이 남지 않도록 민감 값을 가린다.
+/// Dio 디버그 로그에 인증/FCM 토큰과 OAuth 인가 코드·PKCE verifier 원문이 남지 않도록
+/// 민감 값을 가린다.
 @visibleForTesting
 String sanitizeDioLog(Object message) {
   var sanitized = message.toString();
@@ -100,7 +101,7 @@ String sanitizeDioLog(Object message) {
     multiLine: true,
   );
   final tokenPattern = RegExp(
-    r'''((?:^|[{\s,])["']?(?:token|accessToken|refreshToken|access_token|refresh_token)["']?\s*:\s*["']?)([^"',\s}\]]+)''',
+    r'''((?:^|[{\s,])["']?(?:token|accessToken|refreshToken|access_token|refresh_token|authCode|auth_code|codeVerifier|code_verifier)["']?\s*:\s*["']?)([^"',\s}\]]+)''',
     caseSensitive: false,
     multiLine: true,
   );

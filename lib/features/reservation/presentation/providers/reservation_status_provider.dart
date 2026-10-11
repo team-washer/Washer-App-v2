@@ -170,7 +170,8 @@ final activeReservationProvider =
 ///
 /// - 호실 스냅샷: 이미 반영된 것보다 먼저 시작한 요청의 응답은 버린다.
 /// - 내 예약(polling): 이미 반영된 것보다 먼저 시작한 응답은 버린다. 호실 목록 응답을
-///   기다리는 중이면 결과만 기록해 두고, 스냅샷이 도착할 때 그 위에 겹쳐 쓴다.
+///   기다리는 중이면 결과만 기록해 두고, 성공 스냅샷 위에 겹쳐 쓰거나 마지막 호실 요청
+///   종료 시 최신 결과를 현재 목록에 반영한다.
 /// - 세션이 바뀌면 목록과 로드 플래그를 비우고, 그 전에 시작한 요청의 응답·오류는 모두 버린다.
 class ActiveReservationNotifier
     extends AsyncNotifier<List<ActiveReservationModel>> {
@@ -226,7 +227,7 @@ class ActiveReservationNotifier
       _reportPollingError(ref, e);
       rethrow;
     } finally {
-      _roomRequestsInFlight -= 1;
+      _finishRoomRequest();
     }
   }
 
@@ -266,7 +267,7 @@ class ActiveReservationNotifier
       _reportPollingError(ref, e);
       _setErrorIfLatest(requestId, e, st);
     } finally {
-      _roomRequestsInFlight -= 1;
+      _finishRoomRequest();
     }
   }
 
@@ -297,7 +298,34 @@ class ActiveReservationNotifier
         stackTrace: st,
       );
     } finally {
-      _roomRequestsInFlight -= 1;
+      _finishRoomRequest();
+    }
+  }
+
+  /// 마지막 호실 요청이 끝나면 성공 스냅샷으로 처리되지 못한 최신 내 예약을 반영한다.
+  void _finishRoomRequest() {
+    _roomRequestsInFlight -= 1;
+    if (_roomRequestsInFlight != 0 || !ref.mounted) {
+      return;
+    }
+
+    final update = _latestMyUpdate;
+    if (update == null ||
+        update.requestId < _appliedMineRequestId ||
+        update.requestId <= _appliedRoomRequestId) {
+      return;
+    }
+
+    final merged = update.applyTo(_latestList);
+    if (listEquals(_latestList, merged)) {
+      return;
+    }
+    _hasFetched = true;
+    _latestList = merged;
+    // foreground 조회의 로딩/오류는 유지한다. 특히 build의 실패 Future를
+    // 여기서 AsyncData로 먼저 완료시키면 안 된다.
+    if (!state.isLoading && !state.hasError) {
+      state = AsyncData(merged);
     }
   }
 

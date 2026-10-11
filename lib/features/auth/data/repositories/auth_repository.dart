@@ -25,9 +25,14 @@ class AuthRepository {
   Future<void> login({
     required String authCode,
     required String redirectUri,
+    String? codeVerifier,
   }) async {
     final response = await _dataSource.login(
-      LoginRequest(authCode: authCode, redirectUri: redirectUri),
+      LoginRequest(
+        authCode: authCode,
+        redirectUri: redirectUri,
+        codeVerifier: codeVerifier,
+      ),
     );
 
     await _dioClient.startSession(

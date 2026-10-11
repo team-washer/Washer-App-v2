@@ -6,6 +6,7 @@ import 'package:washer/features/reservation/data/data_sources/remote/reservation
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/data/models/local/machine_model.dart';
 import 'package:washer/features/reservation/data/models/remote/reservation_availability_response.dart';
+import 'package:washer/features/reservation/presentation/providers/my_reservation_update.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_status_provider.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_sync_controller.dart';
 
@@ -68,6 +69,7 @@ void main() {
   setUp(() {
     dataSource = _ControlledDataSource();
     container = ProviderContainer(
+      retry: (_, _) => null,
       overrides: [
         reservationStatusRemoteDataSourceProvider.overrideWith(
           (ref) => dataSource,
@@ -201,6 +203,165 @@ void main() {
       expect(currentList(), [_roommate]);
       expect(controller.isPolling, isFalse);
     });
+  });
+
+  group('#325 호실 조회 종료 후 보류된 내 예약 반영', () {
+    late ActiveReservationNotifier notifier;
+
+    setUp(() async {
+      final initial = container.read(activeReservationProvider.future);
+      await _settle();
+      dataSource.roomRequests.single.complete([_mineReserved, _roommate]);
+      await initial;
+      notifier = container.read(activeReservationProvider.notifier);
+    });
+
+    MyReservationApplyResult deferMine(ActiveReservationModel? mine) =>
+        notifier.applyMyReservation(
+          MyReservationUpdate(
+            requestId: notifier.beginRequest(),
+            mine: mine,
+            trackedId: 114,
+            userId: 15,
+          ),
+        );
+
+    test('polling 종료 후 마지막 호실 조회도 실패하면 내 예약만 제거된다', () async {
+      controller.startPolling(reservationId: 114, userId: 15);
+      final reload = notifier.reloadInBackground();
+      final polling = controller.syncActiveReservation();
+      dataSource.mineRequests.single.complete(null);
+      await polling;
+
+      expect(controller.isPolling, isFalse);
+      expect(currentList(), [_mineReserved, _roommate]);
+      expect(dataSource.roomRequests, hasLength(3));
+      dataSource.roomRequests[1].completeError(Exception('첫 호실 조회 실패'));
+      await reload;
+      expect(currentList(), [_mineReserved, _roommate]);
+
+      dataSource.roomRequests[2].completeError(Exception('마지막 호실 조회 실패'));
+      await _settle();
+
+      expect(currentList(), [_roommate]);
+      expect(controller.isPolling, isFalse);
+      expect(container.read(activeReservationProvider).hasError, isFalse);
+      expect(container.read(pollingErrorProvider), isNull);
+    });
+
+    test('호실 조회 실패 후 보류된 RUNNING 변경을 반영한다', () async {
+      final reload = notifier.reloadInBackground();
+      expect(deferMine(_mineRunning).isStale, isFalse);
+      expect(currentList(), [_mineReserved, _roommate]);
+
+      dataSource.roomRequests[1].completeError(Exception('호실 조회 실패'));
+      await reload;
+
+      expect(currentList(), [_mineRunning, _roommate]);
+      expect(container.read(activeReservationProvider).hasError, isFalse);
+    });
+
+    test('여러 호실 요청이 남아 있으면 기다리고 마지막 실패 뒤 적용한다', () async {
+      final first = notifier.reloadInBackground();
+      final second = notifier.reloadInBackground();
+      deferMine(_mineRunning);
+
+      dataSource.roomRequests[1].completeError(Exception('첫 조회 실패'));
+      await first;
+      expect(currentList(), [_mineReserved, _roommate]);
+
+      dataSource.roomRequests[2].completeError(Exception('마지막 조회 실패'));
+      await second;
+      expect(currentList(), [_mineRunning, _roommate]);
+    });
+
+    test('오래된 pending null은 더 최신인 호실 성공 스냅샷을 덮지 않는다', () async {
+      final older = notifier.reloadInBackground();
+      deferMine(null);
+      final newer = notifier.reloadInBackground();
+
+      dataSource.roomRequests[2].complete([_mineRunning, _roommate]);
+      await newer;
+      expect(currentList(), [_mineRunning, _roommate]);
+      dataSource.roomRequests[1].completeError(Exception('오래된 조회 실패'));
+      await older;
+
+      expect(currentList(), [_mineRunning, _roommate]);
+    });
+
+    test('호실 성공 스냅샷 위에 최신 pending을 한 번만 반영한다', () async {
+      var emitCount = 0;
+      container.listen(activeReservationProvider, (_, _) => emitCount += 1);
+      final reload = notifier.reloadInBackground();
+      deferMine(_mineRunning);
+
+      dataSource.roomRequests[1].complete([_mineReserved, _roommate]);
+      await reload;
+
+      expect(currentList(), [_mineRunning, _roommate]);
+      expect(emitCount, 1);
+    });
+
+    test('pending 내용이 기존 목록과 같으면 실패 후 state를 재발행하지 않는다', () async {
+      var emitCount = 0;
+      container.listen(activeReservationProvider, (_, _) => emitCount += 1);
+      final reload = notifier.reloadInBackground();
+      deferMine(_mineReserved);
+
+      dataSource.roomRequests[1].completeError(Exception('호실 조회 실패'));
+      await reload;
+
+      expect(currentList(), [_mineReserved, _roommate]);
+      expect(emitCount, 0);
+    });
+
+    test('여러 polling 결과 중 가장 최신 pending만 실패 뒤 적용한다', () async {
+      final reload = notifier.reloadInBackground();
+      deferMine(_mineRunning);
+      deferMine(null);
+
+      dataSource.roomRequests[1].completeError(Exception('호실 조회 실패'));
+      await reload;
+
+      expect(currentList(), [_roommate]);
+    });
+
+    test('foreground refresh 실패는 오류를 유지하면서 최신 목록을 내부에 반영한다', () async {
+      final error = Exception('foreground 호실 조회 실패');
+      final refresh = notifier.refresh();
+      deferMine(_mineRunning);
+
+      dataSource.roomRequests[1].completeError(error);
+      await refresh;
+
+      expect(container.read(activeReservationProvider).hasError, isTrue);
+      expect(container.read(activeReservationProvider).error, same(error));
+      // 동일한 결과가 이미 내부 목록에 반영되어 추가 변경이 없어야 한다.
+      expect(deferMine(_mineRunning).hasChanged, isFalse);
+      expect(container.read(activeReservationProvider).error, same(error));
+    });
+  });
+
+  test('#325 초기 build 실패는 pending이 있어도 실패 Future와 오류 상태를 유지한다', () async {
+    final error = Exception('초기 호실 조회 실패');
+    final initialFailure = expectLater(
+      container.read(activeReservationProvider.future),
+      throwsA(same(error)),
+    );
+    final notifier = container.read(activeReservationProvider.notifier);
+    MyReservationUpdate update() => MyReservationUpdate(
+      requestId: notifier.beginRequest(),
+      mine: _mineRunning,
+      trackedId: 114,
+    );
+    notifier.applyMyReservation(update());
+
+    dataSource.roomRequests.single.completeError(error);
+    await initialFailure;
+
+    expect(container.read(activeReservationProvider).hasError, isTrue);
+    expect(notifier.applyMyReservation(update()).hasChanged, isFalse);
+    expect(container.read(activeReservationProvider).error, same(error));
   });
 
   group('호실 목록 새로고침 응답이 뒤바뀌어 도착할 때', () {

@@ -3,7 +3,7 @@ name: Release - Android Play Store
 # main 에 push(머지)되면 release.yml 이 이 워크플로우를 호출해 Play Store production 트랙으로 자동 출시한다.
 # (Discord 배포 알림은 release.yml 이 iOS·Android 결과를 모아 한 번에 보낸다)
 # - 베타(internal) 배포는 cd-android.yml 이 따로 담당(같은 main push 로 동시 동작).
-# - 버전명은 pubspec.yaml, versionCode 는 run number 로 고정(중복 방지).
+# - 버전명은 pubspec.yaml, versionCode 는 Fastfile(next_play_version_code)이 Play 최고값 + 1 로 정한다.
 # ⚠️ 신규 앱은 콘솔에서 production 최초 출시를 1회 수동 진행해야 이후 API 출시가 가능하다.
 on:
   workflow_call:
@@ -132,9 +132,9 @@ jobs:
           fi
 
           echo "ANDROID_VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
-          # versionCode 는 업로드마다 단조 증가해야 하며 Play 의 기존 최고값보다 커야 한다.
-          # run number 만 쓰면 과거(내부 트랙/수동) 업로드가 쓴 낮은 코드와 충돌하므로
-          # 1000 오프셋을 더해 기존 코드 위로 띄운다. (run number 가 계속 증가하므로 단조성 유지)
+          # versionCode 의 하한값. 실제 값은 Fastfile(next_play_version_code)이 Play 트랙의 최고값 + 1 과
+          # 비교해 큰 쪽으로 정한다. release.yml 에서 호출되면 run number 가 Release 워크플로 기준이라
+          # 이 값만으로는 기존 versionCode 보다 작아질 수 있다(#386).
           echo "ANDROID_BUILD_NUMBER=$((1000 + GITHUB_RUN_NUMBER))" >> "$GITHUB_ENV"
 
       - name: Release to Play Store (production)

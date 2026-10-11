@@ -115,6 +115,7 @@ class _FakeAuthRepository implements AuthRepository {
   Future<void> login({
     required String authCode,
     required String redirectUri,
+    String? codeVerifier,
   }) async {}
 
   @override

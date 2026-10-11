@@ -15,7 +15,8 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$LoginRequest {
 
- String get authCode; String get redirectUri;
+ String get authCode; String get redirectUri;/// PKCE code verifier(#316). 서버가 DataGSM 토큰 교환에 함께 보낸다.
+@JsonKey(includeIfNull: false) String? get codeVerifier;
 /// Create a copy of LoginRequest
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +29,16 @@ $LoginRequestCopyWith<LoginRequest> get copyWith => _$LoginRequestCopyWithImpl<L
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is LoginRequest&&(identical(other.authCode, authCode) || other.authCode == authCode)&&(identical(other.redirectUri, redirectUri) || other.redirectUri == redirectUri));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is LoginRequest&&(identical(other.authCode, authCode) || other.authCode == authCode)&&(identical(other.redirectUri, redirectUri) || other.redirectUri == redirectUri)&&(identical(other.codeVerifier, codeVerifier) || other.codeVerifier == codeVerifier));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,authCode,redirectUri);
+int get hashCode => Object.hash(runtimeType,authCode,redirectUri,codeVerifier);
 
 @override
 String toString() {
-  return 'LoginRequest(authCode: $authCode, redirectUri: $redirectUri)';
+  return 'LoginRequest(authCode: $authCode, redirectUri: $redirectUri, codeVerifier: $codeVerifier)';
 }
 
 
@@ -48,7 +49,7 @@ abstract mixin class $LoginRequestCopyWith<$Res>  {
   factory $LoginRequestCopyWith(LoginRequest value, $Res Function(LoginRequest) _then) = _$LoginRequestCopyWithImpl;
 @useResult
 $Res call({
- String authCode, String redirectUri
+ String authCode, String redirectUri,@JsonKey(includeIfNull: false) String? codeVerifier
 });
 
 
@@ -65,11 +66,12 @@ class _$LoginRequestCopyWithImpl<$Res>
 
 /// Create a copy of LoginRequest
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? authCode = null,Object? redirectUri = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? authCode = null,Object? redirectUri = null,Object? codeVerifier = freezed,}) {
   return _then(_self.copyWith(
 authCode: null == authCode ? _self.authCode : authCode // ignore: cast_nullable_to_non_nullable
 as String,redirectUri: null == redirectUri ? _self.redirectUri : redirectUri // ignore: cast_nullable_to_non_nullable
-as String,
+as String,codeVerifier: freezed == codeVerifier ? _self.codeVerifier : codeVerifier // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -154,10 +156,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String authCode,  String redirectUri)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String authCode,  String redirectUri, @JsonKey(includeIfNull: false)  String? codeVerifier)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _LoginRequest() when $default != null:
-return $default(_that.authCode,_that.redirectUri);case _:
+return $default(_that.authCode,_that.redirectUri,_that.codeVerifier);case _:
   return orElse();
 
 }
@@ -175,10 +177,10 @@ return $default(_that.authCode,_that.redirectUri);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String authCode,  String redirectUri)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String authCode,  String redirectUri, @JsonKey(includeIfNull: false)  String? codeVerifier)  $default,) {final _that = this;
 switch (_that) {
 case _LoginRequest():
-return $default(_that.authCode,_that.redirectUri);case _:
+return $default(_that.authCode,_that.redirectUri,_that.codeVerifier);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -195,10 +197,10 @@ return $default(_that.authCode,_that.redirectUri);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String authCode,  String redirectUri)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String authCode,  String redirectUri, @JsonKey(includeIfNull: false)  String? codeVerifier)?  $default,) {final _that = this;
 switch (_that) {
 case _LoginRequest() when $default != null:
-return $default(_that.authCode,_that.redirectUri);case _:
+return $default(_that.authCode,_that.redirectUri,_that.codeVerifier);case _:
   return null;
 
 }
@@ -210,11 +212,13 @@ return $default(_that.authCode,_that.redirectUri);case _:
 @JsonSerializable()
 
 class _LoginRequest implements LoginRequest {
-  const _LoginRequest({required this.authCode, required this.redirectUri});
+  const _LoginRequest({required this.authCode, required this.redirectUri, @JsonKey(includeIfNull: false) this.codeVerifier});
   factory _LoginRequest.fromJson(Map<String, dynamic> json) => _$LoginRequestFromJson(json);
 
 @override final  String authCode;
 @override final  String redirectUri;
+/// PKCE code verifier(#316). 서버가 DataGSM 토큰 교환에 함께 보낸다.
+@override@JsonKey(includeIfNull: false) final  String? codeVerifier;
 
 /// Create a copy of LoginRequest
 /// with the given fields replaced by the non-null parameter values.
@@ -229,16 +233,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LoginRequest&&(identical(other.authCode, authCode) || other.authCode == authCode)&&(identical(other.redirectUri, redirectUri) || other.redirectUri == redirectUri));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LoginRequest&&(identical(other.authCode, authCode) || other.authCode == authCode)&&(identical(other.redirectUri, redirectUri) || other.redirectUri == redirectUri)&&(identical(other.codeVerifier, codeVerifier) || other.codeVerifier == codeVerifier));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,authCode,redirectUri);
+int get hashCode => Object.hash(runtimeType,authCode,redirectUri,codeVerifier);
 
 @override
 String toString() {
-  return 'LoginRequest(authCode: $authCode, redirectUri: $redirectUri)';
+  return 'LoginRequest(authCode: $authCode, redirectUri: $redirectUri, codeVerifier: $codeVerifier)';
 }
 
 
@@ -249,7 +253,7 @@ abstract mixin class _$LoginRequestCopyWith<$Res> implements $LoginRequestCopyWi
   factory _$LoginRequestCopyWith(_LoginRequest value, $Res Function(_LoginRequest) _then) = __$LoginRequestCopyWithImpl;
 @override @useResult
 $Res call({
- String authCode, String redirectUri
+ String authCode, String redirectUri,@JsonKey(includeIfNull: false) String? codeVerifier
 });
 
 
@@ -266,11 +270,12 @@ class __$LoginRequestCopyWithImpl<$Res>
 
 /// Create a copy of LoginRequest
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? authCode = null,Object? redirectUri = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? authCode = null,Object? redirectUri = null,Object? codeVerifier = freezed,}) {
   return _then(_LoginRequest(
 authCode: null == authCode ? _self.authCode : authCode // ignore: cast_nullable_to_non_nullable
 as String,redirectUri: null == redirectUri ? _self.redirectUri : redirectUri // ignore: cast_nullable_to_non_nullable
-as String,
+as String,codeVerifier: freezed == codeVerifier ? _self.codeVerifier : codeVerifier // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

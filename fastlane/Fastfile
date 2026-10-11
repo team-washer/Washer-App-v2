@@ -6,6 +6,8 @@ WORKSPACE = ENV.fetch("GITHUB_WORKSPACE", File.expand_path("..", __dir__))
 RELEASE_NOTES_PATH = "fastlane/metadata/ko/release_notes.txt"
 PLAY_CHANGELOG_LOCALE = "ko-KR"
 PLAY_CHANGELOG_LIMIT = 500
+# versionCode 최고값을 조회할 Play 트랙 (next_play_version_code)
+PLAY_TRACKS = %w[production beta alpha internal].freeze
 
 require "json"
 
@@ -369,7 +371,7 @@ platform :android do
     track = options.fetch(:track)
     release_status = options[:release_status]
 
-    build_number = ENV.fetch("ANDROID_BUILD_NUMBER")
+    build_number = next_play_version_code
     version_name = ENV.fetch("ANDROID_VERSION_NAME")
 
     # What's New 는 iOS 와 같은 파일을 단일 출처로 쓴다. (빌드 전에 검증 → 긴 빌드 낭비 방지)
@@ -415,9 +417,39 @@ platform :android do
     record_cd_result(status: "success", summary: "Play Store #{track} (#{build_number})")
   end
 
+  # versionCode 는 Play 의 모든 트랙에 올라간 값보다 커야 한다.
+  # run number 는 워크플로마다 따로 세서(release.yml 호출 · 수동 실행) 그것만으로는 증가를 보장하지 못하므로,
+  # Play 에서 트랙별 versionCode 를 조회해 "최고값 + 1" 과 워크플로가 넘긴 값(1000 + run number) 중 큰 값을 쓴다.
+  # ⚠️ 조회도 Play 에 edit 를 새로 만들어, 동시에 진행 중인 업로드의 edit 를 지운다("This Edit has been deleted").
+  #    그래서 업로드하지 않는 dry run 에서는 조회하지 않고 워크플로 값을 그대로 쓴다.
+  private_lane :next_play_version_code do
+    base = ENV.fetch("ANDROID_BUILD_NUMBER").to_i
+    json_key_data = ENV["SUPPLY_JSON_KEY_DATA"].to_s
+
+    if ENV["DRY_RUN"] == "true" || json_key_data.empty?
+      UI.important("dry run 이거나 SUPPLY_JSON_KEY_DATA 가 없어 Play versionCode 조회를 건너뜀 — #{base} 사용")
+      next base.to_s
+    end
+
+    play_codes = PLAY_TRACKS.flat_map do |track|
+      google_play_track_version_codes(track: track, json_key_data: json_key_data)
+    rescue => e
+      # production 은 항상 릴리스가 있으므로 조회 실패는 키·권한 문제다. 긴 빌드 전에 중단한다.
+      UI.user_error!("production 트랙 versionCode 조회 실패 — #{e.message}") if track == "production"
+      # 릴리스가 한 번도 없는 트랙은 조회가 실패할 수 있으므로 해당 트랙만 건너뛴다.
+      UI.important("#{track} 트랙 versionCode 조회 실패 — #{e.message}")
+      []
+    end
+    play_max = play_codes.map(&:to_i).max.to_i
+
+    version_code = [base, play_max + 1].max
+    UI.message("versionCode #{version_code} (Play 최고값 #{play_max}, 워크플로 값 #{base})")
+    version_code.to_s
+  end
+
   # iOS 와 공유하는 What's New 원본(fastlane/metadata/ko/release_notes.txt)을
   # supply 규칙인 <metadata_path>/<locale>/changelogs/<versionCode>.txt 로 복사한다.
-  # versionCode 는 실행마다 달라져(1000+run number) 커밋 시점에 알 수 없으므로 빌드 시점에 생성한다.
+  # versionCode 는 실행마다 달라져(next_play_version_code) 커밋 시점에 알 수 없으므로 빌드 시점에 생성한다.
   # ⚠️ supply 는 해당 versionCode 파일이 없으면 에러 없이 "빈 릴리스 노트"로 업로드하므로
   #    (조용한 실패) 여기서 존재·내용을 명시적으로 검증한다.
   # 반환값: upload_to_play_store 에 넘길 metadata_path

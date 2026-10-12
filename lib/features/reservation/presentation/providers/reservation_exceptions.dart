@@ -1,4 +1,5 @@
 import 'package:washer/core/network/error.dart';
+import 'package:washer/shared/theme/washer_error_message.dart';
 
 /// 예약 요청 직전 조회에서 이미 예약 또는 사용 중인 기기로 확인된 경우.
 class AlreadyReservedException implements UserFacingException {
@@ -22,6 +23,26 @@ class ReservationPenaltyException implements UserFacingException {
         ? '예약이 제한된 상태입니다. 약 $minutes분 후 다시 시도해주세요.'
         : '예약이 제한된 상태입니다. 잠시 후 다시 시도해주세요.';
   }
+}
+
+/// 예약 액션의 종류. 원인별 코드가 없을 때 같은 상태 코드라도 액션에 따라
+/// 실패 원인이 다르다.
+enum ReservationAction { reserve, cancel }
+
+/// 다른 예약·취소 요청이 아직 진행 중이라 새 요청을 보내지 않은 경우(#393).
+///
+/// 실패가 아니므로 화면에서는 안내 토스트로 보여준다.
+class ReservationActionInProgressException implements UserFacingException {
+  const ReservationActionInProgressException(this.runningAction);
+
+  /// 진행 중인 요청의 종류.
+  final ReservationAction runningAction;
+
+  @override
+  String get userMessage => switch (runningAction) {
+    ReservationAction.reserve => WasherErrorMessage.reservationInProgress,
+    ReservationAction.cancel => WasherErrorMessage.reservationCancelInProgress,
+  };
 }
 
 /// 예약 생성·취소 실패 원인. 사용자가 취해야 할 다음 행동 기준으로 나눈다(#306).

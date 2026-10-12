@@ -32,7 +32,7 @@ reservation/
       reservation_action_provider.dart   # reservationActionProvider (예약·취소)
       reservation_sync_controller.dart   # reservationSyncControllerProvider (polling)
       my_reservation_update.dart         # polling 결과를 호실 목록에 반영하는 값 객체
-      reservation_exceptions.dart        # 도메인 예외, ReservationErrorCause, ReservationException
+      reservation_exceptions.dart        # 도메인 예외, ReservationAction, ReservationErrorCause, ReservationException
       reservation_error_mapper.dart      # 실패 → ReservationException 정규화
     screens/reservation_screen.dart
     widgets/                             # reservation_machine_list, machine_reservation_card(+ _MachineHistoryIconButton),
@@ -63,7 +63,7 @@ repository 없이 provider가 data source를 직접 사용합니다.
 | --- | --- | --- |
 | `machineStatusProvider` | `AsyncNotifier<MachineStatusResponse>` (keepAlive) | 기기 상태. `refresh()` |
 | `activeReservationProvider` | `AsyncNotifier<List<ActiveReservationModel>>` (keepAlive) | 호실 활성 예약. `ensureLoaded()`, `refresh()`, `reloadInBackground()`, `applyMyReservation()`, `removeCancelledReservation()` |
-| `reservationActionProvider` | `AsyncNotifier<ActiveReservationModel?>` | `reserve()`, `cancel()`. 같은 대상의 중복 요청은 single-flight로 합침(#261) |
+| `reservationActionProvider` | `AsyncNotifier<ActiveReservationModel?>` | `reserve()`, `cancel()`. 예약·취소가 진행 중이면 대상과 관계없이 새 요청을 `ReservationActionInProgressException`으로 거절(#393) |
 | `reservationSyncControllerProvider` | `Provider<ReservationSyncController>` | `startPolling()`, `stopPolling()`, `syncActiveReservation()`, 기존 예약 polling 복구 |
 | `clockProvider` | `StreamProvider<DateTime>` | 1초 시계. 카운트다운 텍스트만 구독 |
 | `pollingErrorProvider` | `StateProvider<AppException?>` | 조회·polling 실패 안내. home의 `_HomeBody`가 토스트로 띄움 |
@@ -90,6 +90,7 @@ ReservationScreen → ReservationMachineList
 예약 버튼 (state == available && 액션 로딩 아님)
   → runDialogAction(LaundryDialogActions.reserve, popFirst: false, onSuccess: go(/home))
   → ReservationActionNotifier.reserve(machineId)
+      0. 다른 예약·취소가 진행 중이면 ReservationActionInProgressException (상태 유지, 진행 중인 요청 종류를 안내 토스트로)
       1. _ensureNotPenalized()        # GET reservations/availability. canReserve=false이고 만료 전이면 ReservationPenaltyException
                                       #   (조회 실패는 서버 검증에 맡기고 진행)
       2. _findMachine()               # GET machines/status. 사용 중으로 보이면 500ms 뒤 한 번 더 확인

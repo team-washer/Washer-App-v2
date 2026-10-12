@@ -22,6 +22,7 @@ class DialogAction<R> {
     required this.fallbackMessage,
     required this.logName,
     this.failureError,
+    this.noticeMessage,
     this.showLoading = false,
   });
 
@@ -33,6 +34,10 @@ class DialogAction<R> {
   final String fallbackMessage;
   final String logName;
   final Object? Function(ProviderContainer container)? failureError;
+
+  /// [run]이 던진 예외 중 실패가 아니라 안내로 보여줄 것이면 그 문구를 반환한다.
+  /// 문구가 있으면 에러 토스트 대신 안내 토스트로 띄운다(예: 이미 처리 중인 요청).
+  final String? Function(Object error)? noticeMessage;
 
   /// 작업 동안 루트 오버레이에 로딩 인디케이터를 표시할지 여부.
   final bool showLoading;
@@ -83,6 +88,18 @@ Future<void> runDialogAction<R>(
             ),
     );
   } catch (error, stackTrace) {
+    final notice = action.noticeMessage?.call(error);
+    if (notice != null) {
+      AppLogger.info(
+        '${action.logName} 안내: $notice',
+        name: action.logName,
+      );
+      if (rootOverlay.mounted) {
+        rootOverlay.showToast(WasherToast.info(notice));
+      }
+      return;
+    }
+
     AppLogger.error(
       '${action.logName} 처리 중 오류가 발생했습니다.',
       name: action.logName,

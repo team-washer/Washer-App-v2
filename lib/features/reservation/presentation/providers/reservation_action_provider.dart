@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:washer/core/constants/reservation_durations.dart';
@@ -18,19 +16,23 @@ import 'package:washer/features/reservation/presentation/providers/reservation_s
 ///
 /// 상태 값은 마지막으로 생성된 예약이며, 실패는 [AsyncError]로 전달된다.
 class ReservationActionNotifier extends AsyncNotifier<ActiveReservationModel?> {
-  /// 진행 중인 요청을 대상(기기/예약) 단위로 보관한다.
-  /// 키 없이 단일 슬롯에 담으면 다른 대상의 요청에 합류해 그 결과가
-  /// 이 호출의 반환값이 된다(#261).
-  final Map<String, Future<Object?>> _inflight = {};
+  /// 진행 중인 요청의 종류. 진행 중인 요청이 없으면 null.
+  ///
+  /// 상태([state])가 하나뿐이라 요청은 대상과 관계없이 한 번에 하나만 처리한다.
+  /// 동시에 진행하면 먼저 끝난 요청이 로딩·에러 상태를 덮어쓴다(#393).
+  ReservationAction? _runningAction;
   bool _didWaitForBuild = false;
 
   @override
   Future<ActiveReservationModel?> build() async => null;
 
   /// 기기 예약을 요청한다. 실패하면 상태를 에러로 두고 null을 반환한다.
+  ///
+  /// 다른 예약·취소가 진행 중이면 상태를 바꾸지 않고
+  /// [ReservationActionInProgressException]을 던진다.
   Future<ActiveReservationModel?> reserve({required int machineId}) {
-    return _runSingleFlight(
-      'reserve:$machineId',
+    return _runExclusive(
+      ReservationAction.reserve,
       () => _reserveInternal(machineId: machineId),
     );
   }
@@ -144,9 +146,12 @@ class ReservationActionNotifier extends AsyncNotifier<ActiveReservationModel?> {
   }
 
   /// 예약을 취소한다. 성공 여부를 반환한다. 패널티는 서버가 관리하므로 앱은 기록하지 않는다.
+  ///
+  /// 다른 예약·취소가 진행 중이면 상태를 바꾸지 않고
+  /// [ReservationActionInProgressException]을 던진다.
   Future<bool> cancel({required int reservationId}) {
-    return _runSingleFlight(
-      'cancel:$reservationId',
+    return _runExclusive(
+      ReservationAction.cancel,
       () => _cancelInternal(reservationId: reservationId),
     );
   }
@@ -210,28 +215,25 @@ class ReservationActionNotifier extends AsyncNotifier<ActiveReservationModel?> {
     ref.read(reservationSyncControllerProvider).stopPolling();
   }
 
-  /// 같은 [key] 로 들어온 중복 요청만 하나로 합친다.
+  /// 진행 중인 요청이 없을 때만 [action]을 실행한다.
   ///
-  /// 키가 다르면(다른 기기 예약, 다른 예약 취소) 각자 요청을 보낸다.
-  /// 합쳐 버리면 누르지 않은 대상의 결과가 반환값이 되어 호출부가 그것을
-  /// 성공으로 처리한다(#261).
-  Future<T> _runSingleFlight<T>(String key, Future<T> Function() action) {
-    final currentRequest = _inflight[key];
-    if (currentRequest != null) {
-      return currentRequest.then((value) => value as T);
+  /// 진행 중인 요청에 합류시키지 않고 거절한다. 합류하면 누르지 않은 대상의
+  /// 결과가 반환값이 되어 호출부가 그것을 성공으로 처리한다(#261).
+  Future<T> _runExclusive<T>(
+    ReservationAction kind,
+    Future<T> Function() action,
+  ) async {
+    final runningAction = _runningAction;
+    if (runningAction != null) {
+      throw ReservationActionInProgressException(runningAction);
     }
 
-    final request = action();
-    _inflight[key] = request;
-    unawaited(
-      request.then<void>(
-        (_) => _inflight.remove(key),
-        onError: (Object _, StackTrace __) {
-          _inflight.remove(key);
-        },
-      ),
-    );
-    return request;
+    _runningAction = kind;
+    try {
+      return await action();
+    } finally {
+      _runningAction = null;
+    }
   }
 }
 

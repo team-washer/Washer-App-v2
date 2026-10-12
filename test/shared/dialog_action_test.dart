@@ -84,4 +84,43 @@ void main() {
 
     await tester.pump(const Duration(seconds: 6));
   });
+
+  testWidgets('안내 문구가 있는 예외는 에러가 아닌 안내 토스트로 보여준다', (tester) async {
+    await _run(
+      tester,
+      DialogAction<bool>(
+        run: (_) async => throw StateError('in progress'),
+        isSuccess: (result) => result,
+        successMessage: '성공했습니다.',
+        fallbackMessage: '처리에 실패했습니다.',
+        noticeMessage: (error) => error is StateError ? '처리하고 있어요.' : null,
+        logName: 'TestAction',
+      ),
+    );
+
+    expect(find.text('처리하고 있어요.'), findsOneWidget);
+    // 에러 토스트에만 붙는 관리자 문의 안내가 없다.
+    expect(find.textContaining('관리자에게 문의'), findsNothing);
+
+    await tester.pump(const Duration(seconds: 6));
+  });
+
+  testWidgets('안내 문구가 없는 예외는 에러 토스트로 보여준다', (tester) async {
+    await _run(
+      tester,
+      DialogAction<bool>(
+        run: (_) async => throw AppException(message: '진짜 실패'),
+        isSuccess: (result) => result,
+        successMessage: '성공했습니다.',
+        fallbackMessage: '처리에 실패했습니다.',
+        noticeMessage: (_) => null,
+        logName: 'TestAction',
+      ),
+    );
+
+    expect(find.text('진짜 실패'), findsOneWidget);
+    expect(find.textContaining('관리자에게 문의'), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 6));
+  });
 }

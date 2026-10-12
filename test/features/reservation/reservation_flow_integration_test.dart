@@ -206,31 +206,52 @@ void main() {
       await expectConsistentWithServer(winner);
     });
 
-    test('같은 기기를 연달아 누르면 서버 요청은 한 번만 나간다(single-flight)', () async {
+    test('같은 기기를 연달아 누르면 서버 요청은 한 번만 나가고 두 번째는 거절된다', () async {
       final me = ClientApp(server, userId: 15);
       await me.openHome();
 
-      final results = await Future.wait([me.reserve(1), me.reserve(1)]);
+      final first = me.reserve(1);
+      await expectLater(
+        me.reserve(1),
+        throwsA(isA<ReservationActionInProgressException>()),
+      );
 
-      expect(results[0], isNotNull);
-      expect(results[1], results[0], reason: '같은 요청에 합류해 같은 결과를 받는다');
+      expect(await first, isNotNull);
       expect(server.calls(Endpoint.create), 1);
       expect(server.activeCount, 1);
     });
 
-    test('한 사용자가 서로 다른 기기를 동시에 예약하면 1인 1예약으로 하나만 성공한다', () async {
+    test('한 기기에서 예약이 진행 중이면 다른 기기 예약은 서버로 나가지 않는다', () async {
       final me = ClientApp(server, userId: 15);
       await me.openHome();
 
-      final results = await Future.wait([me.reserve(1), me.reserve(3)]);
+      final first = me.reserve(1);
+      await expectLater(
+        me.reserve(3),
+        throwsA(isA<ReservationActionInProgressException>()),
+      );
 
-      expect(results.whereType<ActiveReservationModel>(), hasLength(1));
-      expect(server.calls(Endpoint.create), 2, reason: '키가 달라 둘 다 서버로 나간다');
-      expect(server.activeCount, 1);
-      final winner = results.whereType<ActiveReservationModel>().single;
-      expect(me.reservations.map((r) => r.id), [winner.id]);
+      final winner = await first;
+      expect(winner?.machineId, 1);
+      expect(server.calls(Endpoint.create), 1);
+      expect(me.reservations.map((r) => r.id), [winner!.id]);
       expect(me.isPolling, isTrue);
       await expectConsistentWithServer(me);
+    });
+
+    test('한 사용자가 두 단말에서 서로 다른 기기를 동시에 예약하면 1인 1예약으로 하나만 성공한다', () async {
+      // 앱 안의 차단은 단말마다 따로라 서버 검증이 최종 방어선이다.
+      final phone = ClientApp(server, userId: 15);
+      final tablet = ClientApp(server, userId: 15);
+      await Future.wait([phone.openHome(), tablet.openHome()]);
+
+      final results = await Future.wait([phone.reserve(1), tablet.reserve(3)]);
+
+      expect(results.whereType<ActiveReservationModel>(), hasLength(1));
+      expect(server.calls(Endpoint.create), 2);
+      expect(server.activeCount, 1);
+      await expectConsistentWithServer(phone);
+      await expectConsistentWithServer(tablet);
     });
 
     test('같은 호실의 룸메이트가 같은 종류(세탁기)를 동시에 예약하면 한 명만 성공한다', () async {

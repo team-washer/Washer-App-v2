@@ -56,6 +56,9 @@ class WasherErrorMessage {
   static const reservationAlreadyStarted = '이미 사용이 시작된 예약은 취소할 수 없어요.';
   static const reservationStateChanged = '예약 상태가 바뀌었어요.\n최신 상태를 확인해주세요.';
   static const reservationAccessDenied = '이 예약을 처리할 권한이 없어요.';
+  static const reservationInProgress = '예약 요청을 처리하고 있어요.\n완료된 뒤 다시 시도해주세요.';
+  static const reservationCancelInProgress =
+      '예약 취소를 처리하고 있어요.\n완료된 뒤 다시 시도해주세요.';
 
   // ============================================
   // Machine - 기기

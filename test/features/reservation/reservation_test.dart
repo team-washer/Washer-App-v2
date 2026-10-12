@@ -18,6 +18,7 @@ import 'package:washer/features/reservation/presentation/providers/reservation_e
 import 'package:washer/features/reservation/presentation/providers/reservation_sync_controller.dart';
 import 'package:washer/features/user/data/models/my_user_model.dart';
 import 'package:washer/features/user/presentation/providers/my_user_provider.dart';
+import 'package:washer/shared/theme/washer_error_message.dart';
 
 class FakeReservationRemoteDataSource implements ReservationRemoteDataSource {
   FakeReservationRemoteDataSource({
@@ -724,89 +725,148 @@ void main() {
       ]);
     });
 
-    test('#261: 다른 기기를 연달아 누르면 각각 별도 요청이 나간다', () async {
-      final reservationDataSource = FakeReservationRemoteDataSource(
-        createdReservationBuilder: (machineId) =>
-            _reservedReservation.copyWith(machineId: machineId),
+    group('#393: 진행 중 요청 차단', () {
+      /// 진행 중인 요청 종류가 [running]인 거절 예외를 던지는지.
+      Matcher throwsInProgress(ReservationAction running) => throwsA(
+        isA<ReservationActionInProgressException>().having(
+          (e) => e.runningAction,
+          'runningAction',
+          running,
+        ),
       );
-      final container = ProviderContainer(
-        overrides: [
-          reservationRemoteDataSourceProvider.overrideWith(
-            (ref) => reservationDataSource,
-          ),
-          reservationStatusRemoteDataSourceProvider.overrideWith(
-            (ref) => FakeReservationStatusRemoteDataSource(
-              machineStatusLoader: () async =>
-                  const MachineStatusResponse(machines: [], totalCount: 0),
+
+      late FakeReservationRemoteDataSource reservationDataSource;
+      late ProviderContainer container;
+      late ReservationActionNotifier notifier;
+
+      void setUpNotifier({
+        Object? cancelError,
+        Future<CancelReservationResponse>? cancelFuture,
+      }) {
+        reservationDataSource = FakeReservationRemoteDataSource(
+          createdReservationBuilder: (machineId) =>
+              _reservedReservation.copyWith(machineId: machineId),
+          cancelError: cancelError,
+          cancelFuture: cancelFuture,
+        );
+        container = ProviderContainer(
+          overrides: [
+            reservationRemoteDataSourceProvider.overrideWith(
+              (ref) => reservationDataSource,
             ),
-          ),
-        ],
-      );
-      addTearDown(container.dispose);
-
-      final notifier = container.read(reservationActionProvider.notifier);
-      // 83 이 아직 진행 중인 상태에서 84 를 누른다.
-      final first = notifier.reserve(machineId: 83);
-      final second = notifier.reserve(machineId: 84);
-      final results = await Future.wait([first, second]);
-
-      expect(reservationDataSource.createdMachineIds, [83, 84]);
-      expect(results[0]?.machineId, 83);
-      // 키가 없으면 84 호출이 83 의 결과를 그대로 받아 성공으로 처리된다.
-      expect(results[1]?.machineId, 84);
-    });
-
-    test('#261: 같은 기기를 연달아 누르면 요청은 한 번만 나간다', () async {
-      final reservationDataSource = FakeReservationRemoteDataSource();
-      final container = ProviderContainer(
-        overrides: [
-          reservationRemoteDataSourceProvider.overrideWith(
-            (ref) => reservationDataSource,
-          ),
-          reservationStatusRemoteDataSourceProvider.overrideWith(
-            (ref) => FakeReservationStatusRemoteDataSource(
-              machineStatusLoader: () async =>
-                  const MachineStatusResponse(machines: [], totalCount: 0),
+            reservationStatusRemoteDataSourceProvider.overrideWith(
+              (ref) => FakeReservationStatusRemoteDataSource(
+                machineStatusLoader: () async =>
+                    const MachineStatusResponse(machines: [], totalCount: 0),
+              ),
             ),
-          ),
-        ],
-      );
-      addTearDown(container.dispose);
+          ],
+        );
+        addTearDown(container.dispose);
+        notifier = container.read(reservationActionProvider.notifier);
+      }
 
-      final notifier = container.read(reservationActionProvider.notifier);
-      final results = await Future.wait([
-        notifier.reserve(machineId: 83),
-        notifier.reserve(machineId: 83),
-      ]);
+      setUp(setUpNotifier);
 
-      expect(reservationDataSource.createdMachineIds, [83]);
-      expect(results[0], results[1]);
-    });
+      test('같은 기기를 연달아 누르면 요청은 한 번만 나가고 두 번째는 거절된다', () async {
+        final first = notifier.reserve(machineId: 83);
+        final second = notifier.reserve(machineId: 83);
 
-    test('#261: 다른 예약을 연달아 취소하면 각각 별도 요청이 나간다', () async {
-      final reservationDataSource = FakeReservationRemoteDataSource();
-      final container = ProviderContainer(
-        overrides: [
-          reservationRemoteDataSourceProvider.overrideWith(
-            (ref) => reservationDataSource,
-          ),
-          reservationStatusRemoteDataSourceProvider.overrideWith(
-            (ref) => FakeReservationStatusRemoteDataSource(
-              machineStatusLoader: () async =>
-                  const MachineStatusResponse(machines: [], totalCount: 0),
+        await expectLater(
+          second,
+          throwsInProgress(ReservationAction.reserve),
+        );
+        expect((await first)?.machineId, 83);
+        expect(reservationDataSource.createdMachineIds, [83]);
+      });
+
+      test('#261: 다른 기기를 누르면 진행 중인 결과에 합류하지 않고 거절된다', () async {
+        // 83 이 아직 진행 중인 상태에서 84 를 누른다.
+        final first = notifier.reserve(machineId: 83);
+        final second = notifier.reserve(machineId: 84);
+
+        // 합류하면 84 호출이 83 의 결과를 그대로 받아 성공으로 처리된다.
+        await expectLater(
+          second,
+          throwsInProgress(ReservationAction.reserve),
+        );
+        expect((await first)?.machineId, 83);
+        expect(reservationDataSource.createdMachineIds, [83]);
+      });
+
+      test('취소가 진행 중이면 다른 취소·예약도 거절된다', () async {
+        final first = notifier.cancel(reservationId: 114);
+
+        await expectLater(
+          notifier.cancel(reservationId: 115),
+          throwsInProgress(ReservationAction.cancel),
+        );
+        await expectLater(
+          notifier.reserve(machineId: 83),
+          throwsInProgress(ReservationAction.cancel),
+        );
+        expect(await first, isTrue);
+        expect(reservationDataSource.cancelledIds, [114]);
+        expect(reservationDataSource.createdMachineIds, isEmpty);
+      });
+
+      test('거절된 요청은 진행 중인 요청의 상태를 바꾸지 않는다', () async {
+        final cancelCompleter = Completer<CancelReservationResponse>();
+        setUpNotifier(cancelFuture: cancelCompleter.future);
+        // 화면이 provider를 구독한 뒤처럼 build()가 끝난 상태에서 시작한다.
+        await container.read(reservationActionProvider.future);
+
+        final first = notifier.cancel(reservationId: 114);
+        expect(container.read(reservationActionProvider).isLoading, isTrue);
+
+        await expectLater(
+          notifier.reserve(machineId: 83),
+          throwsInProgress(ReservationAction.cancel),
+        );
+        expect(container.read(reservationActionProvider).isLoading, isTrue);
+
+        cancelCompleter.complete(_noPenaltyCancel);
+        expect(await first, isTrue);
+        expect(container.read(reservationActionProvider).hasError, isFalse);
+        expect(reservationDataSource.createdMachineIds, isEmpty);
+      });
+
+      test('요청이 성공으로 끝나면 다음 요청을 보낼 수 있다', () async {
+        await notifier.reserve(machineId: 83);
+        await notifier.cancel(reservationId: 114);
+        await notifier.reserve(machineId: 84);
+
+        expect(reservationDataSource.createdMachineIds, [83, 84]);
+        expect(reservationDataSource.cancelledIds, [114]);
+      });
+
+      test('요청이 실패로 끝나도 다음 요청을 보낼 수 있다', () async {
+        setUpNotifier(cancelError: Exception('cancel failed'));
+
+        expect(await notifier.reserve(machineId: 83), isNotNull);
+        expect(await notifier.cancel(reservationId: 114), isFalse);
+        expect((await notifier.reserve(machineId: 84))?.machineId, 84);
+        expect(reservationDataSource.createdMachineIds, [83, 84]);
+      });
+
+      test('진행 중 거절 예외는 진행 중인 요청 종류를 사용자 문구로 알려준다', () {
+        expect(
+          AppException.from(
+            const ReservationActionInProgressException(
+              ReservationAction.reserve,
             ),
-          ),
-        ],
-      );
-      addTearDown(container.dispose);
-
-      final notifier = container.read(reservationActionProvider.notifier);
-      await Future.wait([
-        notifier.cancel(reservationId: 114),
-        notifier.cancel(reservationId: 115),
-      ]);
-
-      expect(reservationDataSource.cancelledIds, [114, 115]);
+          ).message,
+          WasherErrorMessage.reservationInProgress,
+        );
+        expect(
+          AppException.from(
+            const ReservationActionInProgressException(
+              ReservationAction.cancel,
+            ),
+          ).message,
+          WasherErrorMessage.reservationCancelInProgress,
+        );
+      });
     });
 
     test('#323: 취소 요청 중 목록이 갱신돼도 polling을 다시 시작하지 않는다', () async {

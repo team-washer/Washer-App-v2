@@ -59,6 +59,7 @@ shared/
   → action.run(container)          # showLoading이면 로딩 오버레이
   → 성공: onSuccess() → successMessage 토스트
   → 실패: failureError(container) ?? fallbackMessage 토스트
+  → 예외: noticeMessage(error)가 문구를 주면 안내 토스트, 아니면 에러 토스트
 ```
 
 - 액션 정의는 한곳에 모읍니다.

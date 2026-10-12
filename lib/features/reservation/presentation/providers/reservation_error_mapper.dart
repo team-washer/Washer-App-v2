@@ -3,10 +3,6 @@ import 'package:washer/core/network/server_error_code.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_exceptions.dart';
 import 'package:washer/shared/theme/washer_error_message.dart';
 
-/// 실패한 예약 액션의 종류. 원인별 코드가 없을 때 같은 상태 코드라도 액션에 따라
-/// 원인이 다르다.
-enum ReservationAction { reserve, cancel }
-
 /// 예약 생성·취소 실패를 원인([ReservationErrorCause])이 분류된 [AppException]으로
 /// 정규화한다(#306).
 ///

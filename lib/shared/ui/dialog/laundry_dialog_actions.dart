@@ -4,6 +4,7 @@ import 'package:washer/shared/ui/dialog/dialog_action.dart';
 import 'package:washer/features/reservation/data/models/local/active_reservation_model.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_action_provider.dart';
 import 'package:washer/features/reservation/presentation/providers/reservation_error_mapper.dart';
+import 'package:washer/features/reservation/presentation/providers/reservation_exceptions.dart';
 
 /// 세탁기/건조기 관련(예약·예약 취소) 비동기 액션 정의 모음.
 ///
@@ -30,6 +31,7 @@ abstract final class LaundryDialogActions {
       fallbackMessage: '예약에 실패했습니다. 다시 시도해주세요.',
       failureError: (container) =>
           _failureError(container, ReservationAction.reserve),
+      noticeMessage: _inProgressMessage,
       logName: 'ReserveAction',
       showLoading: true,
     );
@@ -48,6 +50,7 @@ abstract final class LaundryDialogActions {
       fallbackMessage: '예약 취소에 실패했습니다.',
       failureError: (container) =>
           _failureError(container, ReservationAction.cancel),
+      noticeMessage: _inProgressMessage,
       logName: 'CancelReservationAction',
     );
   }
@@ -63,4 +66,8 @@ abstract final class LaundryDialogActions {
     }
     return reservationErrorToAppException(error, action: action);
   }
+
+  /// 다른 예약·취소가 진행 중이라 거절된 요청은 실패가 아니므로 안내 문구를 돌려준다.
+  static String? _inProgressMessage(Object error) =>
+      error is ReservationActionInProgressException ? error.userMessage : null;
 }

@@ -48,5 +48,20 @@ fi
 
 flutter pub get
 
+# The fallback must use the same committed gem set as the iOS script.
+test -s "$REPO_ROOT/Gemfile.lock"
+export BUNDLE_GEMFILE="$REPO_ROOT/Gemfile"
+export BUNDLE_FROZEN=true
+export BUNDLE_IGNORE_CONFIG=true
+export BUNDLE_PATH="$HOME/.cache/washer-ruby/bundle"
+export GEM_HOME="$HOME/.cache/washer-ruby/bundler"
+export GEM_PATH="$GEM_HOME:$(ruby -e 'puts Gem.path.join(File::PATH_SEPARATOR)')"
+export PATH="$GEM_HOME/bin:$PATH"
+BUNDLER_VERSION="$(ruby -e 'version = File.read(ARGV.fetch(0))[/^BUNDLED WITH\r?\n[ \t]+(\S+)/, 1]; abort "Gemfile.lock is missing BUNDLED WITH" unless version; puts version' "$REPO_ROOT/Gemfile.lock")"
+if ! gem list --installed --exact bundler --version "$BUNDLER_VERSION" >/dev/null; then
+  gem install bundler --version "$BUNDLER_VERSION" --no-document --install-dir "$GEM_HOME"
+fi
+bundle "_${BUNDLER_VERSION}_" install
+
 cd "$REPO_ROOT/ios"
-pod install
+bundle exec pod install

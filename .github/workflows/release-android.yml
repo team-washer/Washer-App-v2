@@ -60,6 +60,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       result: ${{ steps.fastlane.outputs.result }}
+    env:
+      BUNDLE_FROZEN: 'true'
 
     steps:
       - name: Checkout
@@ -83,6 +85,9 @@ jobs:
         run: |
           fvm install
           fvm use --force
+
+      - name: Require committed gem lock
+        run: test -s Gemfile.lock
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1

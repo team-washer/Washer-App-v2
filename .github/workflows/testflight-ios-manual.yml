@@ -19,6 +19,8 @@ jobs:
   upload-testflight:
     name: Build & Upload to TestFlight
     runs-on: macos-latest
+    env:
+      BUNDLE_FROZEN: 'true'
 
     steps:
       - name: Checkout selected branch
@@ -48,6 +50,9 @@ jobs:
         run: |
           fvm install
           fvm use --force
+
+      - name: Require committed gem lock
+        run: test -s Gemfile.lock
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@e8944e80fb94b20106697132f8c20c665fab29e9 # v1

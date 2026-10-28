@@ -48,7 +48,8 @@ shared/
 - 넘긴 값은 `AppException.from`으로 변환됩니다.
   - 문자열을 그대로 넘기면 "알 수 없는 오류"가 되므로 `AppException(message: '...')`로 감쌉니다.
   - 취소된 요청(`isCancelled`)은 띄우지 않습니다.
-- 토스트는 화면에 하나만 떠 있고, 5초 뒤 자동으로 닫힙니다.
+- 토스트는 화면에 하나만 떠 있고, 정해진 시간(에러 5초, 성공·안내 3초) 뒤 자동으로 닫힙니다.
+  - 기기의 애니메이션 제거 설정과 관계없이 이 시간을 유지합니다(`AnimationBehavior.preserve`, #396). 기본값이면 Flutter가 시간을 5%로 줄여 토스트가 바로 사라집니다.
 
 **다이얼로그 액션** (`ui/dialog/dialog_action.dart`)
 

@@ -54,7 +54,6 @@ jobs:
       - name: Set up locked Ruby gems
         uses: ruby/setup-ruby@e8944e80fb94b20106697132f8c20c665fab29e9 # v1
         with:
-          ruby-version: '3.3'
           bundler-cache: true
 
       - name: Set up Dart
@@ -181,7 +180,6 @@ jobs:
       - name: Set up locked Ruby gems
         uses: ruby/setup-ruby@e8944e80fb94b20106697132f8c20c665fab29e9 # v1
         with:
-          ruby-version: '3.3'
           bundler-cache: true
 
       - name: Set up Dart
@@ -210,3 +208,18 @@ jobs:
           cmp "$RUNNER_TEMP/ios-pod-lock/Podfile.lock" ios/Podfile.lock
           cmp ios/Podfile.lock ios/Pods/Manifest.lock
           echo 'Generated Podfile.lock passed a clean deployment install without changes.' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Attempt unsigned iOS build without store credentials
+        id: ios-build
+        continue-on-error: true
+        run: |
+          bash scripts/ensure_env_files.sh
+          fvm flutter build ios --release --no-codesign --no-pub
+
+      - name: Record optional build outcome and reject dependency drift
+        if: always()
+        env:
+          IOS_BUILD_OUTCOME: ${{ steps.ios-build.outcome }}
+        run: |
+          echo "Optional unsigned iOS build: $IOS_BUILD_OUTCOME" >> "$GITHUB_STEP_SUMMARY"
+          git diff --exit-code -- pubspec.yaml pubspec.lock Gemfile Gemfile.lock .fvmrc ios/Podfile ios/Podfile.lock

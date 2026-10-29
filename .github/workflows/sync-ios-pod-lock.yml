@@ -72,9 +72,9 @@ jobs:
           fvm flutter precache --ios
           git diff --exit-code -- pubspec.yaml pubspec.lock Gemfile Gemfile.lock .fvmrc
 
-      - name: Regenerate native lock without updating existing pins
+      - name: Verify the committed native lock in deployment mode
         working-directory: ios
-        run: bundle exec pod install
+        run: bundle exec pod install --deployment
 
       - name: Verify native plugin links and installed graph
         run: |
@@ -115,7 +115,7 @@ jobs:
       - name: Collect lock and regeneration evidence
         id: evidence
         run: |
-          git diff --exit-code -- pubspec.yaml pubspec.lock Gemfile Gemfile.lock .fvmrc ios/Podfile
+          git diff --exit-code -- pubspec.yaml pubspec.lock Gemfile Gemfile.lock .fvmrc ios/Podfile ios/Podfile.lock
           mkdir -p "$RUNNER_TEMP/ios-pod-lock"
           cp ios/Podfile.lock "$RUNNER_TEMP/ios-pod-lock/Podfile.lock"
           cp "$RUNNER_TEMP/pod-plugin-checks.txt" "$RUNNER_TEMP/ios-pod-lock/"
@@ -213,6 +213,9 @@ jobs:
         id: ios-build
         continue-on-error: true
         run: |
+          bundle binstubs cocoapods
+          export PATH="$GITHUB_WORKSPACE/bin:$PATH"
+          test "$(pod --version)" = "$(bundle exec pod --version)"
           bash scripts/ensure_env_files.sh
           fvm flutter build ios --release --no-codesign --no-pub
 

@@ -231,6 +231,10 @@ class _WasherToastOverlayState extends State<_WasherToastOverlay>
         AnimationController(
             vsync: this,
             duration: widget.toast._style.duration,
+            // 노출 시간은 장식용 애니메이션이 아니라 사용자가 메시지를 읽는 시간이다.
+            // 기본값(normal)이면 기기의 애니메이션 제거 설정에서 Flutter가 시간을
+            // 5%로 줄여 토스트가 바로 사라지므로, 설정과 관계없이 유지한다(#396).
+            animationBehavior: AnimationBehavior.preserve,
           )
           ..addStatusListener((status) {
             if (status == AnimationStatus.completed) {

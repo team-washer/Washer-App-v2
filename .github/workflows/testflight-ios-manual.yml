@@ -57,7 +57,6 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@e8944e80fb94b20106697132f8c20c665fab29e9 # v1
         with:
-          ruby-version: '3.3'
           bundler-cache: true
 
       - name: Export CocoaPods bin to PATH

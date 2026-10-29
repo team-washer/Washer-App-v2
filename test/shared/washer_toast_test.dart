@@ -285,4 +285,50 @@ void main() {
       await tester.pump(const Duration(seconds: 3));
     });
   });
+
+  group('기기의 애니메이션 제거 설정 (#396)', () {
+    void disableAnimations(WidgetTester tester) {
+      tester.platformDispatcher.accessibilityFeaturesTestValue =
+          const FakeAccessibilityFeatures(disableAnimations: true);
+      addTearDown(
+        tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
+      );
+    }
+
+    testWidgets('에러 토스트는 애니메이션 제거 설정에서도 5초 동안 보인다', (tester) async {
+      disableAnimations(tester);
+      final overlay = await _pumpHost(tester);
+
+      overlay.showToast(WasherToast.error(AppException(message: '예약 제한')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 4900));
+      expect(find.text('예약 제한'), findsOneWidget, reason: '0.25초로 줄어들면 안 된다');
+
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pump();
+      expect(find.text('예약 제한'), findsNothing);
+    });
+
+    testWidgets('대기 중이던 토스트도 애니메이션 제거 설정에서 3초 동안 보인다', (tester) async {
+      disableAnimations(tester);
+      final overlay = await _pumpHost(tester);
+
+      overlay
+        ..showToast(WasherToast.info('첫 번째'))
+        ..showToast(WasherToast.success('두 번째'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 2900));
+      expect(find.text('첫 번째'), findsOneWidget);
+      expect(find.text('두 번째'), findsNothing);
+
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 2800));
+      expect(find.text('두 번째'), findsOneWidget);
+
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump();
+      expect(find.text('두 번째'), findsNothing);
+    });
+  });
 }

@@ -7,18 +7,38 @@ on:
     branches: [ main, develop ]
 
 jobs:
-  # Fastfile 문법 오류는 양쪽 스토어 배포를 동시에 깨뜨리므로 모든 PR 에서 잡는다.
+  # Fastfile 문법과 고정 gem의 Ruby 호환성을 양쪽 배포 환경에서 검증한다.
   # (릴리스 검증과 무관하니 skip-release-check 라벨에 영향받지 않도록 별도 잡으로 둔다)
   fastfile_check:
-    name: Fastfile 문법 검사
-    runs-on: ubuntu-latest
+    name: Ruby gem 호환성 (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     if: github.event_name == 'pull_request'
+    env:
+      BUNDLE_FROZEN: 'true'
+      COCOAPODS_DISABLE_STATS: 'true'
+      FASTLANE_SKIP_UPDATE_CHECK: 'true'
+      FASTLANE_OPT_OUT_USAGE: 'true'
     steps:
       - uses: actions/checkout@v4
+      - run: test -s Gemfile.lock
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.2'
+          bundler-cache: true
       - run: ruby -c fastlane/Fastfile
+      - name: Verify locked gems without executing deployment lanes
+        shell: bash
+        run: |
+          ruby -e 'expected = File.read(".ruby-version").strip; abort "Ruby does not match .ruby-version" unless RUBY_VERSION.start_with?("#{expected}."); puts RUBY_DESCRIPTION'
+          bundle --version
+          bundle check
+          bundle exec fastlane lanes
+          bundle exec pod --version
+          git diff --exit-code -- Gemfile Gemfile.lock .ruby-version
 
   flutter_test_and_build:
     runs-on: ubuntu-latest

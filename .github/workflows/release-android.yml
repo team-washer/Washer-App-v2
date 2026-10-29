@@ -57,7 +57,8 @@ jobs:
     needs: guard
     # 실배포는 Play Store 키가 있을 때만. dry-run(테스트)은 키 없이도 빌드 검증을 위해 실행.
     if: needs.guard.outputs.configured == 'true' || inputs.dry_run
-    runs-on: ubuntu-latest
+    # Ruby 3.1 has no prebuilt runtime on Ubuntu 26.04.
+    runs-on: ubuntu-24.04
     outputs:
       result: ${{ steps.fastlane.outputs.result }}
     env:
@@ -92,7 +93,6 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.2'
           bundler-cache: true
 
       - name: Flutter pub get

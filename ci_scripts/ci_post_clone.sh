@@ -64,4 +64,4 @@ fi
 bundle "_${BUNDLER_VERSION}_" install
 
 cd "$REPO_ROOT/ios"
-bundle exec pod install
+bundle exec pod install --deployment
